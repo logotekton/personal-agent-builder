@@ -70,7 +70,7 @@
 |------|------|
 | [`docs/`](./docs) | **다른 사람을 위한 설명서** — 개념·목적·전체 절차·사용자 개입 시점으로 자기 개인 에이전트를 만드는 법 ([build-your-personal-agent](./docs/build-your-personal-agent.md)) + 훅 배선 설정([hooks-setup](./docs/hooks-setup.md)) |
 | [`.claude/`](./.claude), [`.codex/`](./.codex) | 커밋된 **훅 설정** — Claude Code(`settings.json`)·Codex CLI(`config.toml`)에서 자동 포착을 가동하는 배선 + 공유 스텁 [`tools/pab`](./tools/pab) (현재 STUB) |
-| [`spec/`](./spec) | 시스템 전체 사양 — 커널 스키마, 빌더 파이프라인, 팩 카탈로그, 프라이버시, 평가, **수렴 모델**, 9-space 크로스워크, 네이밍, **트리거** |
+| [`spec/`](./spec) | 시스템 전체 사양 — 커널 스키마, 빌더 파이프라인, 팩 카탈로그, 프라이버시, 평가, **수렴 모델**, 9-space 크로스워크, 네이밍, **트리거**, 중복 억제·병합, **확인 정책** |
 | [`schemas/`](./schemas) | 14개 user 온톨로지 팩의 JSON Schema + 통합 베이스 레코드 + 후보/평가/**트리거** 스키마 (기계 검증용) |
 | [`skills/`](./skills) | 13개 빌더 스킬 문서 — 암묵지를 팩으로 바꾸는 *방법* (각 스킬의 발화 **트리거** 포함) + 트리거를 실제 호스트(Claude/Codex/Agents SDK/API)에 배선하는 **호스트 배선 어댑터** |
 | [`examples/logotekton/`](./examples/logotekton) | 처음부터 끝까지 동작하는 실제 인스턴스 예제 |

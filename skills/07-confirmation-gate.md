@@ -47,7 +47,9 @@
 
 > 게이트의 산출은 *결정이 찍힌 후보*다. 결정은 사람의 것이고, 시스템은 그 결정을 **감사 가능하게**
 > 기록할 뿐이다. `confidence`(추출 신뢰도)는 **참고치이지 승인 사유가 아니다** — 높은 신뢰도가
-> 자동 confirm을 뜻하지 않고, 낮은 신뢰도가 자동 reject를 뜻하지 않는다.
+> 자동 confirm을 뜻하지 않고, 낮은 신뢰도가 자동 reject를 뜻하지 않는다. (좁은 예외로 *측정·보정된*
+> auto-confirm 정책이 있으나, 거기서도 confidence는 **필요조건의 하나**일 뿐 단독 승인 사유가
+> 아니다 — §11, [확인 정책 spec/12](../spec/12-confirmation-policy.md).)
 
 ## 2. 작동 방식 (How it works)
 
@@ -342,3 +344,37 @@ traceability 를 오히려 강화합니다.
 품질 체크: 같은 스코프가 아닌 근접중복은 `merge` 가 아니라 `supersede`/별도 레코드(스코프 정밀화)로
 다룬다 — 서로 다른 스코프를 뭉개지 않는다(G2). 측정은 `redundancy_ratio`·`merge_rate`
 ([../spec/06-convergence-model.md](../spec/06-convergence-model.md) §7).
+
+
+## 확인 정책: auto-confirm 의 좁은 예외 (spec/12)
+
+> 전체 논리·근거·캘리브레이션 방법은 [../spec/12-confirmation-policy.md](../spec/12-confirmation-policy.md).
+> 머신 스키마는 [trigger.schema.json](../schemas/trigger.schema.json)의 `auto_confirm_policy`.
+
+게이트의 **기본은 항상 사람 검토**입니다(§5 불변식 G3). 매번 묻기엔 *명백한* 저위험·고반복
+케이스를 위해, 게이트를 **좁게** 우회하는 `auto_confirm_policy`를 둘 수 있습니다 — 단, 이는
+프라이버시·휴먼인더루프 모델을 약화시키는 우회로가 아니라 **측정으로 보정된 자율 노브**입니다.
+
+후보는 **네 축이 전부 통과할 때에만** auto-confirm 됩니다(하나라도 어기면 §4의 사람 검토로):
+
+1. **임팩트 티어** — 티어 B/C만. **티어 A(정체성·결정·경계·red_flags)는 영구 확인**
+   (`never_auto_confirm_types`와 동치). 자동 승격이 *누가 에이전트인가/무엇을 해도 되는가*를
+   바꾸는 변경은 절대 우회 불가.
+2. **신뢰도** — `confidence ≥ per_tier_threshold[tier]`(예: B 0.95 / C 0.90). confidence는
+   *필요조건의 하나*일 뿐 단독 승인 사유가 아니다(§1).
+3. **민감도** — `public/internal`만. restricted 불가, sensitive는 경계규칙 선행(G5 하드 오버라이드).
+4. **스코프·dedup 판정** — `novel`/`duplicate(merge)`만. **`conflict`는 항상 사람에게 노출**
+   (조용한 덮어쓰기 금지), `refinement`는 검토 권장.
+
+**경계를 정하는 법(4계층).** ① 보수적 기본(default-deny) → ② 사용자 다이얼(설정 자체가
+`decision_policy`/`boundary_authority` 레코드) → ③ `target_error_rate`로의 **섀도 모드**
+캘리브레이션(정책이 예측만 하고 행동 안 함 → 사람 결정과의 불일치율이 목표 이하로 안정될 때만
+실제 행동) → ④ **성숙도 게이트**(Tier B 자동은 [수렴 L2+](../spec/06-convergence-model.md)에서만).
+근거는 Karpathy의 공개 개념 — Tesla **shadow mode**(행동 전 조용한 검증), **autonomy slider /
+"keep AI on a leash"**, 그가 공개적으로 권한 LLM 코딩 실천 중 **④ 수용 전 이해**(우리가 4개 축으로
+정리; [spec/12 §7](../spec/12-confirmation-policy.md)).
+
+> 품질 체크: auto-confirm로 우회된 후보도 **사람이 정책을 승인했다는 사실**과 캘리브레이션 근거가
+> 감사에 남는다. "검토 없이 통과"가 아니라 "측정으로 보정된 정책이, 사람이 정한 좁은 조건에서,
+> 명시적으로 자동 승인"이라는 기록이 남는다 — §6 빠른 승인 보드가 *한 보드*를 사람이 본 것과
+> 같은 논리의 연장이다.

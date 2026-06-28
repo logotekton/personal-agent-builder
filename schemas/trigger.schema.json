@@ -74,14 +74,14 @@
     },
     "auto_confirm_policy": {
       "type": "object",
-      "description": "OPTIONAL narrow bypass of the confirmation gate. When ALL conditions hold, a staged candidate may be promoted without interactive review. Absent = always require human review (the safe default).",
+      "description": "OPTIONAL narrow bypass of the confirmation gate. When ALL conditions hold, a staged candidate may be promoted without interactive review. Absent = always require human review (the safe default). The decision rule and how thresholds are set (regret = impact x (1-confidence); four axes; four-layer calibration) are formalized in spec/12-confirmation-policy.md.",
       "additionalProperties": false,
       "properties": {
-        "min_confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "e.g. 0.9" },
+        "min_confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "Backward-compatible flat threshold used when impact_tier/per_tier_threshold are absent (e.g. 0.9). Superseded per-tier by per_tier_threshold when present." },
         "allowed_sensitivity": {
           "type": "array",
           "items": { "type": "string", "enum": ["public", "internal", "sensitive", "restricted"] },
-          "description": "Only these sensitivity classes may auto-confirm (never restricted; sensitive only with a boundary rule)."
+          "description": "Only these sensitivity classes may auto-confirm (never restricted; sensitive only with a boundary rule). HARD override regardless of regret (Gate G5)."
         },
         "require_any": {
           "type": "array",
@@ -91,7 +91,33 @@
         "never_auto_confirm_types": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Candidate types that ALWAYS require human review regardless of confidence (e.g. BoundaryRuleCandidate, DecisionPolicyCandidate)."
+          "description": "Candidate types that ALWAYS require human review regardless of confidence (e.g. BoundaryRuleCandidate, DecisionPolicyCandidate). Equivalent to impact_tier 'A' (always confirm)."
+        },
+        "impact_tier": {
+          "type": "string",
+          "enum": ["A", "B", "C"],
+          "description": "Blast-radius grade of the candidate/target pack governing this trigger (spec/12 §2). A=always confirm (identity_roles/decision_policy/boundary_authority/red_flags; changes WHO the agent is or what it MAY do); B=auto only when mature+high-confidence (persona_core/tacit_heuristics/workflow_playbooks/domain_overlays/memory_project_graph); C=auto at high confidence (communication_style/artifact_policy/tool_stack). Tier A may never auto-confirm."
+        },
+        "per_tier_threshold": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Per-tier minimum confidence, refining the flat min_confidence (spec/12 §3 axis 2). A is set unreachable (>1) so Tier A always falls through to human review. Recommended default {A:1.01, B:0.95, C:0.90}.",
+          "properties": {
+            "A": { "type": "number", "minimum": 0, "description": "Set >1 (e.g. 1.01) to make Tier A unreachable = always confirm." },
+            "B": { "type": "number", "minimum": 0, "maximum": 1 },
+            "C": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "maturity_gate": {
+          "type": "string",
+          "enum": ["L0", "L1", "L2", "L3", "L4"],
+          "description": "Minimum convergence maturity tier (spec/06) at which this policy may ACT rather than only stage (spec/12 §4.4). Autonomy is earned: Tier B auto-confirm typically unlocks at L2+, and only after shadow-mode calibration (target_error_rate) passes for that tier. Tier C is exempt from the maturity gate (low blast radius, instantly correctable). To avoid a self-reinforcing loop, the gating signal is measured on the HUMAN gate stream only (auto-confirmed promotions are excluded; use human_confirmation_ratio plus auto-confirm-independent metrics like decision_fidelity/correction_cost). Below this tier, candidates fall through to human review."
+        },
+        "target_error_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Calibration target for shadow-mode validation (spec/12 §4.3). The policy first runs in shadow (PREDICT confirm/hold, NO-ACT) and its disagreement rate vs the human gate decision must stabilize at or below this value before it is allowed to act. e.g. 0.05 (<=5%). Grounded in Tesla shadow mode."
         }
       }
     }

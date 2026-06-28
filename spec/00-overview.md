@@ -29,6 +29,7 @@
 | [08 네이밍·ID](./08-naming-and-ids.md) | 정식 이름, system_pack_id vs display_name |
 | [09 트리거](./09-triggers.md) | 스킬 발화 조건, 훅 매핑, 스테이징/승격 경계, auto-confirm 정책 |
 | [10 중복 억제·병합](./10-dedup-and-merge.md) | upsert·dedup judge·merge/supersede, redundancy/merge_rate 지표 |
+| [12 확인 정책](./12-confirmation-policy.md) | 승격에 사람 확인이 언제 필요한가 — regret·네 결정 축·4계층 임계(섀도 캘리브레이션·성숙도 게이트). 07/09 심화 |
 
 ## 한눈에 보는 파이프라인
 

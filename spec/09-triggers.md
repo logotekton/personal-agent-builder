@@ -106,17 +106,27 @@ crab_orchestration의 9개 워크플로 상태의 *진입 조건*이 곧 트리�
 
 ```yaml
 auto_confirm_policy:
-  min_confidence: 0.9
+  impact_tier: B                       # 파급 등급: A=항상확인 / B=성숙시자동 / C=고신뢰시자동
+  per_tier_threshold: { A: 1.01, B: 0.95, C: 0.90 }   # A는 도달 불가 → 항상 확인
+  min_confidence: 0.9                  # 하위호환(티어 미지정 시 공통 임계)
   allowed_sensitivity: [public, internal]        # restricted 절대 불가, sensitive는 경계규칙 필요
   require_any: [explicit_user_statement, repetition_ge_3, correction_backed]
-  never_auto_confirm_types:                       # 고위험 타입은 항상 사람 검토
+  never_auto_confirm_types:                       # 고위험 타입은 항상 사람 검토 (= Tier A)
     - BoundaryRuleCandidate
     - DecisionPolicyCandidate
+  maturity_gate: L2                    # 성숙 L2+ 에서만 정책이 행동 (Tier B)
+  target_error_rate: 0.05              # 섀도 캘리브레이션 불일치율 ≤5% 일 때만 실제 auto-confirm
 ```
 
 정책이 없으면(기본) **항상 사람 검토**입니다. 정책은 신뢰 수준을 올리는 *선택적 노브*이지,
 프라이버시 모델을 약화시키는 우회로가 아닙니다 — `never_auto_confirm_types`와
 `allowed_sensitivity`가 그 선을 지킵니다.
+
+> **이 정책의 논리·근거·캘리브레이션 방법**(regret = impact×(1−confidence), 네 결정 축,
+> 임팩트 티어↔14팩 매핑, `target_error_rate`로의 섀도 모드 보정, 성숙도 게이트, Karpathy 공개
+> 개념 근거)은 [12 확인 정책](./12-confirmation-policy.md)에서 형식화합니다. 위 4필드
+> (`impact_tier`·`per_tier_threshold`·`maturity_gate`·`target_error_rate`)는 그 문서의 §5
+> 스키마 매핑을 따릅니다.
 
 ## 6. 게이트 보존 (왜 안전한가)
 

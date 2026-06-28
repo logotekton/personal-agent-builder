@@ -208,7 +208,9 @@ G3 미확인 항목의 런타임 활성화 금지 · G4 행동 언어만 · G5 �
 
 **Q. 매번 확인하는 게 번거롭지 않나요?**
 작업 중엔 0회, 세션 끝 1회(한 줄씩)입니다. 그것도 명백한 케이스는
-[auto-confirm 정책](../spec/09-triggers.md#5-auto-confirm-정책-좁은-예외)으로 줄일 수 있습니다.
+[auto-confirm 정책](../spec/09-triggers.md#5-auto-confirm-정책-좁은-예외)으로 줄일 수 있습니다 —
+단 *언제* 자동화가 안전한지는 임팩트·성숙도·캘리브레이션으로 정해집니다([12 확인 정책](../spec/12-confirmation-policy.md)).
+정체성·결정·경계처럼 파급이 큰 항목은 **항상** 당신이 확인합니다.
 
 **Q. 내 민감한 정보가 새지 않나요?**
 민감 항목은 경계 규칙 전엔 승격·사용되지 않고(G5), 외부 행동 앞엔 항상 확인을 요구합니다.
@@ -226,7 +228,7 @@ G3 미확인 항목의 런타임 활성화 금지 · G4 행동 언어만 · G5 �
 
 ## 더 읽기
 - 빠른 시작: [QUICKSTART](../templates/QUICKSTART.md) · 빈 양식: [templates](../templates)
-- 전체 사양: [spec](../spec) (특히 [01 커널](../spec/01-kernel-schema.md), [02 파이프라인](../spec/02-builder-pipeline.md), [09 트리거](../spec/09-triggers.md))
+- 전체 사양: [spec](../spec) (특히 [01 커널](../spec/01-kernel-schema.md), [02 파이프라인](../spec/02-builder-pipeline.md), [09 트리거](../spec/09-triggers.md), [12 확인 정책](../spec/12-confirmation-policy.md))
 - 실제 예제: [examples/logotekton](../examples/logotekton)
 - 방법(스킬): [skills](../skills) · 검증·측정 도구: [tools](../tools)
 - 기여·참여: [CONTRIBUTING](../CONTRIBUTING.md) · [GOVERNANCE](../GOVERNANCE.md)
