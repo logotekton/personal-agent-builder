@@ -76,7 +76,22 @@
     "linked_projects": { "type": "array", "items": { "type": "string" } },
     "linked_domains": { "type": "array", "items": { "type": "string" } },
     "examples": { "type": "array", "items": { "type": "string" } },
-    "anti_examples": { "type": "array", "items": { "type": "string" } }
+    "anti_examples": { "type": "array", "items": { "type": "string" } },
+
+    "canonical_key": {
+      "type": "string",
+      "description": "Semantic identity for dedup/merge: a stable key over target_pack · record_type · normalize(statement) · scope. Records sharing a canonical_key are the SAME record and are upserted (merged), not appended as twins. Spec: spec/10-dedup-and-merge.md §2."
+    },
+    "repetition_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "How many times this record's pattern has been (re-)derived and merged in. A confidence input (more support → higher confidence, capped by counterexamples); merging is idempotent. Default 1. Spec: spec/10-dedup-and-merge.md §4."
+    },
+    "merge_history": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Ids of candidates/evidence merged into this record over time — the provenance trail of the accumulation."
+    }
   },
   "allOf": [
     {

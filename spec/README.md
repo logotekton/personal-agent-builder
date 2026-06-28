@@ -1,18 +1,18 @@
 # spec/ — 사양 색인 (Specification Index)
 
-> **EN:** This is the index for the Personal Agent Builder specification (v0.3). The ten
-> documents below (`00`–`09`) are the normative spec: the kernel schema, the builder
+> **EN:** This is the index for the Personal Agent Builder specification (v0.3). The eleven
+> documents below (`00`–`10`) are the normative spec: the kernel schema, the builder
 > pipeline, the pack catalog, the privacy/authority model, the evaluation+drift loop, the
 > convergence model, the OpenCrab 9-space crosswalk, the naming/ID policy, and the trigger
 > (activation) model. New readers
 > should start at [`00-overview.md`](./00-overview.md). The kernel schema
 > ([`01`](./01-kernel-schema.md)) is the single source of vocabulary every other file uses.
 
-이 폴더는 Personal Agent Builder의 **정규 사양**입니다. 아래 10개 문서가 시스템의 어휘·계약·
+이 폴더는 Personal Agent Builder의 **정규 사양**입니다. 아래 11개 문서가 시스템의 어휘·계약·
 정책을 고정합니다. 다른 폴더(`../schemas`, `../skills`, `../templates`)는 모두 이 사양을
 기준으로 삼습니다. 큰 그림과 읽는 순서는 [`00-overview.md`](./00-overview.md)에 있습니다.
 
-## 문서 목록 (00 → 09)
+## 문서 목록 (00 → 10)
 
 | 문서 | 한 줄 설명 | EN one-liner |
 |------|-----------|--------------|
@@ -26,6 +26,7 @@
 | [`07-opencrab-9space-crosswalk.md`](./07-opencrab-9space-crosswalk.md) | 9-space 크로스워크 — PA 노드를 OpenCrab MetaOntology OS의 9공간 정식 문법으로 사상. | Maps every PA node into OpenCrab's canonical nine-space grammar. |
 | [`08-naming-and-ids.md`](./08-naming-and-ids.md) | 네이밍·ID 정책 — Personal Agent vs OpenCrab, `system_pack_id` vs `display_name`, 인스턴스 ID 형식, 구 코드명→정식 이름 이전표. | The naming/ID policy: product vs platform, pack ids vs display names, instance id format, and the codename migration table. |
 | [`09-triggers.md`](./09-triggers.md) | 트리거 — 스킬 발화 조건(2계층: 앰비언트 포착 + 단일 확인), 호스트 훅 매핑(SessionStart/UserPromptSubmit/PostToolUse/Stop/Cron), 스테이징/승격 경계, auto-confirm 정책. | The trigger (activation) model: ambient capture + single confirmation, host-hook mapping, the staging↔promotion boundary, and the auto-confirm policy. |
+| [`10-dedup-and-merge.md`](./10-dedup-and-merge.md) | 중복 억제·병합 — 레코드는 append가 아니라 upsert; 확인 게이트의 dedup judge(novel/duplicate/refinement/conflict → confirm/merge/supersede); `redundancy_ratio`·`pack_cardinality`·`merge_rate` 지표. | Dedup & merge: records are upserted not appended; a dedup judge at the gate; redundancy/cardinality/merge-rate signals. |
 
 ## 인접 폴더
 

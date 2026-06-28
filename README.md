@@ -74,7 +74,7 @@
 | [`skills/`](./skills) | 13개 빌더 스킬 문서 — 암묵지를 팩으로 바꾸는 *방법* (각 스킬의 발화 **트리거** 포함) + 트리거를 실제 호스트(Claude/Codex/Agents SDK/API)에 배선하는 **호스트 배선 어댑터** |
 | [`examples/logotekton/`](./examples/logotekton) | 처음부터 끝까지 동작하는 실제 인스턴스 예제 |
 | [`templates/`](./templates) | 새 사용자가 자기 에이전트를 시작할 수 있는 **빈 채우기 템플릿** + [QUICKSTART](./templates/QUICKSTART.md) |
-| [`tools/`](./tools) | 레코드를 스키마로 검증하고 수렴 지표를 계산하는 스크립트 |
+| [`tools/`](./tools) | 레코드를 스키마로 검증(`validate_packs`)하고 수렴 지표(`convergence_report`)·중복 신호(`dedup_check`)를 계산하는 스크립트 |
 
 ## 핵심 설계 원칙 (왜 믿을 수 있는가)
 

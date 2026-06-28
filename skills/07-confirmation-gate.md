@@ -313,3 +313,32 @@ trigger:
 ```
 
 유일한 사람 체크포인트입니다 — 세션 끝에 한국어 리뷰보드로 빠르게 confirm/edit/reject(comm.002).
+
+
+## 중복 억제: dedup judge 와 merge / supersede (S07 확장)
+
+> 전체 설계·정체성 키·과-제지 경계는 [../spec/10-dedup-and-merge.md](../spec/10-dedup-and-merge.md).
+> 핵심: 확정된 후보를 *새 레코드로 찍지 말고* 비슷한 기존 레코드에 누적(upsert)한다.
+
+승격(promotion) **직전**, 확정 후보를 대상 팩의 기존 레코드와 비교하는 dedup judge 한 스텝을
+거칩니다(새 아키텍처가 아니라 게이트의 한 검사). 3-렌즈로 분류:
+
+1. identity — 같은 `canonical_key`(pack·record_type·normalize(statement)·scope) 레코드가 있는가?
+2. scope — 같은 스코프인가, 더 좁히는(refinement) 것인가?
+3. conflict — 기존 *확정* 레코드와 모순되는가?
+
+판정에 따라 리뷰 액션이 추가됩니다(기존 confirm/edit/reject/narrow_scope/mark_sensitive/defer에 더해):
+
+- **`merge`** (duplicate) — 새 레코드를 만들지 않고 기존 레코드에 `evidence_refs` 추가 +
+  `repetition_count`↑ + `confidence`·`updated_at` 갱신. 멱등.
+- **`supersede`** (refinement) — 새 레코드 + `supersedes` 엣지, 구 레코드 은퇴 → `drift_history` 기록.
+- conflict 는 사용자에게 노출(조용히 덮어쓰지 않음 — 충돌 누락 방지).
+- novel 만 그대로 `confirm` → pack_router.
+
+judge 가 미리 분류해 **추천 액션**을 리뷰보드에 제시하므로, 사용자는 한 줄로 승인만 하면 됩니다
+(한국어 리뷰보드, comm.002). 병합은 G1(증거 누적)·G2(스코프 보존)·G3(여전히 게이트)·G5를 지키며
+traceability 를 오히려 강화합니다.
+
+품질 체크: 같은 스코프가 아닌 근접중복은 `merge` 가 아니라 `supersede`/별도 레코드(스코프 정밀화)로
+다룬다 — 서로 다른 스코프를 뭉개지 않는다(G2). 측정은 `redundancy_ratio`·`merge_rate`
+([../spec/06-convergence-model.md](../spec/06-convergence-model.md) §7).
