@@ -330,18 +330,26 @@ OpenCrab 도구로 실행할 때는 `opencrab_list_workflows`로 정의된 워�
 ### auto-confirm 정책 (review_candidates 우회 — 좁은 예외)
 
 `review_candidates` 상태는 기본적으로 사람을 거칩니다. 단 아래 정책이 *모두* 참인 후보에 한해
-자동 확정으로 우회할 수 있습니다(없으면 항상 사람 검토):
+자동 확정으로 우회할 수 있습니다(없으면 항상 사람 검토). 정식 정의·4계층 캘리브레이션·근거는
+[확인 정책 spec/12 §5](../spec/12-confirmation-policy.md#5-스키마-매핑-auto_confirm_policy-4필드)가
+단일 진실원이며, 머신 스키마는 [`trigger.schema.json`](../schemas/trigger.schema.json)의
+`auto_confirm_policy`입니다.
 
 ```yaml
 auto_confirm_policy:
-  min_confidence: 0.9
-  allowed_sensitivity: [public, internal]     # restricted 불가, sensitive는 경계규칙 선결
+  impact_tier: B                       # 파급 등급. Tier A(정체성·결정·경계·red_flags)는 영구 확인
+  per_tier_threshold: { A: 1.01, B: 0.95, C: 0.90 }   # A는 도달 불가 → 항상 사람
+  min_confidence: 0.9                  # 하위호환(티어 미지정 시 공통 임계)
+  allowed_sensitivity: [public, internal]     # restricted 불가, sensitive는 경계규칙 선결(G5)
   require_any: [explicit_user_statement, repetition_ge_3, correction_backed]
   never_auto_confirm_types: [BoundaryRuleCandidate, DecisionPolicyCandidate]
+  maturity_gate: L2                    # 성숙 L2+ 에서만 정책이 행동(주로 Tier B)
+  target_error_rate: 0.05              # 섀도 불일치율 ≤5% 로 안정될 때만 실제 auto-confirm
 ```
 
-이 정책은 신뢰 노브이지 프라이버시 우회로가 아닙니다 — 고위험 타입과 민감 등급은 언제나
-사람을 거칩니다(G3·G5 보존).
+이 정책은 신뢰 노브이지 프라이버시 우회로가 아닙니다 — 고위험 타입(Tier A)과 민감 등급은 언제나
+사람을 거칩니다(G3·G5 보존). dedup 판정이 `conflict`면 confidence가 높아도 자동 확정 불가, 사람에게
+노출됩니다(spec/12 §3 축4).
 
 ### 핸드오프 = 트리거 (한 줄 요약)
 계층 A(collect→…→scope)는 전부 `requires_confirmation: false`로 **스테이징만** 합니다.
