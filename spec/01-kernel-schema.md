@@ -132,11 +132,15 @@ v0.1은 `score`, v0.2는 `confidence`; 어떤 팩은 `statement`, 어떤 팩은 
 **필수:** `id`, `record_type`, `label`, `statement`, `evidence_refs[]`, `confidence(0..1)`,
 `scope`, `review_status`, `sensitivity`, `created_at`, `updated_at`
 **선택:** `aliases`, `priority_weight`, `counterexamples`, `exception_rules`,
-`related_records`, `supersedes`, `linked_projects`, `linked_domains`, `examples`, `anti_examples`
+`related_records`, `supersedes`, `linked_projects`, `linked_domains`, `examples`, `anti_examples`,
+`canonical_key`, `repetition_count`, `merge_history`
 
 - `review_status` ∈ {pending, confirmed, rejected, narrowed, sensitive, deferred}
 - `sensitivity` ∈ {public, internal, sensitive, restricted}
 - `confidence < 0.7`이면 `counterexamples` 필수
+- **병합 필드(dedup/merge, [10 중복 억제·병합](./10-dedup-and-merge.md)):** `canonical_key`(정체성 키 —
+  pack·record_type·normalize(statement)·scope), `repetition_count`(같은 패턴이 재유도·병합된 횟수),
+  `merge_history`(이 레코드에 병합된 후보·증거 id) — 모두 선택. `duplicate→merge` upsert가 채운다.
 - 폐기 필드: `score`(→`confidence`), bare `claim`/`rule_statement`/`instruction`/`output_rule`(→`statement`)
 
 ## 8. Crab 에이전트 역할 (운영 모델)
