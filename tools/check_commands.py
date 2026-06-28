@@ -7,13 +7,14 @@ fenced shell blocks, extracts each invocation of this repo's tools / test suite,
 failing if any exits nonzero. So a renamed flag or a changed CLI signature (e.g. the two-file
 convergence_report form that silently broke) can't survive in the docs.
 
-Scope — it runs only SAFE, READ-ONLY, self-contained invocations and reports the rest as skipped:
-  - runs:  python tools/<validate_packs|convergence_report|dedup_check|check_anchors>.py <args>,
-           and `python3 -c "..."` one-liners that appear in the docs.
+Scope — it runs only SAFE, READ-ONLY invocations of THIS REPO'S TOOLS (whose CLI could drift) and
+reports the rest as skipped:
+  - runs:  python tools/<validate_packs|convergence_report|dedup_check|check_anchors>.py <args>.
   - skips: anything with a placeholder (<...>, "당신", path/to, ...), a write/side-effect flag
-           (--apply, --out, output redirection >), or that runs the test suite itself
-           (unittest / test_tools.py) — the latter to avoid recursion when this guard is, in turn,
-           exercised by that suite. Backslash line-continuations are joined before running.
+           (--apply, --out, output redirection >), the test suite itself (unittest / test_tools.py,
+           to avoid recursion when this guard is in turn exercised by that suite), and `python -c`
+           env/config one-liners (which may rely on version-specific stdlib like tomllib and are
+           not a tool CLI). Backslash line-continuations are joined before running.
 
 Usage:
   python tools/check_commands.py                 # scan the repo (cwd) recursively
@@ -79,7 +80,8 @@ def classify(cmd):
     if any(r in cmd for r in RECURSIVE):
         return 'skip:test-suite'
     if cmd.startswith(('python -c', 'python3 -c')):
-        return 'run'
+        # env/config one-liners (e.g. `import tomllib`) — may need version-specific stdlib; not a tool CLI
+        return 'skip:env-check'
     if any(t in cmd for t in RUNNABLE_TOOLS):
         return 'run'
     return 'skip:out-of-scope'

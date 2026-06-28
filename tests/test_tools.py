@@ -362,10 +362,12 @@ class TestCommandGuard(unittest.TestCase):
     """check_commands.py must actually fail when a documented command errors (not a no-op)."""
 
     def test_guard_catches_a_failing_command(self):
+        # plant a documented *tool* command that errors (validate_packs with no path -> exit 2).
+        # the guard must run it (it is a RUNNABLE tool, no placeholder/side-effect) and fail.
         import tempfile
         with tempfile.TemporaryDirectory() as d:
             with open(os.path.join(d, "a.md"), "w", encoding="utf-8") as fh:
-                fh.write('```bash\npython3 -c "import sys; sys.exit(1)"\n```\n')
+                fh.write('```bash\npython tools/validate_packs.py\n```\n')
             r = _run("tools/check_commands.py", d)
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertIn("1 broken", r.stdout)
