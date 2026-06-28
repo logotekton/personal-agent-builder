@@ -177,6 +177,16 @@ G5), `deferred`(보류)는 모두 팩 진입이 차단됩니다(§6 표). 이것
 후보→팩을 `promoted_to` 엣지로 잇고([커널 §4](../spec/01-kernel-schema.md#4-엣지-타입-edge-types)),
 출처 후보·증거 사슬을 보존합니다. 검증 실패는 라우팅 실패이며 레코드를 팩에 *쓰지 않습니다*.
 
+> **쓰기 동작은 dedup 판정을 따른다(1:1은 *목적지*, dedup은 *동작*).** 라우팅 표는 *어느 팩인가*
+> 만 정합니다(1:1·전수, 불변). 그 팩 *안에서* 새 레코드를 찍을지는 승격 직전 dedup judge의 판정이
+> 정합니다([10 중복 억제·병합](../spec/10-dedup-and-merge.md), 액추에이터
+> [`tools/pab_merge.py`](../tools/pab_merge.py)): `novel→insert`(새 베이스 레코드), `duplicate→merge`
+> (새 레코드를 찍지 않고 기존 레코드에 `evidence_refs`·`repetition_count`·`confidence` upsert — §2의
+> "멱등 승격"이 바로 이것), `refinement→supersede`(새 레코드 + `supersedes` 엣지, 구 레코드 은퇴).
+> `conflict`(기존 *확정*과 모순) 후보는 라우터에 *도달하지 않는다* — S07/병합 층에서 사람에게
+> 노출되어 보류되기 때문이다(2차 게이트, G3·G5). 즉 라우터는 판정을 *수행*할 뿐 충돌을 자동
+> 해소하지 않는다.
+
 ## 5. 미확정·불일치 후보 거부 (Rejecting bad routes)
 
 라우터의 *판단 핵심*은 "넣을까 말까"가 아니라 "이 후보가 들어올 자격이 있는가"의 *문지기* 판정
@@ -353,6 +363,8 @@ OpenCrab 도구로 실행할 때는 `opencrab_search_packs`로 도착지 팩을 
   [09 프라이버시·경계](./09-privacy-boundary.md)
 - 평가 케이스 팩의 케이스 필드(특수 매핑) → [05 평가·드리프트](../spec/05-evaluation-drift.md)
 - 1:1 라우팅이 지키는 검색 정밀도·추적성·수렴 지표 → [06 수렴 모델](../spec/06-convergence-model.md)
+- 팩 안 쓰기 동작을 정하는 dedup 판정(insert/merge/supersede/surface)·액추에이터 →
+  [10 중복 억제·병합](../spec/10-dedup-and-merge.md) · [`tools/pab_merge.py`](../tools/pab_merge.py)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
 
 
