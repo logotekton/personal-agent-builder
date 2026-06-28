@@ -1,4 +1,11 @@
-# Logotekton — 수렴 리포트 (Convergence Report · snapshot 2026-06-28)
+# Logotekton — 수렴 리포트 (Convergence Report · **T0 baseline**, snapshot 2026-06-28)
+
+> ⚙️ **이 문서는 T0(데이터-엔진을 한 바퀴 돌리기 *전*) 스냅샷입니다 — 도구 판정 L0.**
+> 이 리포트가 §5에서 지목한 **"다음 한 수"(`user.boundary_authority`에 `ConfirmationRuleRecord`
+> 시드)** 가 실제로 실행되었습니다. 그 한 바퀴(merge actuator + 교정 + 재평가)와 **T0→T1 측정
+> (L0 → L2 Working, decision_fidelity 0.75→0.92, merge_rate NA→0.059)** 은
+> [`revolution-01/README.md`](./revolution-01/README.md)에 있습니다. **현재 라이브 도구 출력은
+> T1(L2)** 이며, 아래 본문은 그 *이전* 상태를 보존한 베이스라인입니다.
 
 > **EN:** A worked convergence report for the `logotekton` subject, computed per
 > [`../../spec/06-convergence-model.md`](../../spec/06-convergence-model.md) from the

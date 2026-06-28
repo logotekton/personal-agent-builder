@@ -6,9 +6,11 @@
 > here are **real, confirmed, evidence-bound** records mined from actual AI-agent sessions,
 > then run once through the full pipeline: evidence → candidates → scope → confirmation
 > gate → routing into the `user.*` packs → compiled runtime adapter → evaluation and a
-> convergence report. **5 of the 14 instance packs are seeded so far** (plus the evaluation
-> cases — 6 packs by the convergence count) — an early **L0→L1** state whose single highest-
-> leverage next move the convergence report names exactly. Spec ground truth:
+> convergence report. **7 of the 14 instance packs are seeded** (plus the evaluation cases —
+> 8 packs by the convergence count) at maturity **L2 Working**, after `revolution-01` turned the
+> data-engine wheel once on real records (merge actuator + the eval.004 correction →
+> `decision_fidelity` 0.75→0.92, `merge_rate` NA→0.059): see
+> [`revolution-01/README.md`](./revolution-01/README.md). Spec ground truth:
 > [`../../spec/01-kernel-schema.md`](../../spec/01-kernel-schema.md) and
 > [`../../spec/03-pack-catalog.md`](../../spec/03-pack-catalog.md).
 
@@ -75,8 +77,9 @@ G6). 여기 레코드의 ID는 모두 인스턴스 형식 `<subject>.<recordkind
 
 ### 1) [`instance-records.yaml`](./instance-records.yaml) — 확인된 레코드 (`personal.logotekton.*`)
 
-정식 팩 이름을 **키로 하는 단일 YAML 매핑**입니다. 현재 **14개 중 5개 인스턴스 팩이 시드**(+
-평가케이스 팩 = 수렴 기준 6팩)되어 있고, 각 레코드는 동일 이름의 [`user.*` 스키마](../../schemas)와
+정식 팩 이름을 **키로 하는 단일 YAML 매핑**입니다. 현재 **14개 중 7개 인스턴스 팩이 시드**(+
+평가케이스 팩 = 수렴 기준 8팩)되어 있고(revolution-01에서 `boundary_authority`·`drift_history`가
+추가됨), 각 레코드는 동일 이름의 [`user.*` 스키마](../../schemas)와
 [통합 베이스 레코드](../../schemas/record.base.schema.json)를 동시에 만족합니다
 ([팩 카탈로그](../../spec/03-pack-catalog.md)와 1:1 대응).
 
@@ -86,14 +89,17 @@ G6). 여기 레코드의 ID는 모두 인스턴스 형식 `<subject>.<recordkind
 | 2 | `user.persona_core` | ✅ 2건 | 안정 선호/가치/우선순위 | `trait` | [schema](../../schemas/user.persona_core.schema.json) |
 | 3 | `user.communication_style` | ✅ 2건 | 응답 형식/언어/구조 | `style` | [schema](../../schemas/user.communication_style.schema.json) |
 | 5 | `user.decision_policy` | ✅ 1건 | 우선순위·승인/거부 | `decision` | [schema](../../schemas/user.decision_policy.schema.json) |
-| 6 | `user.tacit_heuristics` | ✅ 1건 | 암묵 판단 규칙 | `heuristic` | [schema](../../schemas/user.tacit_heuristics.schema.json) |
+| 6 | `user.tacit_heuristics` | ✅ 1건 (revolution-01에서 **병합**: `repetition_count`=2) | 암묵 판단 규칙 | `heuristic` | [schema](../../schemas/user.tacit_heuristics.schema.json) |
+| 11 | `user.boundary_authority` | ✅ 1건 (revolution-01 교정 산물: 외부메일 `ConfirmationRuleRecord`) | 경계·권한·확인 규칙 | `boundary` | [schema](../../schemas/user.boundary_authority.schema.json) |
 | 13 | `user.evaluation_cases` | ✅ 6건 (→ 별도 파일 `evaluation-cases.yaml`) | 충실도 테스트 케이스 | `evalcase` | [schema](../../schemas/user.evaluation_cases.schema.json) |
-| 4, 7–12, 14 | `artifact_policy`, `red_flags`, `workflow_playbooks`, `domain_overlays`, `tool_stack`, `boundary_authority`, `memory_project_graph`, `drift_history` | ⬜ 미시드 | (아직 증거 없음) | — | [schemas](../../schemas) |
+| 14 | `user.drift_history` | ✅ 1건 (→ 별도 파일 `drift-history.yaml`; 교정 `DriftRecord`) | 변경·대체 이력 | `drift` | [schema](../../schemas/user.drift_history.schema.json) |
+| 4, 7–10, 12 | `artifact_policy`, `red_flags`, `workflow_playbooks`, `domain_overlays`, `tool_stack`, `memory_project_graph` | ⬜ 미시드 | (아직 증거 없음) | — | [schemas](../../schemas) |
 
-> 8개 팩이 아직 비어 있는 것은 **버그가 아니라 상태**입니다. 이것이 정확히 *coverage를 올리는
-> 다음 단계*이며, 증거가 없는 팩을 가짜로 채우지 않는 것이 이 프로젝트의 G1 원칙입니다. 현재
-> 위치(**L0 Seed**, L1까지 팩 하나·L2를 정조준)와 *그 다음 한 수*는 아래
-> [수렴 리포트](#4-convergence-reportmd--측정된-수렴)가 숫자로 보여줍니다.
+> 6개 팩이 아직 비어 있는 것은 **버그가 아니라 상태**입니다. 증거가 없는 팩을 가짜로 채우지 않는
+> 것이 이 프로젝트의 G1 원칙입니다. 현재 위치(**L2 Working** — revolution-01에서 데이터-엔진을
+> 한 바퀴 돌려 L0→L2 도약)와 *그 다음 한 수*는 아래
+> [수렴 리포트](#4-convergence-reportmd--측정된-수렴)와
+> [`revolution-01/README.md`](./revolution-01/README.md)가 숫자로 보여줍니다.
 
 ### 2) [`evaluation-cases.yaml`](./evaluation-cases.yaml) — 충실도 테스트 케이스 (`user.evaluation_cases`)
 
@@ -112,23 +118,34 @@ naming 준수, 증거 추적성(G1), 경계 확인(G5·`boundary_compliance`), �
 
 ### 4) [`convergence-report.md`](./convergence-report.md) — 측정된 수렴
 
-위 인스턴스 집합과 `evaluation-cases.yaml`을 입력으로,
+위 인스턴스 집합과 `evaluation-cases.yaml`·`drift-history.yaml`을 입력으로,
 [수렴 모델](../../spec/06-convergence-model.md)의 6개 지표(`coverage`, `confirmation_ratio`,
 `decision_fidelity`, `correction_cost`, `drift_stability`, `traceability`)와 현재 성숙도 단계
-(L0–L4)를 계산한 결과입니다. "에이전트가 점점 나처럼 된다"가 느낌이 아니라 **숫자**라는 점을
-실제 데이터로 보여줍니다. 같은 산출은 [`../../tools/`](../../tools)의 검증·수렴 스크립트나
+(L0–L4)를 계산한 결과입니다. 이 문서는 **T0 베이스라인**(L0)을 보존하며, 그 §5가 지목한 다음
+한 수를 실행한 **T1 결과(L2 Working)**는 [`revolution-01/README.md`](./revolution-01/README.md)에
+있습니다. "에이전트가 점점 나처럼 된다"가 느낌이 아니라 **숫자**라는 점을 실제 데이터로
+보여줍니다. 같은 산출은 [`../../tools/`](../../tools)의 검증·수렴 스크립트나
 OpenCrab의 `opencrab_pack_qa`로 재현할 수 있습니다.
+
+### 5) [`revolution-01/`](./revolution-01/) — 데이터-엔진을 한 바퀴 돌린 기록
+
+merge actuator([`../../tools/pab_merge.py`](../../tools/pab_merge.py)) + eval.004 교정 + DriftRecord로
+바퀴를 실제로 한 번 돌려 **L0 → L2**로 오른 T0→T1 측정과 재현 명령. 카파시 리뷰가 지적한
+"바퀴가 한 번도 안 돌았다"에 대한 직접 응답입니다.
 
 ## 읽는 순서 (추천)
 
-1. **[`instance-records.yaml`](./instance-records.yaml)** — 시드된 5개 팩의 확인된 레코드.
+1. **[`instance-records.yaml`](./instance-records.yaml)** — 시드된 7개 팩의 확인된 레코드.
    `user.identity_roles`의 창립자 귀속 레코드가 다른 모든 팩의 기준점입니다. 가장 흥미로운
    암묵지는 `user.tacit_heuristics`(교정·diff에서 나온 "이건 이렇게" 규칙)입니다.
 2. **[`evaluation-cases.yaml`](./evaluation-cases.yaml)** — 무엇을 "제대로"로 보는가. 기대/불가
    행동으로 충실도와 경계 준수를 못박습니다.
 3. **[`runtime-adapter.md`](./runtime-adapter.md)** — 위 레코드들이 하나의 통제된 프로필로
    합쳐진 모습.
-4. **[`convergence-report.md`](./convergence-report.md)** — 이 모든 게 얼마나 수렴했는가, 숫자로.
+4. **[`convergence-report.md`](./convergence-report.md)** — T0 베이스라인(L0), 그리고 그것이
+   예측한 다음 한 수.
+5. **[`revolution-01/README.md`](./revolution-01/README.md)** — 그 한 수를 실행해 바퀴를 돌린
+   T1 결과(L0→L2), 재현 명령 포함.
 
 > 이 예제는 한 시점의 **스냅샷**입니다. 사람은 변하므로 수렴은 한 번 도달하고 끝나는 점이
 > 아니라 드리프트를 흡수하며 머무는 상태이고, 그래서 `user.drift_history`가 14개 팩 중 하나로

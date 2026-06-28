@@ -18,6 +18,8 @@
 |----------|---------------------------|-------------|-----------|
 | [`validate_packs.py`](./validate_packs.py) | **품질 게이트** (G1–G6 중 코드로 강제하는 부분) | "이 레코드가 들어올 자격이 되는가?" | [01 커널 스키마 §2](../spec/01-kernel-schema.md) · [베이스 레코드](../schemas/record.base.schema.json) |
 | [`convergence_report.py`](./convergence_report.py) | **수렴 모델** (6개 지표 + L0–L4 성숙도) | "이 에이전트가 얼마나 수렴했는가?" | [06 수렴 모델](../spec/06-convergence-model.md) |
+| [`dedup_check.py`](./dedup_check.py) | **중복/증식 신호** (redundancy_ratio·pack_cardinality·merge_rate) — *측정만* | "레코드가 중복으로 불고 있는가?" | [10 중복 억제·병합 §7](../spec/10-dedup-and-merge.md) |
+| [`pab_merge.py`](./pab_merge.py) | **dedup judge + upsert actuator** — novel/duplicate/refinement/conflict → insert/**merge**/**supersede**/surface. 멱등. *측정이 아니라 수행* | "이 후보를 새로 찍을까, 기존에 흡수할까?" | [10 중복 억제·병합](../spec/10-dedup-and-merge.md) · [07 확인 게이트](../skills/07-confirmation-gate.md) |
 
 > 같은 산출은 OpenCrab에서 `opencrab_pack_qa`(검증)와 `opencrab_project_run`(수렴 지표)으로도
 > 재현할 수 있습니다. 이 스크립트들은 그 산출의 **의존성 없는 로컬 참조 구현**입니다.

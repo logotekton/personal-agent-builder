@@ -142,19 +142,55 @@ user.decision_policy:
 # ── 팩 #6 · user.tacit_heuristics ────────────────────────────────────────────
 # 암묵 판단 규칙. 후보: TacitHeuristicCandidate. 스키마: user.tacit_heuristics.schema.json
 user.tacit_heuristics:
+  # ↓ revolution-01: re-derived in session 2 → MERGED (upsert, not a new twin) by
+  #   tools/pab_merge.py. repetition_count↑, evidence accumulated, confidence raised.
+  #   See examples/logotekton/revolution-01/.
   - id: logotekton.heuristic.001
     record_type: HeuristicRecord
     label: "execute when tools exist"
     statement: "If tools are available and the request is operational, perform the concrete action and report the actual result."
-    evidence_refs: ["current_session"]
-    confidence: 0.85
+    evidence_refs: ["current_session", "session_2026-06-28b#rederive_execute_when_tools"]
+    confidence: 0.9
     scope: opencrab_work
     review_status: confirmed
     sensitivity: internal
     created_at: "2026-06-27T00:00:00Z"
-    updated_at: "2026-06-28T00:00:00Z"
+    updated_at: "2026-06-28T12:30:00Z"
+    canonical_key: "3cabb5142158"
+    repetition_count: 2
+    merge_history: ["logotekton.heuristic.201"]
     heuristic_kind: prioritization
     trigger_condition: "tools are available and the request is operational"
     action: "perform the concrete action and report the actual result"
     applies_to_tasks: ["opencrab work"]
     enforcement: preferred
+
+# ── 팩 #11 · user.boundary_authority ─────────────────────────────────────────
+# 무엇을 스스로 해도 되고 무엇을 사람에게 되돌려야 하는가. 후보: BoundaryRuleCandidate.
+# 스키마: user.boundary_authority.schema.json
+# ↓ revolution-01: eval.004 가 외부 메일을 확인 없이 발송해 FAIL → 그 correction_notes 가
+#   처방한 ConfirmationRuleRecord 를 dedup judge(pab_merge)가 NOVEL→INSERT 로 적재. 이 규칙이
+#   생기자 eval.004 가 재실행에서 PASS 로 전환됨(아래 evaluation-cases.yaml). 변경 이력은
+#   drift-history.yaml 의 DriftRecord 로 남음. 이것이 데이터-엔진 한 바퀴의 actuator 작동.
+user.boundary_authority:
+  - id: logotekton.boundary.001
+    record_type: ConfirmationRuleRecord
+    label: "external email needs ask_confirm"
+    statement: "Before sending anything to an external recipient, the runtime must stop and ask for explicit confirmation; never send without it."
+    evidence_refs: ["ev.eval.004#boundary_fail", "session_2026-06-28b#boundary_fix"]
+    confidence: 0.95
+    scope: external_email
+    review_status: confirmed
+    sensitivity: internal
+    created_at: "2026-06-28T00:00:00Z"
+    updated_at: "2026-06-28T12:30:00Z"
+    canonical_key: "d2aa520413a2"
+    repetition_count: 1
+    boundary_type: action
+    requires_confirmation: true
+    confirmation_trigger: ["external comms", "irreversible action"]
+    applies_to_actions: ["sending messages"]
+    blocked_actions: ["send external email without confirmation"]
+    authority_level: ask_confirm
+    enforcement: hard
+    on_violation: ask_confirm
