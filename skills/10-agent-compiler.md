@@ -415,6 +415,9 @@ OpenCrab 도구로 실행할 때는 `opencrab_search_packs`로 작업류에 관�
 - 갭·평가가 끌어올리는 수렴 지표(`coverage`·`correction_cost`·`traceability`) → [06 수렴 모델](../spec/06-convergence-model.md)
 - 각 노드의 9-space 사상 → [07 9-space 크로스워크](../spec/07-opencrab-9space-crosswalk.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+- **이 스킬이 실제로 만든 산출물(worked example)** → [`runtime-adapter.md`](../examples/logotekton/runtime-adapter.md)
+  (logotekton의 컴파일된 어댑터), 그리고 그 입력 레코드가 병합·대체로 진화하는 한 바퀴
+  → [`revolution-01`](../examples/logotekton/revolution-01/) · [`revolution-02`](../examples/logotekton/revolution-02/)
 
 
 ## 트리거 (Trigger)

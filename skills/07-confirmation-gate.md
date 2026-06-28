@@ -317,6 +317,8 @@ OpenCrab 도구로 실행할 때는 `opencrab_query`/`opencrab_search_documents`
 - 게이트가 후보를 넘기는 하류 → [08 pack_router](./08-pack-router.md) · [09 privacy_boundary](./09-privacy-boundary.md)
 - 민감 후보가 받는 경계 규칙·권한 모델 → [04 프라이버시·경계](../spec/04-privacy-boundary.md)
 - 거부·드리프트·rejection_alignment 평가 → [11 evaluation_drift](./11-evaluation-drift.md) · [05 평가·드리프트](../spec/05-evaluation-drift.md)
+- 승격 직전 dedup judge(merge/supersede/conflict→surface)·액추에이터 → [10 중복 억제·병합](../spec/10-dedup-and-merge.md) · [`tools/pab_merge.py`](../tools/pab_merge.py)
+- **merge·insert·conflict가 실제로 도는 worked example** → [`revolution-01`](../examples/logotekton/revolution-01/)(novel→insert·duplicate→merge) · [`revolution-02`](../examples/logotekton/revolution-02/)(conflict→surface 안전 케이스)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
 
 
