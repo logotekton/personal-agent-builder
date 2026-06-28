@@ -285,7 +285,7 @@ regression_for: [logotekton.drift.0012]
 | 이 스킬의 산출 | → 수렴 지표 ([06](../spec/06-convergence-model.md)) | 관계 |
 |----------------|---------------------------------------------------|------|
 | 통과 케이스 / 전체 케이스 | `decision_fidelity` | 동일 정의. 평가가 곧 충실도 지수 |
-| 작업당 사용자 편집 비율 | `correction_cost` (↓) | RUN 단계에서 직접 관측 |
+| 작업당 사용자 편집 비율 | `correction_cost` (↓) | RUN 단계에서 케이스별 **`result.edit_fraction`**(0..1)으로 직접 관측 → 보고 케이스 평균. 미측정이면 **NA**이고 NA는 L3(≤0.3)·L4(≤0.15) 게이트를 통과하지 못함([05 §1](../spec/05-evaluation-drift.md)) |
 | `drift_score` (대체·반전 가중) | `drift_stability` = 1 − (기간 대체수 / 확인 레코드수) | drift_score↑ ⇒ drift_stability↓ |
 | `evidence_traceability` | `traceability` (=1.0 필수) | 동일 불변식. 위반은 무결성 차단 |
 
