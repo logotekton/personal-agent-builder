@@ -35,6 +35,7 @@
 | [`11-evaluation-drift.md`](./11-evaluation-drift.md) | S11 · `evaluate_output` → `record_drift_or_update` | Evaluator | 8개 충실도 지표로 프로필을 채점하고 변경을 `DriftRecord`로 기록해 루프를 닫는다. | Scores the profile on eight fidelity metrics and records change as `DriftRecord`s, closing the loop. |
 | [`12-crab-orchestration.md`](./12-crab-orchestration.md) | *(전 상태)* · 관제탑 | Orchestrator | 9개 워크플로 상태의 전이·핸드오프·재시도·게이트 차단을 관장(레코드를 직접 만들지 않음). | The control tower governing all 9 workflow state transitions, handoffs, retries, and gate blocks. |
 | [`13-kernel-schema.md`](./13-kernel-schema.md) | *(척추, 단계 아님)* | Pack Architect | 모든 스킬이 먼저 읽는 공유 스키마 척추(= [`01 커널 스키마`](../spec/01-kernel-schema.md)). | The shared schema spine every skill reads first (= [`spec/01`](../spec/01-kernel-schema.md)). |
+| [`14-host-binding.md`](./14-host-binding.md) | *(배포 어댑터, 단계 아님)* | — | 추상 트리거([09](../spec/09-triggers.md))를 실제 호스트(**Claude Code 훅 · Codex CLI 훅 · OpenAI Agents SDK · 순수 API**)에 배선해 자동 포착을 실가동. 행동은 MCP로 한 벌. | Binds the abstract triggers to a real host (Claude Code hooks, Codex CLI hooks, Agents SDK, plain API) so auto-capture runs live; actions go through MCP. |
 
 ## 파이프라인 한 장 그림
 
@@ -95,3 +96,7 @@ S11은 평가→드리프트의 두 상태로 루프를 닫으며, S12는 전 �
 > 각 스킬은 **발화 트리거**(언제 켜지는가)를 가집니다 — 문서 하단의 `## 트리거` 절. 전체 2계층
 > 모델·훅 매핑은 [../spec/09-triggers.md](../spec/09-triggers.md), 스키마는
 > [../schemas/trigger.schema.json](../schemas/trigger.schema.json).
+
+> 그 트리거를 **실제 호스트에 배선해 자동 포착을 실가동**하는 법(Claude Code 훅 · Codex CLI 훅 ·
+> OpenAI Agents SDK · 순수 API)은 [`14-host-binding.md`](./14-host-binding.md) — 13개 파이프라인
+> 스킬과 별개인 **배포 어댑터**입니다.
