@@ -42,12 +42,20 @@
   merge/supersede*이고, `conflict`는 사람에게 노출(자동 적용 금지, G3/G5 2차 게이트)임을 skills
   `02·04·05·06·07·08·09·10·11·12·13`에 일관 반영. skill 09는 빌드타임(dedup conflict→surface)과
   런타임(더 엄격한 규칙 합성)을 분리. skill 01은 교차세션 재유도가 *중복이 아니라 병합 연료*임을 명확화.
+- **빌더 파이프라인 문서(spec/02)를 병합 층과 정합화.** S07 확인 게이트 기술에 dedup judge의 추천 액션
+  (`duplicate→merge`·`refinement→supersede`)과 `conflict→surface`(자동 적용 금지, 2차 관문)를 명시하고,
+  다이어그램 각주·"관련 문서"에 [spec/10] 링크를 추가. `review_status` enum은 그대로 둠(merge/supersede는
+  *상태*가 아니라 *게이트 액션* — 어드버서리얼 검증으로 확인). → [`spec/02-builder-pipeline.md`](./spec/02-builder-pipeline.md).
 
 ### Fixed
 - **systemic "커널 §9" dangling 참조.** spec/01엔 §8까지뿐이었는데 schema·spec/03·skills가 권한
   모델을 "kernel §9"로 가리켰음 → spec/01 §9 추가로 일괄 해소.
 - skills 곳곳의 잘못된 교차참조(예: 후보 필드의 "커널 §8"→`candidate.schema.json`, 컴파일러 갭
   로그의 metric `correction_cost`→`coverage`, `§3 [B]`→`§3 [3]`)와 깨진 라벨 정정.
+- **깨진 자기 앵커 링크 정정(skills/08).** `§3 라우팅 표`를 가리키는 세 개의 자기 링크가
+  `#3-라우팅-표-1-1-전수`로 잘못 작성되어 실제 헤딩 슬러그(`#3-라우팅-표-11-전수`, `(1:1, 전수)`의
+  `1:1`이 `11`로 정규화)와 어긋났음 → 다른 모든 링크가 쓰는 `11` 규약으로 통일. 저장소 전체 166개
+  교차문서 앵커 링크를 GitHub 슬러그 알고리즘으로 일괄 점검(broken=0 확인).
 
 ### Added (예정)
 - 더 많은 평가 케이스(EvaluationCase) 시드 및 다중 사용자 예제.

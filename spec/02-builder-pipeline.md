@@ -86,6 +86,7 @@
    └──────────────────────────────────────────────────────────────────────────►
 
   공유 척추(모든 단계가 먼저 읽음):  S13 kernel_schema  →  ./01-kernel-schema.md
+  확인 게이트 확장(승격 직전):        dedup judge → merge/supersede 추천·conflict 노출 → ./10-dedup-and-merge.md
 ```
 
 ## 3. 단계별 입력/출력 계약
@@ -141,7 +142,11 @@
   후보. `confirmed`/`narrowed`/편집본만 다음 단계로 통과.
 - **소유:** 스킬 [`07-confirmation-gate`](../skills/07-confirmation-gate.md) · Crab 역할 **Confirmation**.
 - **게이트:** **G3**(미확인 후보의 런타임 승격 금지)의 결정 지점. 사람이 confirm/edit/reject/
-  narrow/sensitive/defer 한다. 라이프사이클의 `user_reviewed → confirmed_or_rejected` 전이.
+  narrow/sensitive/defer 한다 — 그리고 승격 직전 **dedup judge**가 확정 후보를 대상 팩의 기존
+  레코드와 대조해 `duplicate→merge`·`refinement→supersede`를 *추천 액션*으로 더한다(여섯 기본 +
+  두 dedup 액션). 기존 *확정* 레코드와 **모순(conflict)**하는 후보는 자동 적용하지 않고 사람에게
+  노출된다(merge 층 = 확인 게이트 다음의 2차 관문 — [10 중복 억제·병합](./10-dedup-and-merge.md)).
+  라이프사이클의 `user_reviewed → confirmed_or_rejected` 전이.
 
 ### S08 / S09 — 상태 `route_confirmed`
 
@@ -227,4 +232,5 @@
 - S11이 채점하는 지표·평가 케이스 → [05 평가·드리프트](./05-evaluation-drift.md)
 - 파이프라인이 끌어올리는 수렴 지표 → [06 수렴 모델](./06-convergence-model.md)
 - 각 노드의 9-space 사상 → [07 9-space 크로스워크](./07-opencrab-9space-crosswalk.md)
+- S07 확인 게이트의 2차 관문(중복 억제·병합·대체) → [10 중복 억제·병합](./10-dedup-and-merge.md)
 - 스킬·역할·핸드오프 운영 모델 → [12 crab 오케스트레이션](../skills/12-crab-orchestration.md)
