@@ -40,6 +40,11 @@
   교차문서 Markdown 링크·`#앵커`가 실재 헤딩(GitHub 슬러그)으로 해소되는지 검사하는 stdlib 도구.
   CI 게이트로 편입(broken≠0이면 빌드 실패)되어, 헤딩 rename이 참조를 조용히 끊는 것을 막습니다.
   (이 도구가 skills/08의 깨진 자기 앵커 3건을 발견 — 아래 Fixed.)
+- **문서 명령 무결성 게이트** [`tools/check_commands.py`](./tools/check_commands.py) — 문서의 안전·
+  읽기전용 명령(validate/convergence/dedup/check_anchors·`python -c` 점검)을 실제로 실행해 하나라도
+  실패하면 빌드를 깨는 stdlib 도구. "**모든 figure는 명령으로 재현된다**"는 명제를 *실행 가능한 게이트*로
+  만들어, CLI 시그니처가 바뀌어 문서의 명령이 조용히 깨지는 것을 막습니다(아래 it.13 회귀 클래스).
+  테스트는 38개로 늘어 두 가드(앵커·명령)와 디렉터리-형 CLI까지 잠급니다.
 
 ### Reconciled (정합화)
 - **14개 빌더 스킬을 병합 층(spec/10)과 정합화.** 확인 게이트의 검토 액션은 *여섯 기본 + dedup judge의

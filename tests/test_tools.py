@@ -298,6 +298,13 @@ class TestEndToEnd(unittest.TestCase):
         self.assertIn("L2 Working", r.stdout)
         self.assertIn("0.71", r.stdout)
 
+    def test_documented_commands_all_run(self):
+        # every safe, read-only command printed in the docs must actually run (the it.13 bug class:
+        # a documented invocation that errors). check_commands.py runs them and fails on any break.
+        r = _run("tools/check_commands.py", ".")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("0 broken", r.stdout)
+
     def test_rev02_pre_reproduces_four_verdicts(self):
         r = _run("tools/pab_merge.py",
                  "examples/logotekton/revolution-02/instance-records.pre.yaml",
@@ -347,6 +354,19 @@ class TestAnchorIntegrity(unittest.TestCase):
             with open(os.path.join(d, "a.md"), "w", encoding="utf-8") as fh:
                 fh.write("# Hello World\n\n[bad](#does-not-exist)\n[good](#hello-world)\n")
             r = _run("tools/check_anchors.py", d)
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn("1 broken", r.stdout)
+
+
+class TestCommandGuard(unittest.TestCase):
+    """check_commands.py must actually fail when a documented command errors (not a no-op)."""
+
+    def test_guard_catches_a_failing_command(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "a.md"), "w", encoding="utf-8") as fh:
+                fh.write('```bash\npython3 -c "import sys; sys.exit(1)"\n```\n')
+            r = _run("tools/check_commands.py", d)
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertIn("1 broken", r.stdout)
 
