@@ -187,6 +187,8 @@ python tools/convergence_report.py \
 - 수렴 6지표·5단계 성숙도 정의 → [`../spec/06-convergence-model.md`](../spec/06-convergence-model.md)
 - 평가 지표·케이스 필드 → [`../spec/05-evaluation-drift.md`](../spec/05-evaluation-drift.md)
 - 끝까지 동작하는 예제(이 스크립트들의 입력/출력) → [`../examples/logotekton/`](../examples/logotekton/README.md)
+- 이 도구들의 숫자·판정을 잠그는 회귀 테스트 → [`../tests/`](../tests/README.md)
+  (`python3 -m unittest discover -s tests`)
 - 새 사용자 시작 양식 → [`../templates/QUICKSTART.md`](../templates/QUICKSTART.md)
 
 > 이름 규칙: 산출물은 **Personal Agent**, 플랫폼은 **OpenCrab**, 팩은 정식 14개 이름만 씁니다.
