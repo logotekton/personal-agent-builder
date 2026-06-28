@@ -286,6 +286,35 @@ class TestEvalIntegrity(unittest.TestCase):
         self.assertTrue(vp.validate_record(r, "t").ok)
 
 
+class TestReviewAudit(unittest.TestCase):
+    """#8: review_audit makes a real review mechanically distinguishable from a rubber-stamp."""
+
+    def test_absent_passes_by_default(self):
+        # default does NOT require audit — so the worked example needn't fabricate review metadata
+        self.assertTrue(vp.validate_record(_good(), "t").ok)
+
+    def test_absent_fails_when_required(self):
+        res = vp.validate_record(_good(), "t", require_audit=True)
+        self.assertFalse(res.ok)
+        self.assertTrue(any("review_audit" in e for e in res.errors), res.errors)
+
+    def test_valid_audit_passes_even_when_required(self):
+        r = _good()
+        r["review_audit"] = {
+            "reviewer_id": "logotekton", "decision": "edit",
+            "decided_at": "2026-06-28T00:00:00Z", "diff": "before->after",
+        }
+        self.assertTrue(vp.validate_record(r, "t", require_audit=True).ok)
+
+    def test_audit_missing_reviewer_fails(self):
+        r = _good(); r["review_audit"] = {"decision": "confirm"}  # who decided?
+        self.assertFalse(vp.validate_record(r, "t").ok)
+
+    def test_audit_bad_decision_enum_fails(self):
+        r = _good(); r["review_audit"] = {"reviewer_id": "x", "decision": "approve"}
+        self.assertFalse(vp.validate_record(r, "t").ok)
+
+
 # ───────────────────────── convergence: locked example numbers ─────────────
 class TestConvergenceExample(unittest.TestCase):
     @classmethod

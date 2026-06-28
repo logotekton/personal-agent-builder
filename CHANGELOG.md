@@ -22,6 +22,15 @@
 ## [Unreleased]
 
 ### Karpathy review 후속 — 자기기만 방지 (실행 게이트 강화)
+- **#8 검토 감사 흔적 — 고무도장 vs 실제 검토 구별.** reviewer·결정·diff 가 스키마에 없어 *편집된
+  레코드*가 *고무도장 confirmed*와 기계적으로 구별 불능(→`edit_rate` 계산 불가)이던 문제에,
+  베이스 레코드에 **`review_audit`**(`reviewer_id`·`decided_at`·`decision`(enum, `edit` 포함)·
+  `decision_reason`·`diff`·`board_id`)을 추가했습니다([`record.base.schema.json`](./schemas/record.base.schema.json)).
+  [`validate_packs.py`](./tools/validate_packs.py)는 audit 가 있으면 항상 형태를 검증하고,
+  **`--require-audit`** 옵트인으로 런타임 활성 레코드에 강제합니다. *기본 비강제*는 — 19개 확정
+  레코드에 *없던 검토 메타를 날조하지 않기* 위해서이며, 그래서 예제 기본 검증은 **42 PASS 불변**
+  (`--require-audit`면 정직하게 42 FAIL = "감사 흔적 없음"). skills/07 [D]가 산문 대신 이 구조화
+  필드를 가리킵니다. 테스트 +5(53개).
 - **#5 런타임 shadow-activation 한 칸 (설계).** 평가가 *루프의 끝*이라 컴파일된 어댑터가 이미 라이브가
   된 *뒤*에 검증되던 문제에 대해, 라이프사이클에 `shadow_validated` 상태를 추가했습니다
   ([`spec/01 §1`](./spec/01-kernel-schema.md)·[`spec/02 S10½`](./spec/02-builder-pipeline.md)·

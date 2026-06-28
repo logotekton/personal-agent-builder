@@ -98,7 +98,11 @@ dedup judge가 추천하는 `merge`/`supersede` 중 **정확히 하나**의 종�
 
 **[D] 액션 적용.** 액션을 `validation_status`로 매핑하고(§4 표), **감사 흔적**을 남긴다:
 편집이면 `concise_claim`/`scope`/`sensitivity`의 before→after diff, 결정 사유(짧은 노트),
-검토자 식별자, 결정 시각. 이 흔적이 나중에 [S11 평가·드리프트](./11-evaluation-drift.md)와
+검토자 식별자, 결정 시각. 이 흔적은 산문이 아니라 **베이스 레코드의 구조화 필드 `review_audit`**
+(`reviewer_id`·`decided_at`·`decision`·`decision_reason`·`diff`·`board_id`)에 기록한다 — 그래야
+*편집된 레코드*가 *고무도장 찍힌 confirmed*와 기계적으로 구별되고 `edit_rate`(라벨 품질 신호)를
+계산할 수 있다(카파시 #8). 실배포에서는 [`validate_packs.py --require-audit`](../tools/validate_packs.py)로
+런타임 활성 레코드에 이 흔적을 강제한다. 이 흔적이 나중에 [S11 평가·드리프트](./11-evaluation-drift.md)와
 [`user.drift_history`](../schemas/user.drift_history.schema.json)의 입력이 된다.
 
 **[E] 승격 규칙 적용.** §5의 승격 규칙을 강제한다. 요지: **confirmed/편집본만** 다음 단계로

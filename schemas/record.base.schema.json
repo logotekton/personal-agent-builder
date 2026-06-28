@@ -68,6 +68,20 @@
       "description": "True if this record reached review_status=confirmed via an auto_confirm_policy (spec/12) rather than a human gate. Default false = human-confirmed. The maturity gate counts a human-only human_confirmation_ratio that EXCLUDES auto_confirmed records, so auto-confirm cannot inflate the confirmed numerator and let the system self-certify its own maturity (spec/12 §4.4 circularity break)."
     },
 
+    "review_audit": {
+      "type": "object",
+      "description": "Provenance of the human review that promoted this record (Karpathy #8): makes a real review mechanically distinguishable from a rubber-stamp and lets edit_rate be computed. validate_packs --require-audit makes it mandatory on runtime-active records.",
+      "properties": {
+        "reviewer_id": { "type": "string", "description": "Who decided (a UserSubject/handle), not just that someone did." },
+        "decided_at": { "type": "string", "format": "date-time" },
+        "decision": { "type": "string", "enum": ["confirm", "edit", "reject", "narrow_scope", "mark_sensitive", "defer", "merge", "supersede"], "description": "The review action taken. 'edit' distinguishes a corrected record from a rubber-stamped 'confirm' — the signal for edit_rate / correction_strength." },
+        "decision_reason": { "type": "string", "description": "Why — a one-line rationale, so the decision is auditable." },
+        "diff": { "type": "string", "description": "before→after of the change when decision=edit." },
+        "board_id": { "type": "string", "description": "The review board/session this decision belongs to." }
+      },
+      "additionalProperties": false
+    },
+
     "aliases": { "type": "array", "items": { "type": "string" } },
     "priority_weight": { "type": "number", "minimum": 0, "maximum": 1 },
     "counterexamples": {

@@ -177,8 +177,42 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
             )
 
 
+# ── 검토 감사 흔적 (#8) ─────────────────────────────────────────────────────────
+REVIEW_DECISIONS = {
+    "confirm", "edit", "reject", "narrow_scope", "mark_sensitive", "defer", "merge", "supersede",
+}
+
+
+def _review_audit_check(record: Any, res: "RecordResult", require_audit: bool) -> None:
+    """검토 감사 흔적(`review_audit`)을 검사한다 (카파시 #8).
+
+    확정 레코드가 *고무도장*인지 *실제 검토*인지 기계적으로 구별하려면 reviewer·결정·diff 가
+    스키마에 있어야 한다(없으면 `edit_rate` 같은 라벨 품질 신호를 계산할 수 없다). 있으면 항상
+    형태를 검증하고, 없을 때 런타임 활성 레코드에 강제할지는 `--require-audit`(옵트인)로 정한다 —
+    기본 비강제는 *예제에 감사 메타를 날조하지 않기* 위해서다.
+    """
+    ra = record.get("review_audit")
+    rs = record.get("review_status")
+    if isinstance(ra, dict):
+        rid = ra.get("reviewer_id")
+        if not (isinstance(rid, str) and rid.strip()):
+            res.errors.append("[#8] review_audit 에 reviewer_id 가 없습니다 (누가 결정했는가)")
+        dec = ra.get("decision")
+        if dec is not None and dec not in REVIEW_DECISIONS:
+            res.errors.append(
+                f"[#8] review_audit.decision enum 위반: {dec!r} (허용: {sorted(REVIEW_DECISIONS)})"
+            )
+    elif ra is not None:
+        res.errors.append(f"[#8] review_audit 는 객체여야 합니다: got {type(ra).__name__}")
+    elif require_audit and rs in RUNTIME_ACTIVE_STATUS:
+        res.errors.append(
+            "[#8] 런타임 활성 레코드에 review_audit(reviewer_id·decision·diff) 가 없습니다 "
+            "— 고무도장과 구별 불가, edit_rate 계산 불능 (--require-audit)"
+        )
+
+
 # ── 코어 레코드 검증 ────────────────────────────────────────────────────────────
-def validate_record(record: Any, locator: str) -> RecordResult:
+def validate_record(record: Any, locator: str, require_audit: bool = False) -> RecordResult:
     """베이스 레코드 코어 규칙으로 단일 레코드를 검증합니다."""
     res = RecordResult(locator)
 
@@ -262,6 +296,9 @@ def validate_record(record: Any, locator: str) -> RecordResult:
     # 9) 평가 케이스 무결성 (검증자 검증, #3) — rubric/result 를 가진 레코드에만 적용.
     _eval_integrity(record, res)
 
+    # 10) 검토 감사 흔적 (#8) — 있으면 형태 검증, 없으면 (옵트인) 런타임활성 레코드에 요구.
+    _review_audit_check(record, res, require_audit)
+
     return res
 
 
@@ -339,7 +376,7 @@ def collect_files(paths: Iterable[str]) -> Tuple[List[str], List[str]]:
 
 
 # ── 파일 단위 검증 ──────────────────────────────────────────────────────────────
-def validate_file(path: str) -> Tuple[List[RecordResult], List[str]]:
+def validate_file(path: str, require_audit: bool = False) -> Tuple[List[RecordResult], List[str]]:
     """한 파일을 검증해 (레코드 결과들, 파일레벨 메시지들) 을 돌려줍니다.
 
     파일레벨 메시지는 파싱 실패나 '검증할 레코드 없음' 같은 상황을 담습니다.
@@ -354,7 +391,7 @@ def validate_file(path: str) -> Tuple[List[RecordResult], List[str]]:
     found = False
     for suffix, rec in iter_records(payload):
         found = True
-        results.append(validate_record(rec, f"{path}::{suffix}"))
+        results.append(validate_record(rec, f"{path}::{suffix}", require_audit))
 
     if not found:
         return results, ["검증할 레코드를 찾지 못했습니다 (지원되는 모양이 아님)"]
@@ -370,8 +407,11 @@ def _is_skip_message(msg: str) -> bool:
 
 def run(paths: List[str]) -> int:
     """검증을 수행하고 종료 코드를 돌려줍니다 (0=성공, 1=실패, 2=사용법)."""
+    # --require-audit: 런타임 활성 레코드에 review_audit(#8) 강제. 기본 off (예제 날조 방지).
+    require_audit = "--require-audit" in paths
+    paths = [p for p in paths if not p.startswith("--")]
     if not paths:
-        print("사용법: python tools/validate_packs.py <path-or-dir> [...]")
+        print("사용법: python tools/validate_packs.py [--require-audit] <path-or-dir> [...]")
         return 2
 
     files, missing = collect_files(paths)
@@ -392,7 +432,7 @@ def run(paths: List[str]) -> int:
         return 1
 
     for path in files:
-        results, file_msgs = validate_file(path)
+        results, file_msgs = validate_file(path, require_audit)
 
         for msg in file_msgs:
             if _is_skip_message(msg):
