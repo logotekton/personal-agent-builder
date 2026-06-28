@@ -153,8 +153,9 @@
 
 ### 3.3 필수 필드 (Required fields)
 
-모든 `CandidateAssertion`은 [`candidate.schema.json`](../schemas/candidate.schema.json)의 다음
-10개 필수 필드를 가진다(커널 §8):
+모든 `CandidateAssertion`은 [`candidate.schema.json`](../schemas/candidate.schema.json)의 `required`
+10개 필수 필드를 가진다(타입·라우팅 어휘는 [커널 §6](../spec/01-kernel-schema.md#6-후보-타입--라우팅-11-전수),
+승격 후 베이스 어휘는 [커널 §7](../spec/01-kernel-schema.md#7-통합-베이스-레코드-필드-표류-해소)):
 
 | 필드 | 의미 | 게이트/규칙 |
 |------|------|-------------|
@@ -175,7 +176,7 @@
 ## 4. 신뢰도 입력 (Confidence inputs)
 
 `confidence`는 손으로 찍는 숫자가 아니라 **7개 입력에서 산출**되며, 입력은 `confidence_inputs`로
-남겨 감사 가능하게 한다([candidate.schema.json](../schemas/candidate.schema.json) 동일 어휘, 커널 §8).
+남겨 감사 가능하게 한다([candidate.schema.json](../schemas/candidate.schema.json)의 `confidence_inputs` 동일 어휘).
 
 | 입력 | 의미 | 신뢰도 방향 |
 |------|------|-------------|
@@ -252,8 +253,10 @@
   [S06](./06-scope-context.md)에 넘겼는가(여기서 확정하지 않음).
 - [ ] **민감도 표시(G5 예비)** — 민감/제한 신호의 `sensitivity`가 상향됐는가. [09 프라이버시
   경계](./09-privacy-boundary.md)가 승격 전 `BoundaryRule`을 붙일 수 있게 표시했는가.
-- [ ] **중복·모순 점검** — 기존 확정 레코드와 중복이면 신규 증거로 표시(`repetition_count`↑),
-  모순이면 `DriftRecordCandidate`로 돌리고 `contradiction_count`↑.
+- [ ] **중복·모순 점검(예비)** — 기존 확정 레코드와 중복이면 신규 증거로 표시(`repetition_count`↑),
+  모순이면 `DriftRecordCandidate`로 돌리고 `contradiction_count`↑. *권위 있는 dedup judge·
+  conflict→surface는 하류 S07/병합 층*([10 중복 억제·병합](../spec/10-dedup-and-merge.md),
+  [`tools/pab_merge.py`](../tools/pab_merge.py)).
 - [ ] **상태 불변식** — `validation_status = pending`으로만 출력했는가. 확인/스코프 확정/라우팅을
   침범하지 않았는가(G3).
 

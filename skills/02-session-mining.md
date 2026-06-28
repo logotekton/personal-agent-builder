@@ -175,13 +175,16 @@
 - **교정에 더 큰 가중.** 같은 무게로 보이는 신호라면 *교정*(before→after)에서 온 것을
   *수용/추론*에서 온 것보다 높게 친다(`correction_strength`).
 - **최근·명시 지시 최우선.** 최근의 명시적 사용자 지시는 가장 높은 신뢰도를 받고, 오래된 암묵
-  신호와 충돌하면 우선한다(옛 신호는 [14 드리프트](../spec/05-evaluation-drift.md) 후보로 표시).
+  신호와 충돌하면 우선한다(옛 신호는 [05 평가·드리프트](../spec/05-evaluation-drift.md) 후보로 표시).
 - **증거 없는 신호 금지(G1).** `evidence_refs`가 빈 후보는 만들지 않는다 — 추측은 신호가 아니다.
 - **행동 언어만(G4).** 후보 문구는 관찰된 행동만 기술하고 추측된 심리·동기를 단정하지 않는다.
 - **민감 신호 표시(G5 예비).** 민감/제한 신호는 `sensitivity`로 표시해 [09 프라이버시 경계](./09-privacy-boundary.md)가
   승격 전 `BoundaryRule`을 붙일 수 있게 한다.
-- **중복·모순 점검.** 기존 확정 레코드와 중복되면 신규 증거로 표시(신뢰도 보강용)하고, 모순되면
-  `contradiction_count`를 올려 드리프트 후보로 넘긴다.
+- **중복·모순 점검(예비).** 기존 확정 레코드와 중복되면 신규 증거로 표시(신뢰도 보강용)하고, 모순되면
+  `contradiction_count`를 올려 드리프트 후보로 넘긴다. *이 점검은 예비일 뿐* — 권위 있는 dedup
+  judge(novel/duplicate/refinement/conflict → insert/merge/supersede/surface)와 conflict→사람 노출은
+  하류 승격 직전(S07/병합 층)에서 일어난다([10 중복 억제·병합](../spec/10-dedup-and-merge.md),
+  [`tools/pab_merge.py`](../tools/pab_merge.py)).
 
 ## 7. Crab 역할 (Crab role)
 
