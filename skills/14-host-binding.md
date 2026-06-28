@@ -137,3 +137,17 @@ ChatGPT 소비자 제품은 *memory*(인스턴스 팩의 가장 가까운 유사
 - 프라이버시/경계(boundary·guardrail 대응): [../spec/04-privacy-boundary.md](../spec/04-privacy-boundary.md)
 - 머신 스키마: [../schemas/trigger.schema.json](../schemas/trigger.schema.json)
 - 사용자 절차·개입 시점: [../docs/build-your-personal-agent.md](../docs/build-your-personal-agent.md)
+
+
+## 실제 배선 파일 (committed in this repo)
+
+이 레포에 양쪽 호스트용 훅이 **커밋되어** 있습니다 — 설정 단계별 안내는
+[../docs/hooks-setup.md](../docs/hooks-setup.md).
+
+- Claude Code: [`../.claude/settings.json`](../.claude/settings.json)
+- Codex CLI: [`../.codex/config.toml`](../.codex/config.toml)  (레포 단위 `<repo>/.codex/`)
+- 공유 진입점(양쪽이 호출): [`../tools/pab`](../tools/pab) — **STUB**(로그만, exit 0). 라이브로
+  만들려면 `pab`의 분기를 OpenCrab MCP 스테이징으로 교체(§7 불변식 유지).
+
+5개 훅이 1:1로 배선됨: SessionStart→compile, UserPromptSubmit/PostToolUse→capture,
+PreToolUse→boundary, Stop→mine+review(승격은 여기만).

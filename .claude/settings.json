@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/tools/pab\" compile-adapter" } ] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/tools/pab\" capture --from prompt" } ] }
+    ],
+    "PostToolUse": [
+      { "hooks": [ { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/tools/pab\" capture --from tool" } ] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Bash|Write|Edit|MultiEdit|mcp__.*", "hooks": [ { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/tools/pab\" boundary-check" } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/tools/pab\" mine-and-review" } ] }
+    ]
+  }
+}

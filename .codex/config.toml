@@ -1,0 +1,59 @@
+# Personal Agent Builder — Codex CLI hooks (repo-committed).
+#
+# WHERE THIS LIVES (Codex paths can be confusing — this is the repo-level config):
+#   Codex reads hooks from EITHER `[[hooks.*]]` tables in config.toml OR a hooks.json,
+#   at two layers:
+#     user level : ~/.codex/config.toml   ·  ~/.codex/hooks.json
+#     repo level : <repo>/.codex/config.toml  ·  <repo>/.codex/hooks.json   <-- THIS FILE
+#   Repo-level config applies whenever Codex runs inside this repository (desktop or CI),
+#   so committing it here is the portable choice — same idea as Claude Code's
+#   <repo>/.claude/settings.json.
+#
+# EVENTS (verbatim): SessionStart, UserPromptSubmit, PreToolUse, PermissionRequest,
+#   PostToolUse, PreCompact, PostCompact, SubagentStart, SubagentStop, Stop.
+# TRUST: command hooks must be reviewed & trusted by hash before they run — use `/hooks`.
+# INPUT: each hook receives JSON on stdin (session_id, transcript_path, cwd,
+#   hook_event_name, model; turn events also add turn_id).
+#
+# NOTE: tools/pab is a STUB right now (see docs/hooks-setup.md). It logs what it WOULD do
+#   and exits 0; it does not yet stage to OpenCrab. Wire real MCP staging to go live.
+# These mirror .claude/settings.json 1:1 (trigger model: spec/09; adapters: skills/14).
+
+[[hooks.SessionStart]]
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = 'bash "$(git rev-parse --show-toplevel)/tools/pab" compile-adapter'
+timeout = 30
+statusMessage = "PAB: compile runtime adapter"
+
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = 'bash "$(git rev-parse --show-toplevel)/tools/pab" capture --from prompt'
+timeout = 20
+statusMessage = "PAB: capture prompt evidence"
+
+[[hooks.PostToolUse]]
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = 'bash "$(git rev-parse --show-toplevel)/tools/pab" capture --from tool'
+timeout = 20
+statusMessage = "PAB: capture tool evidence"
+
+[[hooks.PreToolUse]]
+# matcher is a regex over tool names; "" (or "*", or omitting) matches everything.
+# Codex tool names differ from Claude's, so this is left broad — narrow it to your
+# shell/file/MCP tools once you confirm the names with `/hooks`.
+matcher = ""
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = 'bash "$(git rev-parse --show-toplevel)/tools/pab" boundary-check'
+timeout = 20
+statusMessage = "PAB: boundary check"
+
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = 'bash "$(git rev-parse --show-toplevel)/tools/pab" mine-and-review'
+timeout = 60
+statusMessage = "PAB: mine + review board"
