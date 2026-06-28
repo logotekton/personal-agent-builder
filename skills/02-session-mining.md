@@ -94,7 +94,7 @@
 | # | 마이닝 타깃 | 관찰 신호(세션에서 무엇이 보이는가) | 후보 타입 가설 → 제안 팩 |
 |---|-------------|--------------------------------------|--------------------------|
 | 1 | **반복 선호 (repeated preference)** | 여러 세션에서 같은 형식/접근을 일관되게 요청·수용 | `CommunicationStyleCandidate` / `PersonaTraitCandidate` → `user.communication_style` / `user.persona_core` |
-| 2 | **반선호 (anti-preference)** | 같은 종류의 출력을 반복적으로 거부·삭제·"이건 말고" | `PersonaTraitCandidate` → `user.persona_core` (반복 거부는 §4 교정강도↑) |
+| 2 | **반선호 / 반복 위험신호 (anti-preference / red flag)** | 같은 종류의 출력을 반복적으로 거부·삭제·"이건 말고"; 같은 약한 구조·빈약한 근거를 여러 세션에서 일관되게 경고·거부 | `PersonaTraitCandidate` / `RedFlagCandidate` → `user.persona_core` / `user.red_flags` (반복 거부는 §4 교정강도↑; [04 diff 마이닝](./04-diff-mining.md)도 반복 거부를 RedFlag로 사상) |
 | 3 | **교정 패턴 (correction pattern)** | before→after 교정이 여러 세션에서 같은 방향 | `CommunicationStyleCandidate` / `TacitHeuristicCandidate` → 해당 팩 (교정은 최강 신호) |
 | 4 | **결정 에피소드 (decision episode)** | 선택지 사이에서 무엇을 우선했는가·무엇을 트레이드오프 했는가 | `DecisionPolicyCandidate` → `user.decision_policy` |
 | 5 | **잠재 경계 (latent boundary)** | 외부 노출·민감 주제·비가역 행동 앞에서 멈추거나 확인을 요구 | `BoundaryRuleCandidate` → `user.boundary_authority` (민감 시 G5) |
@@ -106,13 +106,14 @@
 
 > 14개 후보 타입 중 `IdentityRoleCandidate`·`EvaluationCaseCandidate`·`DriftRecordCandidate`는
 > 세션 마이닝의 *주된* 산출이 아니다(역할은 보통 [03 질문](./03-elicitation-questioning.md)에서,
-> 평가 케이스·드리프트는 [11 평가·드리프트](./11-evaluation-drift.md) 루프에서 나온다). 다만 세션에서
+> 평가 케이스·드리프트는 [11 평가·드리프트](./11-evaluation-drift.md) 루프에서 나온다). 나머지 11개는
+> 위 표가 모두 겨눈다 — `RedFlagCandidate`는 타깃 #2(반복 위험신호)로 커버된다. 다만 세션에서
 > 강한 신호가 보이면 가설로 표시해 하류로 넘길 수 있다.
 
 ## 4. 신뢰도 산정 (Confidence)
 
 각 후보 신호의 0..1 신뢰도는 다음 입력에서 산출되며, 입력값은 `confidence_inputs`로 남겨 감사
-가능하게 한다([candidate.schema.json](../schemas/candidate.schema.json) 동일 어휘, 커널 §8). 네 개의
+가능하게 한다([candidate.schema.json](../schemas/candidate.schema.json)의 `confidence_inputs` 동일 어휘). 네 개의
 **핵심 축**과 세 개의 보조 입력으로 구성된다.
 
 핵심 축(세션 마이닝에서 가중치가 가장 큼):
