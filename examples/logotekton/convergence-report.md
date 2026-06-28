@@ -8,7 +8,9 @@
 > (L2 유지, decision_fidelity 0.92→1.00, coverage 0.57→0.71, merge_rate 0.059→0.095,
 > drift_stability 0.94→0.89)** 은 [`revolution-02/README.md`](./revolution-02/README.md)에 있습니다.
 > **현재 라이브 도구 출력은 T2(L2 — df 1.00, coverage 0.71)** 이며, 아래 본문은 *맨 처음* 상태를
-> 보존한 T0 베이스라인입니다.
+> 보존한 T0 베이스라인입니다. (후속 #3 계측 이후 라이브 `correction_cost`는 NA→**0.08** 로 측정되어
+> L3 미달 조건이 `coverage≥0.8` **하나**로 좁혀졌습니다 —
+> [`revolution-02/README.md` §6](./revolution-02/README.md#6-후속post-rev-02--3-correction_cost-계측).)
 
 > **EN:** A worked convergence report for the `logotekton` subject, computed per
 > [`../../spec/06-convergence-model.md`](../../spec/06-convergence-model.md) from the

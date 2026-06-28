@@ -146,7 +146,8 @@ merge actuator([`../../tools/pab_merge.py`](../../tools/pab_merge.py)) + eval.00
 *확인된* 후보가 actuator 에 의해 차단되어 사람 검토로 surface 되는 **안전 속성**을 증명합니다.
 정직한 헤드라인: `decision_fidelity` 0.92→**1.00**, `coverage` 0.57→0.71 인데도 성숙도는 **L2 그대로** —
 리포트가 남은 L3 빗장 둘(`coverage≥0.8`, `correction_cost`=NA)을 정확히 가리킵니다. 한 바퀴가 가짜
-도약 대신 *다음 병목*을 숫자 하나로 좁혀 보여주는 사례.
+도약 대신 *다음 병목*을 숫자 하나로 좁혀 보여주는 사례. (후속 §6: `result.edit_fraction` 계측으로
+`correction_cost` NA→0.08 → 남은 L3 빗장이 `coverage`<0.8 **하나**로 좁혀짐.)
 
 ## 읽는 순서 (추천)
 

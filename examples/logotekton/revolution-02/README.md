@@ -12,8 +12,9 @@
 > surface`, never silently overwrites). The honest headline: **the maturity tier does NOT advance
 > (L2 → L2).** The wheel turned, fidelity hit 1.0, coverage climbed 0.57→0.71 — yet the report
 > refuses to promote, and *names exactly why*: `coverage < 0.8` and `correction_cost = NA`. Turning
-> the wheel did not fake a jump; it **isolated the next bottleneck to a single number**. Every figure
-> below is reproduced by the commands in §4.
+> the wheel did not fake a jump; it **isolated the next bottleneck**. (Follow-up §6: a structured
+> `result.edit_fraction` field then instrumented `correction_cost` NA → 0.08, narrowing the L3 gate to
+> `coverage < 0.8` *alone*.) Every figure below is reproduced by the commands in §4.
 
 이 문서는 PAB 데이터-엔진 플라이휠을 **실제 레코드 위에서 두 번째로 돌린** 기록입니다.
 revolution-01 이 "바퀴가 돈다"(merge + insert)를 증명했다면, revolution-02 는 회의론자가
@@ -75,13 +76,14 @@ revolution-01 은 `novel`+`duplicate` 두 가지를 보였고, revolution-02 가
 | 확인 레코드 | 16 | **19** | +artifact.001 +tool.001 +drift.002 |
 | `confirmation_ratio` | 1.00 | 1.00 | 유지(충돌 후보는 적재 안 함 → 지표 무영향) |
 | `traceability` | 1.00 | **1.00** | 유지(새 레코드도 모두 증거 결속, G1) |
-| `correction_cost` | **NA** | **NA** | **여전히 NA — 구조화 필드 부재(#3), L3 를 막는 둘째 빗장** |
+| `correction_cost` | **NA** | **NA** | T2 시점엔 NA — 후속 #3 에서 **0.08** 로 계측([§6](#6-후속post-rev-02--3-correction_cost-계측)) |
 | validate_packs (라이브) | 18 PASS | **25 PASS** | top 19 + rev-01 2 + rev-02 4 (재귀 명령은 .pre 픽스처 17 포함 **42 PASS**) |
 
 > **읽는 법.** `decision_fidelity`가 1.00, `coverage`가 0.71 로 올랐는데도 성숙도는 L2 그대로입니다.
-> 이것이 핵심입니다 — 리포트의 "다음 단계(L3)까지 미달 조건"이 정확히 두 줄을 가리킵니다:
-> `L3_coverage>=0.8` 과 `L3_correction_cost<=0.3`. 한 바퀴는 마법이 아니라 **다음 병목을 가리키는
-> 나침반**입니다.
+> 이것이 핵심입니다 — **[T2 시점]** 리포트의 "다음 단계(L3)까지 미달 조건"이 정확히 두 줄을
+> 가리켰습니다: `L3_coverage>=0.8` 과 `L3_correction_cost<=0.3`. (후속 #3 계측 후엔 둘째 줄이 사라져
+> **`L3_coverage>=0.8` 한 줄**로 좁혀집니다 — [§6](#6-후속post-rev-02--3-correction_cost-계측).) 한 바퀴는
+> 마법이 아니라 **다음 병목을 가리키는 나침반**입니다.
 
 ## 3. 무엇이 새로 생겼나 (the data + the safety proof)
 
@@ -147,11 +149,12 @@ revolution-02 의 가치는 *움직인* 숫자만큼 *움직이지 않은* 숫�
   시드했고, 나머지 4개 팩(red_flags, workflow_playbooks, domain_overlays, memory_project_graph)은
   **정직하게 비어 있습니다**(G1: 증거 없는 팩은 채우지 않는다). 엄격 `coverage`(≥3)는 여전히
   0.07 — 폭은 늘었으나 깊이는 그대로이며, 이것이 #7 의 핵심입니다.
-- **(c) `correction_cost`는 여전히 NA — 이제 L3 의 *가장 날카로운* 단일 레버.** 설령 `coverage`가
-  0.8 을 넘겨도, 구조화된 작업별 편집비율 필드가 없어(`le(None, 0.3)=False`) L3 는 열리지 않습니다.
-  eval.006 의 관측 편집비율(≈0.12)은 산문에만 있고 도구가 읽는 필드가 아닙니다. 사용자는 이번
-  세션에서 revolution-02 를 택했고 #3 은 보류했으므로, 우리는 그것을 **고치지 않고 정직하게
-  NA 로 둡니다.** 플라이휠은 #3 을 다음의 단일 최고 레버리지 작업으로 *가리킵니다.*
+- **(c) [T2 시점] `correction_cost`는 여전히 NA — 이제 L3 의 *가장 날카로운* 단일 레버.** 설령
+  `coverage`가 0.8 을 넘겨도, 구조화된 작업별 편집비율 필드가 없어(`le(None, 0.3)=False`) L3 는
+  열리지 않습니다. eval.006 의 관측 편집비율(≈0.12)은 산문에만 있고 도구가 읽는 필드가 아닙니다.
+  **→ 후속(post-rev-02)으로 #3 이 해결되었습니다: [§6](#6-후속post-rev-02--3-correction_cost-계측)
+  참조.** `result.edit_fraction` 구조화 필드가 추가돼 `correction_cost`가 **NA → 0.08** 로 계측되었고,
+  L3 미달 조건은 이제 `coverage≥0.8` **하나**로 좁혀졌습니다 — 플라이휠이 가리킨 그 레버를 실제로 당김.
 - **(d) `drift_stability`가 *내렸다*(0.94→0.89) — 좋은 신호.** 두 번째 실제 교정이 일어나며 안정도가
   내려갔습니다. 1.0 에 고정된 값은 아무것도 교정되지 않는다는 뜻이라 무의미합니다(revolution-01
   노트 #5). 이제 값은 *살아서* 움직이며 L3 바닥(0.7)을 여유 있게 상회합니다. 다만 여러 기간에
@@ -167,6 +170,49 @@ revolution-02 의 가치는 *움직인* 숫자만큼 *움직이지 않은* 숫�
 > 이 스냅샷은 한 칸입니다. 위 (a)~(f)는 결함이 아니라 *상태*이며, 다음 바퀴들이 무엇을 해야 하는지
 > 정확히 정의합니다. 그것이 수렴을 *보는* 방법입니다 — 숫자가 오르는 것을 보고, **다음에 어느
 > 숫자를 고쳐야 하는지** 도구가 가리키는 것을 보는 것.
+
+## 6. 후속(post-rev-02) — #3 correction_cost 계측
+
+> **EN:** rev-02 ended by naming `correction_cost = NA` as the sharpest remaining L3 lever (§5c).
+> This follow-up pulls that lever — NOT by turning the wheel (no new candidates/merge) but by
+> **instrumentation**: a structured `result.edit_fraction` field was added so the correction cost the
+> eval cases already described in prose becomes a number the tool reads. The metric moves NA → 0.08,
+> and the L3 gate narrows from **two blockers to one**. This is the flywheel's promise kept: it
+> pointed at a single number, and the number is now measured.
+
+rev-02 는 `correction_cost = NA` 를 L3 의 가장 날카로운 단일 레버로 지목하며 끝났습니다(§5c).
+이 후속은 **바퀴를 돌리지 않고**(새 후보·병합 없음) **계측**으로 그 레버를 당깁니다.
+
+**무엇을 바꿨나 (instrumentation, not a turn):**
+- `user.evaluation_cases` 스키마의 `result` 블록에 **`result.edit_fraction`**(0..1, 사용자가 출력의
+  몇 할을 고쳐야 했는가)을 형식화. 정의는 [`../../../spec/05-evaluation-drift.md`](../../../spec/05-evaluation-drift.md)
+  의 `correction_cost` 항목과 [`../../../schemas/user.evaluation_cases.schema.json`](../../../schemas/user.evaluation_cases.schema.json).
+- 산출물 생성 케이스 3개에 *이미 산문으로 기술돼 있던* 관측값을 형식화(날조 아님):
+  `eval.004` 0.08(초안 수용·어조 한 군데), `eval.005` 0.05(보고 수용·서두 한 줄), `eval.006`
+  **0.12**(observed_behavior 의 "편집 비율 ≈ 0.12" 와 동일). 정오만 가리는 Q&A 케이스(eval.001–003)는
+  편집할 산출물이 없어 생략(spec/05 의 지침대로).
+
+**측정 (도구 출력):**
+
+| 지표 / 상태 | rev-02 직후 | **#3 계측 후** | 무엇이 움직였나 |
+|---|:---:|:---:|---|
+| `correction_cost` | **NA** | **0.08** | `(0.08+0.05+0.12)/3` — 처음으로 측정됨 |
+| L3 미달 조건 | `coverage≥0.8` + `correction_cost≤0.3` | **`coverage≥0.8` 하나** | #3 이 둘째 빗장 제거 |
+| 성숙도 | L2 | **L2** | 안 오름 — coverage 가 *유일* 병목으로 남음(정직) |
+| decision_fidelity / drift / merge_rate | 1.00 / 0.89 / 0.095 | 1.00 / 0.89 / 0.095 | 불변(계측은 다른 지표를 건드리지 않음) |
+
+> **정직성.** (i) `correction_cost`=0.08 은 *모두 pass* 인 현재 프로필의 낮은 편집비용을 반영한
+> 값이며 표본은 3 케이스로 얇습니다 — 더 많은 산출물 케이스가 쌓여야 견고해집니다. (ii) 성숙도는
+> **여전히 L2** 입니다: #3 은 L3 를 *열지 않고*, 남은 단 하나의 빗장이 `coverage<0.8`(=#7, 깊이
+> 우선 coverage)임을 *드러냅니다*. 플라이휠은 이제 "어느 숫자 하나를 고치면 L3 인가"를 모호함 없이
+> 가리킵니다. (iii) 이것은 한 *바퀴*가 아니라 한 *계측*입니다 — 그래서 `merge_rate`·`drift` 등은
+> 그대로입니다.
+
+**재현:**
+```bash
+python tools/convergence_report.py examples/logotekton   # correction_cost 0.08; L3 미달 = coverage 하나
+python tools/validate_packs.py     examples/logotekton    # 42 PASS (edit_fraction 추가가 스키마 깨지 않음)
+```
 
 ## 인접 문서
 - 이전 바퀴: [`../revolution-01/README.md`](../revolution-01/README.md)

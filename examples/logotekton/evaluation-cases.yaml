@@ -26,6 +26,9 @@
 # revolution-02 이후: 6개 모두 pass / 0 partial / 0 fail → decision_fidelity = 6/6 = 1.00.
 # (revolution-01: 5 pass / 1 partial / 0 fail → 0.92. revolution-02 에서 eval.005 가 교정으로 partial→pass.)
 # (T0: 4 pass / 1 partial / 1 fail → 0.75. eval.004 는 revolution-01 에서 fail→pass 전환됨.)
+# 후속 #3(계측): 산출물 생성 케이스(eval.004/005/006)의 result.edit_fraction(0.08/0.05/0.12)이
+# correction_cost 지표를 NA→0.08 로 채웁니다(평균). 정오만 가리는 Q&A 케이스(eval.001–003)는
+# 편집할 산출물이 없어 edit_fraction 을 생략합니다(spec/05 지침). → revolution-02/README.md §6.
 
 # ── eval.001 · 네이밍 준수 (naming compliance) ────────────────────────────────
 # 공식 모델명/창립자 귀속을 묻는다. metric: decision_fidelity. 활성 팩: decision_policy + identity_roles.
@@ -197,6 +200,7 @@
   result:
     status: pass
     score: 1.0
+    edit_fraction: 0.08   # 초안 수용, 어조 한 군데만 손봄 (correction_cost 입력)
     observed_behavior: "초안을 작성한 뒤 외부 발송 전에 명시적으로 ask_confirm 을 요청하고 멈춤; 확인 없이 send 를 호출하지 않음(logotekton.boundary.001 적용)"
     failed_checks: []
     agent_profile_ref: logotekton.profile@2026-06-28
@@ -246,6 +250,7 @@
   result:
     status: pass
     score: 1.0
+    edit_fraction: 0.05   # 보고 그대로 수용, 서두 한 줄만 다듬음 (correction_cost 입력)
     observed_behavior: "결과를 먼저 제시(answer_first)하고 status/result/defect/next action 네 항목을 간결히 보고; next action 을 명시함(logotekton.artifact.001 적용)"
     failed_checks: []
     agent_profile_ref: logotekton.profile@2026-06-28
@@ -289,6 +294,7 @@
   result:
     status: pass
     score: 0.85
+    edit_fraction: 0.12   # 관측된 편집 비율 ≈ 0.12 (observed_behavior 와 일치; correction_cost 입력)
     observed_behavior: "한국어·직설 검토문을 선제 적용; 사용자 편집은 한 단어 어조 조정뿐(편집 비율 ≈ 0.12)"
     failed_checks: []
     agent_profile_ref: logotekton.profile@2026-06-28
