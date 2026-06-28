@@ -22,6 +22,13 @@
 ## [Unreleased]
 
 ### Karpathy review 후속 — 자기기만 방지 (실행 게이트 강화)
+- **#9 결정론적 컨텍스트 조립(참조 술어).** 컴파일러 계약이 "메모리 덤프 아닌 작업별 활성화"라면서도
+  토큰 예산·overlap 알고리즘·task_type 분류가 없어 *산문으로만* 시연되던 문제에, **실행 가능한 참조
+  술어** [`tools/context_select.py`](./tools/context_select.py)를 추가했습니다: 통제 `task_type` 어휘 +
+  결정론적 scope-overlap 술어 + `salience`(confidence×recency×repetition_count) 내림차순 + **토큰 예산**
+  채움 + *탈락분을 갭으로 반환*(조용한 절단 금지). skills/10 §3 [2]가 이 술어를 가리킵니다. 테스트
+  +5(58개). *정직한 한계: 라이브 컴파일러(`pab.py` compile 분기)는 스텁이라 아직 아무도 이 술어를 호출
+  하지 않습니다 — 실런타임 배선이 남은 몸-작업. 여기 있는 건 검증된 **선택 수학**입니다.*
 - **#8 검토 감사 흔적 — 고무도장 vs 실제 검토 구별.** reviewer·결정·diff 가 스키마에 없어 *편집된
   레코드*가 *고무도장 confirmed*와 기계적으로 구별 불능(→`edit_rate` 계산 불가)이던 문제에,
   베이스 레코드에 **`review_audit`**(`reviewer_id`·`decided_at`·`decision`(enum, `edit` 포함)·

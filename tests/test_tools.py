@@ -40,6 +40,7 @@ import pab_merge          # noqa: E402
 import convergence_report as cr   # noqa: E402
 import validate_packs as vp       # noqa: E402
 import check_anchors as ca        # noqa: E402
+import context_select as cs        # noqa: E402
 
 try:
     import yaml  # noqa: F401
@@ -496,6 +497,46 @@ class TestAnchorIntegrity(unittest.TestCase):
             r = _run("tools/check_anchors.py", d)
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertIn("1 broken", r.stdout)
+
+
+class TestContextSelect(unittest.TestCase):
+    """#9: deterministic, budgeted, scope-filtered context assembly (reference predicate)."""
+
+    def _recs(self):
+        return [
+            {"id": "hi", "statement": "x", "confidence": 0.95, "repetition_count": 3, "scope": "context.task.code"},
+            {"id": "mid", "statement": "y", "confidence": 0.9, "repetition_count": 2, "scope": "context.task.code"},
+            {"id": "lo", "statement": "z", "confidence": 0.6, "repetition_count": 1, "scope": "context.task.code"},
+        ]
+
+    def test_salience_orders_by_confidence_then_repetition(self):
+        recs = self._recs()
+        sel, _ = cs.select_context(recs, token_budget=999)
+        self.assertEqual([r["id"] for r in sel], ["hi", "mid", "lo"])
+
+    def test_budget_drops_the_tail_as_gap(self):
+        recs = self._recs()
+        per = cs.est_tokens(recs[0])           # all three have equal-length payloads
+        sel, dropped = cs.select_context(recs, token_budget=2 * per)
+        self.assertEqual([r["id"] for r in sel], ["hi", "mid"])
+        self.assertEqual([r["id"] for r in dropped], ["lo"])  # the dropped tail is returned, not silent
+
+    def test_scope_overlap_filters_off_task_records(self):
+        recs = self._recs() + [{"id": "other", "statement": "w", "confidence": 1.0, "scope": "context.task.writing"}]
+        sel, _ = cs.select_context(recs, token_budget=999, task_tags="context.task.code")
+        self.assertNotIn("other", [r["id"] for r in sel])  # writing-scoped record excluded for a code task
+
+    def test_untagged_record_is_universally_applicable(self):
+        self.assertTrue(cs.scope_overlap(None, "context.task.code"))
+        self.assertTrue(cs.scope_overlap("context.task.code", None))   # empty task filter => all apply
+        self.assertFalse(cs.scope_overlap("context.task.writing", "context.task.code"))
+
+    def test_deterministic_same_input_same_slice(self):
+        recs = self._recs()
+        budget = 2 * cs.est_tokens(recs[0])
+        a, _ = cs.select_context(recs, token_budget=budget)
+        b, _ = cs.select_context(list(reversed(recs)), token_budget=budget)  # order-independent
+        self.assertEqual([r["id"] for r in a], [r["id"] for r in b])
 
 
 class TestCommandGuard(unittest.TestCase):

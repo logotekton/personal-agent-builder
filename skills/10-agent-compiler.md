@@ -92,10 +92,12 @@ v0.3에서 **수정**됩니다. 정체성·역할이 빠지면 어댑터의 [§4
 ```
    작업 요청 (지금 이 작업) + 14개 user.* 팩의 확정 레코드
         │
-   [1] 작업류 식별        ── task type 판별(예: 코드 리뷰 / 외부 메일 초안 / 의사결정 메모)
-        ▼
-   [2] 팩·슬라이스 선택   ── 작업류에 닿는 팩만 ON, 무관 팩 OFF; scope가 작업 맥락과 겹치는 레코드만
-        ▼
+   [1] 작업류 식별        ── 통제 task_type 어휘 중 하나로(code/writing/review/decision/research/
+        ▼                    communication/planning/other; context_select.TASK_TYPES)
+   [2] 팩·슬라이스 선택   ── 작업류에 닿는 팩만 ON, 무관 팩 OFF; **결정론적 scope-overlap 술어**로
+        ▼                    작업 태그와 겹치는(또는 무태그=보편) 레코드만, **salience(confidence×recency×
+                             repetition_count) 내림차순**으로 **토큰 예산**까지 채우고 *탈락분은 갭으로 로깅*
+                             ([`tools/context_select.py`](../tools/context_select.py) — 참조 구현·결정론적·테스트됨)
    [3] 확정·스코프 검색   ── review_status ∈ {confirmed, narrowed}만; pending/rejected/deferred 제외(G3)
         ▼                    ── drift_history로 supersedes된(폐기) 레코드 제외
    [4] 경계·권한 적용     ── user.boundary_authority 레이어를 모든 슬라이스 위에 강제(§5, G5 산물)

@@ -31,7 +31,8 @@ SIDE_EFFECT = ('--apply', '--out', '>', '|')
 # self-referential / covered directly by CI's own test step — skip to avoid recursion
 RECURSIVE = ('unittest', 'test_tools.py')
 # only these repo tools are auto-run; anything else is skipped as out-of-scope
-RUNNABLE_TOOLS = ('validate_packs.py', 'convergence_report.py', 'dedup_check.py', 'check_anchors.py')
+RUNNABLE_TOOLS = ('validate_packs.py', 'convergence_report.py', 'dedup_check.py',
+                  'check_anchors.py', 'context_select.py')
 
 
 def fenced_blocks(path):
