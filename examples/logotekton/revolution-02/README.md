@@ -1,5 +1,12 @@
 # revolution-02 — 바퀴를 한 번 더 돌리다, 이번엔 안전성을 시험하며 (a second turn, stress-testing safety)
 
+> ⚙️ **성숙도 게이트 결함 수정 노트(사후).** 이 문서의 티어 표기(**L2 → L2 유지**)는 `coverage`를
+> *시드폭*으로 게이팅하던 시점 기준입니다. 이후 게이트가 spec §2 정의(*엄격 ≥3 깊이*)를 쓰도록
+> 수정되어, **라이브 티어는 L1 Sketch**이고 이 회전은 **L1 → L1 유지**입니다(깊은 팩이 1개뿐 —
+> 정직한 위치). `decision_fidelity`·`merge_rate`·`coverage`(시드폭 0.57→0.71) 등 *다른 숫자는 모두
+> 불변*이며, "성숙도가 안 올랐다"는 헤드라인은 오히려 더 강해집니다(엄격 coverage 0.07로는 L2도 멀다).
+> 남은 빗장은 `correction_cost`(이후 0.08로 해소)와 **`coverage` 엄격값**입니다.
+
 > **EN:** The *second* actual revolution of the Personal Agent data-engine flywheel on real records.
 > revolution-01 proved the wheel *can* turn (merge + insert). revolution-02 turns it again and, this
 > time, stresses what a skeptic actually doubts: not "does it move?" but **"is it safe, and does it
@@ -126,8 +133,8 @@ python tools/pab_merge.py /tmp/merged.yaml \
 #   → already_merged×3 (noop), conflict×1 (surface) — 충돌은 사람 검토 전까지 자동 해소 안 됨
 #   그리고 /tmp/merged.yaml 의 적용 결과 = 출하된 ../instance-records.yaml (heuristic rep=3, artifact/tool 시드, style.301 없음)
 
-# (3) T2 측정 — L2 그대로, df 1.00 / coverage 0.71 / merge_rate 0.095 / drift_stability 0.89
-python tools/convergence_report.py examples/logotekton    # L2; df 1.00; coverage 0.71; drift 0.89
+# (3) T2 측정 — 게이트 결함 수정 후 L1 Sketch; df 1.00 / coverage 엄격 0.07(시드폭 0.71) / drift 0.89
+python tools/convergence_report.py examples/logotekton    # L1 Sketch; df 1.00; coverage 0.07(시드폭 0.71)
 python tools/dedup_check.py        examples/logotekton     # merge_rate 0.095
 python tools/validate_packs.py     examples/logotekton     # 42 PASS (재귀: 라이브 25 + .pre 픽스처 17)
 ```

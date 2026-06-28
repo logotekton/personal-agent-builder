@@ -325,13 +325,17 @@ class TestConvergenceExample(unittest.TestCase):
         cls.tier, cls.tname, _ = cr.maturity_tier(cls.ix)
         cls.n_files = n
 
-    def test_maturity_is_L2(self):
-        self.assertEqual(self.tier, "L2")
+    def test_maturity_is_L1(self):
+        # gate keys on coverage = strict depth (spec §2). logotekton has depth in only 1 pack
+        # (evaluation_cases), so it is honestly L1 Sketch (broad, shallow) — not L2 Working.
+        self.assertEqual(self.tier, "L1")
 
     def test_six_indices_locked(self):
         ix = self.ix
-        self.assertTrue(almost(ix["coverage"], 0.714285, 3), ix["coverage"])
+        # coverage IS the strict (≥3 depth) value now — the gate uses spec §2's definition
+        self.assertTrue(almost(ix["coverage"], 0.071428, 3), ix["coverage"])
         self.assertTrue(almost(ix["coverage_strict"], 0.071428, 3), ix["coverage_strict"])
+        self.assertTrue(almost(ix["coverage_seeded"], 0.714285, 3), ix["coverage_seeded"])
         self.assertEqual(ix["confirmation_ratio"], 1.0)
         self.assertEqual(ix["human_confirmation_ratio"], 1.0)  # example has 0 auto-confirm
         self.assertEqual(ix["decision_fidelity"], 1.0)
@@ -353,11 +357,12 @@ class TestConvergenceExample(unittest.TestCase):
         _, _, reasons = cr.maturity_tier({**self.ix, "correction_cost": None})
         self.assertFalse(reasons["L3_correction_cost<=0.3"])
 
-    def test_only_L3_blocker_is_coverage(self):
-        # with correction_cost measured, the sole remaining L3 gap is coverage (#7)
+    def test_only_L2_blocker_is_coverage(self):
+        # decision_fidelity (1.0) and human_confirmation_ratio (1.0) pass L2; the sole gap is the
+        # strict-coverage gate (0.07 < 0.5) — i.e. the agent lacks DEPTH, exactly as de-averaging says.
         _, _, reasons = cr.maturity_tier(self.ix)
-        unmet = [k for k, ok in reasons.items() if k.startswith("L3_") and not ok]
-        self.assertEqual(unmet, ["L3_coverage>=0.8"])
+        unmet = [k for k, ok in reasons.items() if k.startswith("L2_") and not ok]
+        self.assertEqual(unmet, ["L2_coverage>=0.5"])
 
     def test_example_has_one_vertical(self):
         # the example's single deep pack (evaluation_cases, 6 confirmed) is what keeps it at L1+
@@ -436,8 +441,8 @@ class TestEndToEnd(unittest.TestCase):
         # the documented command runs AND prints the tier/coverage the README now advertises.
         r = _run("tools/convergence_report.py", "examples/logotekton")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("L2 Working", r.stdout)
-        self.assertIn("0.71", r.stdout)
+        self.assertIn("L1 Sketch", r.stdout)   # honest: gate on strict coverage (depth)
+        self.assertIn("0.07", r.stdout)        # coverage = strict (spec §2), not the 0.71 breadth
 
     def test_documented_commands_all_run(self):
         # every safe, read-only command printed in the docs must actually run (the it.13 bug class:

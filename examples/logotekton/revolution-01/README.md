@@ -1,5 +1,11 @@
 # revolution-01 — 데이터-엔진을 한 바퀴 돌리다 (one turn of the wheel)
 
+> ⚙️ **성숙도 게이트 결함 수정 노트(사후).** 본문의 **L0 → L2 Working** 도약은 `coverage`를 *시드폭*으로
+> 게이팅하던 시점 기준입니다. 이후 게이트가 spec §2 정의(*엄격 ≥3 깊이*)를 쓰도록 수정되어, 이 회전의
+> 정직한 티어 전이는 **L0 → L1 Sketch**입니다(깊은 팩이 1개뿐). 이는 사실 본문 §2의 정직성 노트가
+> 카파시 #7로 지목했던 "폭-우선 문턱이 관대하다"를 게이트로 *해소*한 결과입니다 —
+> `decision_fidelity`(0.75→0.92)·`merge_rate`·시드폭 등 다른 숫자는 모두 불변.
+
 > **EN:** This is the first *actual revolution* of the Personal Agent data-engine flywheel on real
 > records — not asserted by construction, but performed and measured. Before this, the loop had
 > never turned once: there was no merge/upsert actuator, `drift_history` was empty, and convergence
@@ -97,10 +103,10 @@ python tools/pab_merge.py examples/logotekton/revolution-01/instance-records.pre
 python tools/pab_merge.py /tmp/t1.yaml \
        examples/logotekton/revolution-01/session-02-candidates.yaml   # → already_merged ×2
 
-# (3) 측정 — 주의: 라이브 디렉터리는 그 뒤 rev-02 로 한 바퀴 더 돌아 지금은 T2(df 1.00, coverage 0.71).
-#     이 문서의 T0→T1 숫자(L0→L2, df 0.92, merge_rate 0.059)는 §2 표에 보존돼 있고, 현재
-#     라이브 재측정은 ../revolution-02/README.md 를 보라.
-python tools/convergence_report.py examples/logotekton    # 현재 라이브 = T2 (rev-01 당시엔 T1)
+# (3) 측정 — 주의: 라이브 디렉터리는 그 뒤 rev-02 로 한 바퀴 더 돌아 지금은 T2.
+#     게이트 결함 수정 후 라이브 티어 = L1 Sketch(coverage 엄격 0.07 / 시드폭 0.71, df 1.00).
+#     이 문서의 T0→T1 숫자(시드폭 게이트 당시 L0→L2; 수정 후 L0→L1)는 §2 표에 보존, 상단 노트 참조.
+python tools/convergence_report.py examples/logotekton    # 현재 라이브 = T2 → L1 Sketch (rev-01 당시엔 T1)
 python tools/validate_packs.py     examples/logotekton     # 42 PASS (재귀: 라이브 25 + .pre 픽스처 17)
 ```
 

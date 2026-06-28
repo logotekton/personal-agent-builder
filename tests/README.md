@@ -13,10 +13,11 @@
 - **`tools/pab_merge.py`** — `canonical_key` 결정성 + 알려진 값(`3cabb5142158`); 네 판정
   (`novel→insert` · `duplicate→merge` · `refinement→supersede` · `conflict→surface`) + `already_merged`;
   `apply_plan`의 병합 누적(트윈 안 찍음)·삽입·**충돌 절대 미적용(안전 불변식)**·대체 은퇴+drift·**멱등성**.
-- **`tools/convergence_report.py`** — logotekton 예제의 6지표·성숙도 잠금: **L2**, coverage `0.714`,
-  decision_fidelity `1.0`, correction_cost `0.0833`, drift_stability `0.8947`, traceability `1.0`;
-  카운트(시드 10·확인 19·대체 2·평가 6/0/0); **NA correction_cost가 L3를 막음**; 남은 L3 빗장이
-  `coverage`뿐임.
+- **`tools/convergence_report.py`** — logotekton 예제의 6지표·성숙도 잠금: **L1 Sketch**, coverage
+  `0.0714`(게이트=엄격 ≥3, spec §2; 시드폭 `0.714`는 보조), decision_fidelity `1.0`,
+  correction_cost `0.0833`, drift_stability `0.8947`, traceability `1.0`; 카운트(시드 10·확인 19·대체
+  2·평가 6/0/0); human_confirmation_ratio가 자기인증을 막고; 남은 **L2 빗장이 `coverage`뿐**(깊이가
+  1팩뿐이라 정직하게 L1 — L2 게이트 결함 수정 후).
 - **`tools/validate_packs.py`** — 게이트: 정상 레코드 통과, G1(증거)·G2(스코프)·confidence 범위·
   `confidence<0.7→counterexamples`·필수필드·enum 위반 거부.
 - **`tools/dedup_check.py`** — 예제 `merge_rate` `0.095`.

@@ -22,6 +22,15 @@
 ## [Unreleased]
 
 ### Karpathy review 후속 — 자기기만 방지 (실행 게이트 강화)
+- **L2 게이트 결함 수정 — 성숙도를 폭이 아니라 깊이로 게이팅.** 적대적 검토에서 드러난 내부 모순:
+  spec/06 §2가 `coverage`를 *엄격(≥3 확인 = 깊이)*으로 **정의**하는데, [`convergence_report.py`](./tools/convergence_report.py)의
+  성숙도 게이트는 *시드폭*(0.71)으로 판정해 logotekton을 **L2 Working**으로 인증했습니다 — 정작
+  de-averaging 명제가 사는 깊이값은 0.07인데. 즉 "Working"을 *폭으로* 따는, 이 프로젝트가 막으려는
+  바로 그 자기기만. 게이트가 spec §2 정의(엄격 깊이)를 쓰도록 수정하고 `--strict` 토글을 제거(이제
+  항상 엄격). **logotekton은 정직하게 `L1 Sketch`로 내려갑니다**(깊은 팩 1개뿐 — 남은 L2 빗장은
+  coverage 0.07→0.5). df·merge_rate·시드폭 등 다른 숫자는 불변. spec/06 §3에 "폭=Sketch vs 깊이=Working+"
+  명문화, 회귀 테스트·tools/README·tests/README·예제/revolution 문서의 라이브 티어 표기를 L1로 정정
+  (revolution 문서는 시드폭 게이트 당시 측정이라 상단 노트로 보존+정정). 테스트 58개 그대로 그린.
 - **#9 결정론적 컨텍스트 조립(참조 술어).** 컴파일러 계약이 "메모리 덤프 아닌 작업별 활성화"라면서도
   토큰 예산·overlap 알고리즘·task_type 분류가 없어 *산문으로만* 시연되던 문제에, **실행 가능한 참조
   술어** [`tools/context_select.py`](./tools/context_select.py)를 추가했습니다: 통제 `task_type` 어휘 +

@@ -49,7 +49,9 @@ CLI:
 
   옵션:
       --json     사람이 읽는 표 대신 기계용 JSON 한 덩이로 출력
-      --strict   coverage 의 표면값(시드 폭) 대신 엄격값(≥3)을 게이트 판정에 사용
+
+  coverage 는 spec §2 정의(확인 ≥3 팩 / 14, 깊이)를 그대로 게이트에 쓴다. 시드폭(보조)은 참고로만
+  출력한다 — "Working"을 폭으로 따는 자기기만을 막기 위해(L2 게이트 결함 수정).
 
 종료 코드: 0 = 정상 산출. 입력 디렉터리가 없거나 읽을 파일이 0개면 2.
 """
@@ -540,7 +542,7 @@ def _has_evidence(rec) -> bool:
     )
 
 
-def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=False):
+def compute_indices(pack_records, eval_cases, drift_records):
     """6개 지표 + 보조 카운트를 dict 로 반환."""
     # 팩별 확인 레코드 수
     confirmed_by_pack = {}
@@ -567,9 +569,11 @@ def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=Fal
     packs_with_3 = sum(1 for p in CANONICAL_PACKS
                        if confirmed_by_pack[p] >= COVERAGE_MIN_CONFIRMED)
 
-    coverage_strict = packs_with_3 / TOTAL_PACKS          # spec §2 엄격 정의
-    coverage_seeded = seeded_packs / TOTAL_PACKS          # 시드 폭 (표면값)
-    coverage_gate = coverage_strict if strict_coverage else coverage_seeded
+    coverage_strict = packs_with_3 / TOTAL_PACKS          # spec §2 정의: 확인 ≥3 팩 / 14 (깊이)
+    coverage_seeded = seeded_packs / TOTAL_PACKS          # 시드 폭 (보조 신호 — 게이트엔 안 씀)
+    # 성숙도 게이트가 쓰는 coverage 는 spec §2 정의(엄격 ≥3)다. 시드폭으로 게이팅하면 "Working"
+    # 인증을 폭으로 따게 돼 de-averaging 명제(깊이=신뢰, §8)와 모순된다 — L2 게이트 결함 수정.
+    coverage_gate = coverage_strict
 
     denom_cr = n_confirmed + n_pending + n_rejected
     confirmation_ratio = (n_confirmed / denom_cr) if denom_cr else None
@@ -774,7 +778,7 @@ INDEX_META = [
 ]
 
 
-def render_table(ix, tier_id, tier_name, directory, n_files, strict_coverage):
+def render_table(ix, tier_id, tier_name, directory, n_files):
     lines = []
     lines.append("=" * 72)
     lines.append("Personal Agent — 수렴 리포트 (Convergence Report)")
@@ -801,10 +805,9 @@ def render_table(ix, tier_id, tier_name, directory, n_files, strict_coverage):
     for key, name, direction, good in INDEX_META:
         lines.append(f"  {name} {_fmt(ix[key]):>6}   {direction:<5} {good}")
     # coverage 보조값 (표면/엄격 둘 다)
-    used = "엄격(≥3)" if strict_coverage else "시드폭"
     lines.append(
-        f"    └ coverage 상세: 시드폭 {ix['coverage_seeded']:0.2f} · "
-        f"엄격(≥3) {ix['coverage_strict']:0.2f}  (게이트 사용값: {used})"
+        f"    └ coverage 상세: 엄격(≥3) {ix['coverage_strict']:0.2f} ← 게이트 사용값(spec §2 정의) · "
+        f"시드폭 {ix['coverage_seeded']:0.2f}(보조)"
     )
     lines.append(
         f"    └ confirmation: 전체 {_fmt(ix['confirmation_ratio'])} · "
@@ -904,8 +907,6 @@ def build_arg_parser():
     p.add_argument("directory", help="인스턴스 레코드/평가 케이스 파일이 든 디렉터리")
     p.add_argument("--json", action="store_true", dest="as_json",
                    help="사람용 표 대신 기계용 JSON 출력")
-    p.add_argument("--strict", action="store_true", dest="strict",
-                   help="coverage 의 엄격값(≥3 확인 레코드 팩)을 게이트 판정에 사용")
     return p
 
 
@@ -924,15 +925,13 @@ def main(argv=None):
         )
         return 2
 
-    ix = compute_indices(
-        pack_records, eval_cases, drift_records, strict_coverage=args.strict
-    )
+    ix = compute_indices(pack_records, eval_cases, drift_records)
     tier_id, tier_name, _ = maturity_tier(ix)
 
     if args.as_json:
         print(render_json(ix, tier_id, tier_name, directory, n_files))
     else:
-        print(render_table(ix, tier_id, tier_name, directory, n_files, args.strict))
+        print(render_table(ix, tier_id, tier_name, directory, n_files))
     return 0
 
 
