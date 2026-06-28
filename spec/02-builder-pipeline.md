@@ -72,7 +72,7 @@
                            1:1 라우팅)         authority level; G5)      runtime adapter; G3)
                                 │                                              │
                                 ▼                                              ▼
-                          UserOntologypack 적재 ─────────────────────► AssistantProfile
+                          UserOntologyPack 적재 ─────────────────────► AssistantProfile
                                                                                │ (compiled_into)
                                                                                ▼
                                                                       ┌─────────────────┐

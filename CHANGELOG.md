@@ -34,7 +34,7 @@
   부여(정식 정의는 spec/04). §7 베이스 레코드에 병합 필드 `canonical_key`·`repetition_count`·
   `merge_history`(선택) 명시.
 - **회귀 테스트 스위트** [`tests/`](./tests/README.md) — 도구가 산출하는 *모든 숫자*(canonical_key·
-  네 판정·6 수렴 지표·`merge_rate`·게이트·예제 42 PASS)를 잠그는 stdlib 35 테스트. **CI**
+  네 판정·6 수렴 지표·`merge_rate`·게이트·예제 42 PASS)를 잠그는 stdlib 36 테스트. **CI**
   ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml))가 push·PR마다 게이트+테스트 실행.
 - **문서 링크 무결성 게이트** [`tools/check_anchors.py`](./tools/check_anchors.py) — 저장소 전체
   교차문서 Markdown 링크·`#앵커`가 실재 헤딩(GitHub 슬러그)으로 해소되는지 검사하는 stdlib 도구.
@@ -58,8 +58,8 @@
   로그의 metric `correction_cost`→`coverage`, `§3 [B]`→`§3 [3]`)와 깨진 라벨 정정.
 - **깨진 자기 앵커 링크 정정(skills/08).** `§3 라우팅 표`를 가리키는 세 개의 자기 링크가
   `#3-라우팅-표-1-1-전수`로 잘못 작성되어 실제 헤딩 슬러그(`#3-라우팅-표-11-전수`, `(1:1, 전수)`의
-  `1:1`이 `11`로 정규화)와 어긋났음 → 다른 모든 링크가 쓰는 `11` 규약으로 통일. 저장소 전체 166개
-  교차문서 앵커 링크를 GitHub 슬러그 알고리즘으로 일괄 점검(broken=0 확인).
+  `1:1`이 `11`로 정규화)와 어긋났음 → 다른 모든 링크가 쓰는 `11` 규약으로 통일. 저장소 전체 앵커
+  링크를 GitHub 슬러그 알고리즘으로 일괄 점검(현재 167개, broken=0; CI가 매번 재확인).
 - **실행되지 않던 문서 명령·낡은 라이브 출력 정정("모든 figure는 명령으로 재현"의 위반).**
   `convergence_report.py`는 *디렉터리 하나*를 받는데 문서 세 곳이 깨진 형태였음 — `tools/README.md`
   §2의 두-파일 형태, `CONTRIBUTING.md`의 인자 없는 형태, `templates/QUICKSTART.md`의 존재하지 않는

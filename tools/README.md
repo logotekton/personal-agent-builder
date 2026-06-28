@@ -83,13 +83,13 @@ python tools/validate_packs.py --help
 
 ```
 ────────────────────────────────────────────────────────────
-요약: 8 레코드  |  PASS 8  FAIL 0  WARN 0  SKIP 0  FILE-ERROR 0
+요약: 11 레코드  |  PASS 11  FAIL 0  WARN 0  SKIP 0  FILE-ERROR 0
 결과: PASS
 ```
 
 `examples/logotekton/instance-records.yaml` 의 레코드는 모두 `review_status=confirmed`,
-`evidence_refs=["current_session"]`, `confidence ≥ 0.8`(→ `counterexamples` 불필요),
-`sensitivity=internal` 이라 게이트를 전부 통과합니다. 한 레코드에서 `evidence_refs` 를 비우면
+각 레코드가 비어 있지 않은 `evidence_refs`(≥1개 → G1 통과)를 갖고, `confidence ≥ 0.8`(→
+`counterexamples` 불필요), `sensitivity=internal` 이라 게이트를 전부 통과합니다. 한 레코드에서 `evidence_refs` 를 비우면
 즉시 `[G1]` FAIL 이, `scope` 를 비우면 `[G2]` FAIL 이 떠야 합니다 — 그게 게이트가 살아 있다는
 증거입니다. PyYAML 미설치 환경에서는 YAML 파일이 `SKIP` 으로 표시되고(FAIL 아님), JSON 파일만
 검사됩니다.
