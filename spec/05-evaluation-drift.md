@@ -42,7 +42,7 @@ AssistantProfile이 *주체가 승인했을 방식*대로 판단·작성·행동
 - `correction_cost`는 가장 정직한 지표 — *얼마나 덜 고치게 되었는가*. 낮을수록 좋습니다.
   RUN 단계에서 케이스별로 **`result.edit_fraction`**(0..1 — 사용자가 출력의 몇 할을 고쳐야
   했는가; 0=그대로 수용, 1=전면 재작성)으로 직접 관측해 기록하며, 수렴 지표 `correction_cost`는
-  이 값을 보고한 케이스들의 평균입니다([06 §2](./06-convergence-model.md#2-여섯-수렴-지표)).
+  이 값을 보고한 케이스들의 평균입니다([06 §2](./06-convergence-model.md#2-여섯-가지-수렴-지표)).
   편집할 산출물이 있는 케이스(초안·보고·리뷰)에서 의미가 크고, 정오만 가리는 Q&A 케이스는
   생략할 수 있습니다. 도구는 `result.edit_fraction`(별칭: `edit_fraction`/`correction_cost`/
   `correction_fraction`)을 인식합니다([`tools/convergence_report.py`](../tools/convergence_report.py)).
