@@ -17,9 +17,11 @@
 에이전트 컴파일러는 [08 팩 라우팅](./08-pack-router.md)이 14개 `user.*` 팩에 적재한 **확정 레코드**를,
 *지금 이 작업에 필요한 슬라이스만* 골라 런타임 명령 **어댑터**로 컴파일하는 단계입니다. 빌더
 파이프라인의 `compile_runtime` 상태에 속하며([파이프라인 §3 S10](../spec/02-builder-pipeline.md#s10--agent_compiler--상태-compile_runtime)),
-라이프사이클의 `target_pack_ingested → runtime_activated` 전이를 강제합니다([커널 §1](../spec/01-kernel-schema.md#1-라이프사이클-the-spine)).
+라이프사이클의 `target_pack_ingested → shadow_validated → runtime_activated` 전이를 강제합니다([커널 §1](../spec/01-kernel-schema.md#1-라이프사이클-the-spine)).
 산출물은 `*.runtime_adapter`로 컴파일된 `AssistantProfile`이고(`compiled_into` 엣지), 그것이 작업을
-실행하는 **Personal Agent**입니다.
+실행하는 **Personal Agent**입니다. 단, 컴파일된 프로필은 곧장 라이브가 되지 않고 **활성 전
+`regression_for` 케이스·과거 세션에 NO-ACT(예측만)로 재생**해 회귀가 없을 때만 활성화됩니다
+(shadow-activation 한 칸 → [02 S10½](../spec/02-builder-pipeline.md)·[12 §4.3](../spec/12-confirmation-policy.md); *설계 단계 — 라이브 런타임이 생기면 실행*).
 
 이 문서는 마케팅이 아니라 **그대로 실행하는 빌드 사양**입니다. 어휘는 [커널 스키마](../spec/01-kernel-schema.md),
 팩 이름은 [§2 14개 팩](#2-컴파일러-입력--14개-user-팩-모두-identity_roles-포함), 경계·권한은

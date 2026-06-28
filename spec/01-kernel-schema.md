@@ -19,10 +19,14 @@ raw_signal
   → user_reviewed              (사람이 검토)
   → confirmed_or_rejected      (승인/거부)
   → target_pack_ingested       (팩에 저장)
+  → shadow_validated           (컴파일된 프로필을 활성 *전* NO-ACT 재생·무회귀 확인)
   → runtime_activated          (런타임에서 사용)
 ```
 
 원시 사용자 발언은 **최종 규칙이 아닙니다.** 이 흐름을 강제하는 것이 시스템 신뢰의 근거입니다.
+**`shadow_validated`** 는 컴파일된 슬라이스가 곧장 라이브가 되지 않도록 한 칸을 둡니다 — 새 프로필을
+`regression_for` 케이스와 과거 세션에 **행동 없이(NO-ACT)** 재생해 회귀가 없을 때만 활성화합니다
+([02 파이프라인 S10½](./02-builder-pipeline.md), shadow mode는 [12 확인 정책 §4.3](./12-confirmation-policy.md)).
 
 ## 2. 품질 게이트 (Quality Gates)
 

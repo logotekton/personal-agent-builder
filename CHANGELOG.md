@@ -22,6 +22,13 @@
 ## [Unreleased]
 
 ### Karpathy review 후속 — 자기기만 방지 (실행 게이트 강화)
+- **#5 런타임 shadow-activation 한 칸 (설계).** 평가가 *루프의 끝*이라 컴파일된 어댑터가 이미 라이브가
+  된 *뒤*에 검증되던 문제에 대해, 라이프사이클에 `shadow_validated` 상태를 추가했습니다
+  ([`spec/01 §1`](./spec/01-kernel-schema.md)·[`spec/02 S10½`](./spec/02-builder-pipeline.md)·
+  [`skills/10`](./skills/10-agent-compiler.md)): 새 프로필을 활성 *전* `regression_for` 케이스·과거
+  세션에 **NO-ACT(예측만)** 로 재생해 회귀가 없을 때만 `runtime_activated`로 승격. Tesla shadow mode
+  차용([spec/12 §4.3]). *정직한 한계: 라이브 런타임/컴파일러가 스텁이라 **설계 전용** — 실행되는 건
+  없습니다.*
 - **#7 + #6 깊이·de-averaging — "모르는 곳을 아는 것이 수렴" (off-frontier 정직성).** 리뷰가 *프로젝트의
   진짜 핵심 명제*라 한 de-averaging을 명문화·게이트화했습니다. (a) [`spec/00`](./spec/00-overview.md)에
   **핵심 명제**로, [`spec/06 §8`](./spec/06-convergence-model.md)에 측정 모델로 추가 — "증거 있는 곳에서만
