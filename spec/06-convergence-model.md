@@ -49,7 +49,7 @@
 | 단계 | 이름 | 진입 조건 |
 |------|------|-----------|
 | **L0** | Seed (씨앗) | 3개 미만 팩 시드, 평가 케이스 없음 |
-| **L1** | Sketch (스케치) | ≥7개 팩 시드, ≥3개 평가 케이스, `traceability`=1.0 |
+| **L1** | Sketch (스케치) | ≥7개 팩 시드, ≥3개 평가 케이스, `traceability`=1.0, **≥1 팩이 ≥3 확인(깊이 한 칸, §8)** |
 | **L2** | Working (작동) | `coverage`≥0.5, `decision_fidelity`≥0.6, `human_confirmation_ratio`≥0.6 |
 | **L3** | Reliable (신뢰) | `coverage`≥0.8, `decision_fidelity`≥0.8, `correction_cost`≤0.3, `drift_stability`≥0.7 |
 | **L4** | Convergent (수렴) | `coverage`=1.0, `decision_fidelity`≥0.9, `correction_cost`≤0.15, `drift_stability`≥0.85, `traceability`=1.0, **N기간 이상 지속** |
@@ -107,3 +107,35 @@
 `merge_rate` 상승은 "아직 발견 중 → 채워 넣는 중"으로의 전환을 뜻합니다. 즉 중복 억제는 청소가
 아니라 **수렴을 보는 또 하나의 창**입니다. 이 신호들은 §2의 6개 핵심 지표를 보완하며, 특히
 `traceability`(=1.0 필수)와 `decision_fidelity`를 떠받칩니다.
+
+
+## 8. 깊이·de-averaging — *모르는 곳을 아는 것*이 수렴이다
+
+> **EN:** Convergence is not breadth of coverage but **de-averaging** — the agent becoming *you*
+> only where it has *your* evidence, and **abstaining** (not answering with the generic average)
+> everywhere else. A personal agent that confidently fills its blind spots with population
+> defaults is not a personal agent; it is a generic model wearing your name. So maturity rewards
+> **depth**, not just breadth, and the report names the **off-frontier** — the slices where the
+> agent must stay draft-only.
+
+이 프로젝트의 *진짜* 명제는 "데이터를 많이 쌓는다"가 아니라 **de-averaging**입니다:
+
+> 에이전트는 **당신의 증거가 있는 곳에서만 당신처럼** 행동하고, 증거가 없는 곳에서는 일반·평균값으로
+> 둘러대지 않고 **기권하거나 묻는다.** 빈 슬라이스를 평균으로 채우는 순간, 그건 *당신*이 아니라
+> *이름만 당신인 일반 모델*이다.
+
+이를 측정·강제하는 세 가지:
+
+1. **깊이 우선 사다리(overfit-tiny-set-first).** 성숙도 L1 은 폭(≥7팩)만이 아니라 **깊이 한 칸**도
+   요구합니다 — *≥1 팩이 ≥3 확인 레코드*(=`vertical`). 1레코드씩 14팩에 흩뿌려 성숙도를 따는
+   breadth-first 게이밍을 막습니다. 권장 경로는 한 영역을 먼저 깊게(overfit) 다진 뒤 넓히는 것입니다.
+   `coverage`는 두 값으로 봅니다: **시드폭**(팩에 값이 하나라도) vs **엄격(≥3)**(깊이). 둘의 간극이
+   크면 *폭은 넓어도 신뢰는 얕다*는 신호입니다.
+2. **off-frontier 경고.** [`convergence_report.py`](../tools/convergence_report.py)는 확인 레코드 0개인
+   팩과 폭≫깊이 간극을 **off-frontier(draft-only)** 로 표시합니다 — "이 영역엔 당신 데이터가 없으니
+   에이전트가 권위 있게 행동하면 안 된다"는 정직성 신호. 이것이 위 de-averaging 명제의 *실행 가능한*
+   형태입니다.
+3. **빈 슬라이스 가드.** 컴파일/런타임은 활성 슬라이스가 비면 평균으로 대체하지 않고 기권/질문해야
+   합니다(게이트 원칙 → [00 개요](./00-overview.md), [04 프라이버시·경계](./04-privacy-boundary.md)의
+   권한 모델과 함께). 부정 증거(`user.red_flags`·회피)는 비어 있으면 *아직 모르는 것*이지 *없는 것*이
+   아닙니다.

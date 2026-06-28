@@ -6,6 +6,19 @@
 > evidence-bound pipeline, 14 user ontology packs, a privacy/authority model, an
 > evaluation+drift loop, and a measurable convergence model. Read order below.
 
+## 핵심 명제 — de-averaging (왜 만드는가)
+
+> 목표는 *일반적으로 똑똑한* 에이전트가 아니라 **당신으로 수렴하는** 에이전트입니다. 그 핵심은
+> **de-averaging**입니다: 에이전트는 **당신의 증거가 있는 곳에서만 당신처럼** 행동하고, 증거가 없는
+> 곳에서는 일반·평균값으로 둘러대지 않고 **기권하거나 묻습니다.** 빈 영역을 인구 평균으로 채우는
+> 순간, 그건 *당신*이 아니라 *이름만 당신인 일반 모델*이 됩니다.
+
+그래서 이 시스템은 (a) 모든 활성 규칙을 **증거에 결속**하고(G1·`traceability`=1.0), (b) 성숙도를
+폭만이 아니라 **깊이**로 재며(한 영역을 먼저 깊게 — overfit-tiny-set-first), (c) 데이터가 없는
+영역을 **off-frontier(draft-only)** 로 표시해 *모르는 곳을 아는 것*을 측정합니다. 측정·강제는
+[06 수렴 모델 §8](./06-convergence-model.md#8-깊이de-averaging--모르는-곳을-아는-것이-수렴이다),
+부정 증거(무엇이 *당신이 아닌가*)는 [`user.red_flags`](./03-pack-catalog.md)가 담습니다.
+
 ## 무엇을 만드는가
 
 세 가지를 분리해서 다룹니다 — 섞으면 신뢰가 무너지기 때문입니다(거버넌스 핵심).

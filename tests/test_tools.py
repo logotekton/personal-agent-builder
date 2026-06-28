@@ -329,6 +329,24 @@ class TestConvergenceExample(unittest.TestCase):
         unmet = [k for k, ok in reasons.items() if k.startswith("L3_") and not ok]
         self.assertEqual(unmet, ["L3_coverage>=0.8"])
 
+    def test_example_has_one_vertical(self):
+        # the example's single deep pack (evaluation_cases, 6 confirmed) is what keeps it at L1+
+        self.assertEqual(self.ix["_packs_with_3"], 1)
+
+    def test_l1_requires_depth_not_just_breadth(self):
+        # #7: 7 packs each seeded with 1 record (no depth) must NOT reach L1 (breadth-gaming blocked)
+        base = {
+            "coverage": 0.5, "confirmation_ratio": 1.0, "human_confirmation_ratio": 1.0,
+            "decision_fidelity": 0.9, "correction_cost": 0.1, "drift_stability": 1.0,
+            "traceability": 1.0, "_seeded_packs": 7, "_packs_with_3": 0, "_n_eval": 3,
+        }
+        tier, _, reasons = cr.maturity_tier(base)
+        self.assertFalse(reasons["L1_vertical>=1 (한 팩 ≥3 확인)"])
+        self.assertEqual(tier, "L0")  # stuck at L0 despite 7 seeded packs
+        # one pack with ≥3 confirmed (a "vertical") opens the ladder
+        tier2, _, _ = cr.maturity_tier({**base, "_packs_with_3": 1})
+        self.assertIn(tier2, ("L1", "L2"))
+
 
 class TestHumanConfirmationRatio(unittest.TestCase):
     """spec/12 §4.4 circularity break: auto-confirm must NOT inflate the maturity gate (#4)."""
@@ -355,7 +373,7 @@ class TestHumanConfirmationRatio(unittest.TestCase):
         base = {
             "coverage": 0.6, "confirmation_ratio": 0.75, "human_confirmation_ratio": 0.30,
             "decision_fidelity": 0.9, "correction_cost": 0.1, "drift_stability": 0.9,
-            "traceability": 1.0, "_seeded_packs": 8, "_n_eval": 3,
+            "traceability": 1.0, "_seeded_packs": 8, "_packs_with_3": 8, "_n_eval": 3,
         }
         tier, _, reasons = cr.maturity_tier(base)
         self.assertFalse(reasons["L2_human_confirmation_ratio>=0.6"])

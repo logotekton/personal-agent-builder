@@ -22,6 +22,16 @@
 ## [Unreleased]
 
 ### Karpathy review 후속 — 자기기만 방지 (실행 게이트 강화)
+- **#7 + #6 깊이·de-averaging — "모르는 곳을 아는 것이 수렴" (off-frontier 정직성).** 리뷰가 *프로젝트의
+  진짜 핵심 명제*라 한 de-averaging을 명문화·게이트화했습니다. (a) [`spec/00`](./spec/00-overview.md)에
+  **핵심 명제**로, [`spec/06 §8`](./spec/06-convergence-model.md)에 측정 모델로 추가 — "증거 있는 곳에서만
+  당신처럼, 없는 곳에선 평균으로 둘러대지 말고 기권". (b) **성숙도 L1이 폭(≥7팩)뿐 아니라 깊이 한 칸
+  (≥1 팩이 ≥3 확인 = `vertical`)도 요구** → 1레코드씩 흩뿌려 성숙도를 따는 breadth-first 게이밍 차단
+  (overfit-tiny-set-first). (c) [`convergence_report.py`](./tools/convergence_report.py)가 **off-frontier
+  경고**(확인 0개 팩 + 폭≫깊이 간극 → draft-only)를 실데이터 위에 출력 — logotekton은 4/14 팩이 비어
+  있음을 정직하게 표시(에이전트가 그 영역에서 권위 있게 행동 금지). logotekton은 깊은 팩 1개
+  (evaluation_cases)가 있어 **티어 L2 불변**. 테스트 +2(48개). *데이터 시드(RedFlag/Avoidance 실레코드)는
+  실데이터가 필요해 제외* — 게이트·신호·스펙만.
 - **#3 채점 무결성 게이트 — "보상이 검증이 아니라 기록"의 부분 해소.** `decision_fidelity`가 읽는
   `result.status`가 *사람이 친 자유 문자열*이라 아무도 루브릭과 대조하지 않던 문제에 대해,
   [`validate_packs.py`](./tools/validate_packs.py)가 평가 케이스의 **기록 내부 정합성**을 강제하도록

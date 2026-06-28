@@ -35,7 +35,7 @@ JSON과 YAML의 안전한 부분집합을 읽습니다.
 
 성숙도 단계 (spec/06 §3):
   L0 Seed       : 시드 팩 < 3, 평가 케이스 없음
-  L1 Sketch     : 시드 팩 ≥ 7, 평가 케이스 ≥ 3, traceability == 1.0
+  L1 Sketch     : 시드 팩 ≥ 7, 평가 케이스 ≥ 3, traceability == 1.0, ≥1 팩이 ≥3 확인(깊이)
   L2 Working    : coverage ≥ 0.5, decision_fidelity ≥ 0.6, human_confirmation_ratio ≥ 0.6
   L3 Reliable   : coverage ≥ 0.8, decision_fidelity ≥ 0.8, correction_cost ≤ 0.3,
                   drift_stability ≥ 0.7
@@ -689,6 +689,7 @@ def maturity_tier(ix):
     drift = ix["drift_stability"]
     trace = ix["traceability"]
     seeded = ix["_seeded_packs"]
+    verticals = ix.get("_packs_with_3", 0)   # ≥3 확인 레코드를 가진 팩 수 (깊이)
     n_eval = ix["_n_eval"]
 
     def ge(a, b):  # None-안전 ≥
@@ -698,7 +699,9 @@ def maturity_tier(ix):
         return a is not None and a <= b
 
     # 각 단계 진입 조건 (spec/06 §3)
-    l1 = (seeded >= 7) and (n_eval >= 3) and (trace == 1.0)
+    # L1 은 '폭'(≥7팩)뿐 아니라 '깊이' 한 칸(≥1 팩이 ≥3 확인 = vertical)도 요구한다 — 1레코드씩
+    # 14팩에 흩뿌려 성숙도를 따는 breadth-first 게이밍을 막기 위해(#7, overfit-tiny-set-first).
+    l1 = (seeded >= 7) and (n_eval >= 3) and (trace == 1.0) and (verticals >= 1)
     l2 = ge(coverage, 0.5) and ge(df, 0.6) and ge(hcr, 0.6)
     l3 = ge(coverage, 0.8) and ge(df, 0.8) and le(cost, 0.3) and ge(drift, 0.7)
     l4 = (
@@ -731,6 +734,7 @@ def maturity_tier(ix):
         "L1_seeded>=7": seeded >= 7,
         "L1_eval>=3": n_eval >= 3,
         "L1_traceability==1.0": trace == 1.0,
+        "L1_vertical>=1 (한 팩 ≥3 확인)": verticals >= 1,
         "L2_coverage>=0.5": ge(coverage, 0.5),
         "L2_decision_fidelity>=0.6": ge(df, 0.6),
         "L2_human_confirmation_ratio>=0.6": ge(hcr, 0.6),
@@ -813,6 +817,23 @@ def render_table(ix, tier_id, tier_name, directory, n_files, strict_coverage):
         c = ix["_confirmed_by_pack"][pack]
         mark = " (≥3 ✓)" if c >= COVERAGE_MIN_CONFIRMED else (" (-)" if c == 0 else "")
         lines.append(f"  {i:>2}. {pack:<28} {c:>2}{mark}")
+    # off-frontier 경고: 데이터가 없거나 얕은 영역 — 에이전트가 *당신처럼* 행동할 근거가 없는 곳.
+    # 성숙도가 폭으로 열려도, 여기서 권위 있게 행동하면 평균/일반값으로 둘러대는 가짜 자신이 된다 (#7·#6).
+    empty = [p for p in CANONICAL_PACKS if ix["_confirmed_by_pack"][p] == 0]
+    lines.append("")
+    lines.append("[!] off-frontier (권위 있게 행동 금지 — draft-only)")
+    if empty:
+        lines.append(f"  확인 레코드 0개 팩 {len(empty)}/{TOTAL_PACKS}: {', '.join(empty)}")
+        lines.append("    → 이 영역엔 당신의 데이터가 없다. 에이전트는 평균/일반값으로 답하지 말고")
+        lines.append("      기권하거나 물어야 한다 (de-averaging, spec/06 §8 · spec/00).")
+    else:
+        lines.append("  확인 레코드 0개 팩 없음 — off-frontier 공백 없음.")
+    lines.append(
+        f"  깊이(≥3 확인) 팩 {ix['_packs_with_3']}/{TOTAL_PACKS}  ·  "
+        f"폭(시드) {ix['coverage_seeded']:0.2f} vs 깊이(엄격) {ix['coverage_strict']:0.2f}"
+    )
+    if ix["coverage_seeded"] - ix["coverage_strict"] >= 0.3:
+        lines.append("    → 폭 ≫ 깊이: 성숙도는 폭으로도 열리지만 *신뢰는 깊이에서* 온다. 얕은 팩은 draft-only.")
     lines.append("")
     lines.append("[4] 성숙도 단계")
     lines.append(f"  >>> {tier_id} {tier_name} <<<")
