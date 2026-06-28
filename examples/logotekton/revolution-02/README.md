@@ -76,7 +76,7 @@ revolution-01 은 `novel`+`duplicate` 두 가지를 보였고, revolution-02 가
 | `confirmation_ratio` | 1.00 | 1.00 | 유지(충돌 후보는 적재 안 함 → 지표 무영향) |
 | `traceability` | 1.00 | **1.00** | 유지(새 레코드도 모두 증거 결속, G1) |
 | `correction_cost` | **NA** | **NA** | **여전히 NA — 구조화 필드 부재(#3), L3 를 막는 둘째 빗장** |
-| validate_packs (라이브) | 18 PASS | **25 PASS** | top 19 + rev-01 2 + rev-02 4 (재귀 명령은 .pre 픽스처 9 포함 **34**) |
+| validate_packs (라이브) | 18 PASS | **25 PASS** | top 19 + rev-01 2 + rev-02 4 (재귀 명령은 .pre 픽스처 17 포함 **42 PASS**) |
 
 > **읽는 법.** `decision_fidelity`가 1.00, `coverage`가 0.71 로 올랐는데도 성숙도는 L2 그대로입니다.
 > 이것이 핵심입니다 — 리포트의 "다음 단계(L3)까지 미달 조건"이 정확히 두 줄을 가리킵니다:
@@ -127,7 +127,7 @@ python tools/pab_merge.py /tmp/merged.yaml \
 # (3) T2 측정 — L2 그대로, df 1.00 / coverage 0.71 / merge_rate 0.095 / drift_stability 0.89
 python tools/convergence_report.py examples/logotekton    # L2; df 1.00; coverage 0.71; drift 0.89
 python tools/dedup_check.py        examples/logotekton     # merge_rate 0.095
-python tools/validate_packs.py     examples/logotekton     # 34 PASS (라이브 25 + .pre 픽스처 9; 재귀)
+python tools/validate_packs.py     examples/logotekton     # 42 PASS (재귀: 라이브 25 + .pre 픽스처 17)
 ```
 
 > 이전 바퀴: [`../revolution-01/README.md`](../revolution-01/README.md) (L0→L2, merge actuator 도입).
