@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.red_flags.schema.json",
+  "title": "user.red_flags — Red Flags Pack Record",
+  "description": "Schema for a single record in the user.red_flags pack (#7 of 14): the risk signals the subject reliably catches and reacts to — the smells that make them stop, push back, or demand more before proceeding (RedFlag node). Covers signals the subject treats as risk, as a weak/unsound structure, or as thin/missing evidence. Each record extends the unified base record via allOf $ref to ./record.base.schema.json and narrows record_type to this pack's three types. Routed from RedFlagCandidate (see ../spec/01-kernel-schema.md §6 routing); attached to the subject by the `rejects_when` edge (UserSubject → RedFlag | Condition, ../spec/01-kernel-schema.md §4) and paired with RejectionRuleRecord in user.decision_policy. Each record is the named antecedent of a 'when this signal appears, do X' reflex and directly feeds the red_flag_recall / rejection_alignment evaluation metrics (../spec/04-privacy-boundary.md, ../spec/05-evaluation-drift.md). Gate G4 applies: describe the observed signal and the subject's observed reaction, not guessed motive. Pack definition: ../spec/03-pack-catalog.md (user.red_flags); base record: ../spec/01-kernel-schema.md §7. (구 코드명: t07.)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "RiskSignalRecord",
+            "WeakStructureRecord",
+            "EvidenceGapRecord"
+          ],
+          "description": "Red-flag record kind. RiskSignalRecord: an observable cue that signals downstream risk and makes the subject slow down or escalate (e.g. 'an irreversible action proposed without a rollback path', 'a deadline quoted with no buffer'). WeakStructureRecord: a structural smell in the work itself that the subject treats as unsound regardless of surface polish (e.g. 'a plan with no failure case', 'an abstraction introduced before two concrete uses', 'a spec that mixes template and instance'). EvidenceGapRecord: a thin-, missing-, or unverifiable-evidence smell — a claim presented as settled without support (e.g. 'a number with no source', 'an estimate with no prior data', 'confident prose with zero evidence_refs'); mirrors the system's own Gate G1 turned outward on the subject's behalf."
+        },
+        "trigger_signal": {
+          "type": "string",
+          "description": "The concrete, observable cue that fires this red flag, stated in behavioral/inspectable terms (e.g. 'PR touches auth and migrations in one commit', 'reply promises a date before scope is fixed'). Refines the required base `scope` into a checkable antecedent without weakening it (Gate G2); the named thing the `rejects_when` edge points at. Display detail over the canonical base `statement`."
+        },
+        "risk_kind": {
+          "type": "string",
+          "enum": [
+            "correctness",
+            "security",
+            "privacy",
+            "reversibility",
+            "scope_creep",
+            "overcommitment",
+            "evidence_gap",
+            "process",
+            "ethics",
+            "other"
+          ],
+          "description": "Coarse classification of the danger the signal points to, used for retrieval and for clustering related flags and for red_flag_recall scoring. evidence_gap pairs with EvidenceGapRecord; reversibility/security/privacy typically escalate to ask_confirm via user.boundary_authority. Optional; `statement` stays canonical."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "How serious the subject treats this signal when it appears, observed from the strength of their reaction (a passing note vs. a hard stop). Distinct from base `confidence` (how well-evidenced the rule is) and from base `priority_weight` (tie-breaking weight); severity is about consequence, not evidence strength."
+        },
+        "expected_reaction": {
+          "type": "string",
+          "enum": ["note", "question", "push_back", "block", "escalate"],
+          "description": "The subject's observed response when the signal fires — the consequent half of the when→do reflex this flag compiles into. note = flag it and continue; question = ask for more before proceeding; push_back = challenge/reject the approach; block = refuse until resolved; escalate = hand back to the human (aligns with the boundary authority ladder and user.decision_policy escalation). Never weaker than what a stricter BoundaryRule requires."
+        },
+        "remediation": {
+          "type": "string",
+          "description": "What the subject expects to happen to clear the flag (e.g. 'add a rollback step', 'cite a source', 'split the change', 'narrow the claim'). Behavioral/observed expectation only, not inferred motive (Gate G4); lets an evaluator judge whether a new situation has actually resolved the signal."
+        },
+        "applies_to_tasks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Task kinds/contexts where this red flag is in effect (e.g. ['code review', 'external email', 'estimate', 'data export']). Narrows the required base `scope` into checkable surfaces (Gate G2); complements base linked_projects/linked_domains."
+        },
+        "related_decision_records": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ids of user.decision_policy records (typically RejectionRuleRecord / EscalationThresholdRecord) this flag pairs with, so the signal (antecedent) and the decision (consequent) stay linked across packs. Complements base `related_records`; resolves via review, never silently."
+        }
+      },
+      "required": ["record_type"]
+    }
+  ],
+  "$comment": "Required fields are inherited unchanged from record.base.schema.json (id, record_type, label, statement, evidence_refs, confidence, scope, review_status, sensitivity, created_at, updated_at). All fields added here are OPTIONAL — required = base required + record_type only, per the pack-focus rule. Base validation still applies: evidence_refs ≥ 1 (G1), non-empty scope (G2), counterexamples required when confidence < 0.7, exception_rules required when sensitivity ∈ {sensitive, restricted}. record_type is constrained to the three user.red_flags types; routed from RedFlagCandidate (../spec/01-kernel-schema.md §6). The trigger_signal/expected_reaction pair refines the canonical base `statement` (display aliases only; the stored field is `statement`, deprecated bare `claim`/`rule_statement`). Feeds red_flag_recall / rejection_alignment metrics. (구 코드명: t07.)"
+}

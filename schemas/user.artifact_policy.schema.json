@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.artifact_policy.schema.json",
+  "title": "user.artifact_policy — Artifact Policy Pack Record",
+  "description": "Schema for a single record in the user.artifact_policy pack (#4 of 14): the output objects and formats the subject prefers a Personal Agent to produce — Markdown shape, file outputs, table conventions, diagram conventions, and review/deliverable structure (ArtifactPolicy node). Each record extends the unified base record via allOf $ref to ./record.base.schema.json and narrows record_type to this pack's five types. Routed from ArtifactPolicyCandidate (see ../spec/01-kernel-schema.md §6 routing) and produced by WorkflowPattern via the `produces` edge. Pack definition: ../spec/03-pack-catalog.md (user.artifact_policy); base record: ../spec/01-kernel-schema.md §7.",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "ArtifactFormatRecord",
+            "FileOutputRecord",
+            "TablePolicyRecord",
+            "DiagramPolicyRecord",
+            "ReviewArtifactRecord"
+          ],
+          "description": "Artifact-policy record kind. ArtifactFormatRecord: a preferred shape/structure for a response artifact (e.g. Markdown headings, fenced code, summary-first). FileOutputRecord: a rule about producing files vs inline output (path conventions, when to write a file, naming). TablePolicyRecord: how the subject wants tabular data presented (columns, sorting, alignment, when a table beats prose). DiagramPolicyRecord: preferred diagram form/notation (ASCII, Mermaid, sequence vs flow). ReviewArtifactRecord: structure of review/deliverable artifacts the subject approves (review boards, checklists, PR-comment format)."
+        },
+        "artifact_kind": {
+          "type": "string",
+          "enum": [
+            "markdown_doc",
+            "code_block",
+            "table",
+            "diagram",
+            "file",
+            "review_board",
+            "checklist",
+            "report",
+            "slide",
+            "other"
+          ],
+          "description": "Coarse classification of the output object this policy governs, used for retrieval and for matching a workflow's intended deliverable to the right format rule."
+        },
+        "preferred_format": {
+          "type": "string",
+          "description": "Concrete format/notation the subject favors for this artifact (e.g. 'GitHub-flavored Markdown', 'Mermaid sequenceDiagram', 'CSV', 'JSON with 2-space indent'). Display detail over the canonical base `statement`."
+        },
+        "structure_rules": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ordered, checkable composition rules for the artifact (e.g. 'lead with a one-line summary', 'sort table rows by date desc', 'keep diagrams under 12 nodes'). Refines `statement` into clauses an evaluator (artifact_fit) can score."
+        },
+        "applies_to_tasks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Task kinds/contexts where this policy is in effect (e.g. ['spec authoring', 'incident postmortem']). Narrows the required base `scope` without weakening it (Gate G2); complements base `linked_projects`/`linked_domains`."
+        },
+        "default_for_kind": {
+          "type": "boolean",
+          "description": "If true, this is the subject's default policy for its `artifact_kind` when no more specific rule matches. At most one default per artifact_kind should be runtime-active; conflicts resolve via review, not silently."
+        },
+        "rejected_formats": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Formats the subject explicitly does not want for this artifact (e.g. 'no HTML tables', 'no screenshots for code'). Pairs with base `anti_examples`; feeds RedFlag/rejection_alignment checks."
+        }
+      }
+    }
+  ],
+  "$comment": "Required fields are inherited unchanged from record.base.schema.json (id, record_type, label, statement, evidence_refs, confidence, scope, review_status, sensitivity, created_at, updated_at). All fields added here are OPTIONAL — required = base required only, per the pack-focus rule. Base validation still applies: evidence_refs ≥ 1 (G1), non-empty scope (G2), counterexamples required when confidence < 0.7, exception_rules required when sensitivity ∈ {sensitive, restricted}. Display aliases for `statement`: 'output_rule'/'format_rule' may be shown in UIs but the stored field is `statement` (구 코드명 pa.t04)."
+}

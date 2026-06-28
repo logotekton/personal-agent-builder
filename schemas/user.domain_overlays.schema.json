@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.domain_overlays.schema.json",
+  "title": "Personal Agent — user.domain_overlays Record",
+  "description": "Schema for a single record in the user.domain_overlays pack (#9 of 14): the domain-specific knowledge, standing attention patterns, and local vocabulary the subject brings to a particular field — the 'overlay' that, once a task is recognized as being in a known domain, changes what the runtime should know, watch for, and call things (DomainOverlay node). These are not general traits (user.persona_core) or process rules (user.tacit_heuristics); they are facts/conventions/terms that are only true within a stated domain. Each record extends the unified base record via allOf $ref to ./record.base.schema.json and narrows record_type to this pack's three types. Routed from DomainOverlayCandidate (see ../spec/01-kernel-schema.md §6 routing; 구 DomainSpecificCandidate). Gate G4 applies: state the observed knowledge/attention/term, not guessed expertise level; Gate G2 applies strongly here — the bounding domain IS the scope. Pack definition: ../spec/03-pack-catalog.md (user.domain_overlays); base record: ../spec/01-kernel-schema.md §7. (구 코드명: t09.)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "DomainKnowledgeRecord",
+            "DomainAttentionRecord",
+            "DomainTermRecord"
+          ],
+          "description": "Domain-overlay record kind. DomainKnowledgeRecord = a domain-bound fact, convention, or constraint the subject treats as given inside this domain (e.g. 'in our billing domain, all amounts are stored in minor units'); the canonical `statement` carries it. DomainAttentionRecord = a standing 'when working in domain X, pay attention to Y' pattern — what the subject habitually checks or worries about in this field (e.g. 'in auth code, always look at token expiry handling'); compiles into a retrieval/attention bias rather than a single fact. DomainTermRecord = a piece of domain vocabulary the subject uses with a specific local meaning (a term, acronym, or naming convention) so the runtime speaks the subject's dialect for this domain."
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The domain this overlay is bound to (e.g. 'distributed systems', 'oncology trials', 'ad-tech billing'). The defining boundary of the record: it is only asserted to hold inside this domain. Refines the required base `scope` into the domain that activates the overlay (Gate G2); complements base `linked_domains`."
+        },
+        "domain_kind": {
+          "type": "string",
+          "enum": [
+            "technical",
+            "scientific",
+            "business",
+            "legal",
+            "creative",
+            "operational",
+            "regulatory",
+            "other"
+          ],
+          "description": "Coarse classification of the domain, used for retrieval and for selecting which overlays to load for a given task. Optional; the base `statement` stays canonical."
+        },
+        "term": {
+          "type": "string",
+          "description": "For DomainTermRecord: the term, acronym, or naming convention as the subject writes it (e.g. 'PII', 'minor units', 'the staging cut'). Captured verbatim from evidence."
+        },
+        "definition": {
+          "type": "string",
+          "description": "For DomainTermRecord: what the term means in THIS domain, especially where it differs from common usage. Pairs with `term`; behavioral/observed meaning only (Gate G4), not an encyclopedic definition."
+        },
+        "attention_targets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For DomainAttentionRecord (and optionally others): the things the subject habitually watches for when working in this domain (e.g. ['token expiry', 'clock skew', 'retry idempotency']). Compiles into a retrieval/attention bias the runtime applies once the domain is recognized; refines `statement` into checkable surfaces an evaluator can score."
+        },
+        "applies_to_tasks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Task kinds/contexts within the domain where this overlay is in effect (e.g. ['schema review', 'incident triage', 'contract drafting']). Narrows the domain `scope` to specific surfaces; complements base `linked_projects`/`linked_domains`."
+        },
+        "authority_basis": {
+          "type": "string",
+          "enum": ["firsthand", "team_convention", "external_standard", "inferred"],
+          "description": "Where the domain knowledge comes from, used to weigh how defeasible it is. firsthand = the subject's own experience in the domain; team_convention = a local agreement that holds only inside the subject's org/project; external_standard = a published spec/regulation; inferred = surfaced from behavior but not explicitly stated. Distinct from base `confidence` (evidence strength) and from `enforcement` (binding force)."
+        },
+        "volatility": {
+          "type": "string",
+          "enum": ["stable", "evolving", "version_bound"],
+          "description": "How likely this domain fact/term is to change. stable = unlikely to drift; evolving = expected to shift as the domain or project moves; version_bound = true only for a named version/release of a standard or system. version_bound/evolving records are the usual sources of user.drift_history supersessions."
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": ["strict", "preferred", "default", "situational"],
+          "description": "How firmly the overlay should bind the runtime within its domain. strict = always apply the fact/term/attention inside the domain; preferred = apply unless overridden; default = a starting assumption a later cue can change; situational = only when the task context matches. Distinct from `confidence` (evidence strength), which measures how well-supported the overlay is, not how hard it binds."
+        }
+      },
+      "required": ["record_type"]
+    }
+  ],
+  "$comment": "Required fields are inherited unchanged from record.base.schema.json (id, record_type, label, statement, evidence_refs, confidence, scope, review_status, sensitivity, created_at, updated_at); only record_type is constrained here. All fields added by this pack are OPTIONAL — required = base required + record_type, per the pack-focus rule. Base validation still applies: evidence_refs ≥ 1 (G1), non-empty scope (G2), counterexamples required when confidence < 0.7, exception_rules required when sensitivity ∈ {sensitive, restricted}. The domain `scope` is load-bearing here: an overlay asserted outside its domain is out of scope by construction (Gate G2). Display aliases for `statement`: a UI may show 'knowledge'/'attention'/'term_definition', but the stored canonical field is `statement` (deprecated bare `claim`). record_type is constrained to the three user.domain_overlays types; routed from DomainOverlayCandidate (spec/01-kernel-schema.md §6; 구 DomainSpecificCandidate). For DomainTermRecord the term/definition pair refines `statement`; for DomainAttentionRecord the attention_targets array does (구 코드명 t09)."
+}

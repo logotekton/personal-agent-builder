@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.tool_stack.schema.json",
+  "title": "Personal Agent — user.tool_stack Record",
+  "description": "Schema for a single record in the user.tool_stack pack (#10 of 14): the tools, libraries, services, and commands the subject reaches for — which ones they prefer for a job, how they actually use them, and which ones they deliberately avoid (ToolPreference node). Each record extends the unified base record via allOf $ref to ./record.base.schema.json and narrows record_type to this pack's three types. Routed from ToolPreferenceCandidate (see ../spec/01-kernel-schema.md §6 routing); tool targets surface as `resource` in the OpenCrab 9-space crosswalk (../spec/07-opencrab-9space-crosswalk.md). Gate G4 applies: describe the observed choice and usage, not guessed taste. Pack definition: ../spec/03-pack-catalog.md (user.tool_stack); base record: ../spec/01-kernel-schema.md §7. (구 코드명: t10.)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "ToolPreferenceRecord",
+            "ToolUsageRecord",
+            "ToolAvoidanceRecord"
+          ],
+          "description": "Tool-stack record kind. ToolPreferenceRecord = the subject's default or favored choice for a job, including the 'reach for X over Y' selection (the `statement` says what is preferred and why, in behavioral terms). ToolUsageRecord = how the subject actually uses a tool — the habitual flags, settings, invocation patterns, or conventions observed in sessions (substance lives in `usage_pattern`). ToolAvoidanceRecord = a tool/feature the subject deliberately avoids or forbids, and what they use instead (pairs with `instead_use`); compiles into a soft constraint the runtime respects within scope."
+        },
+        "tool_name": {
+          "type": "string",
+          "description": "Canonical name of the tool/library/service/command this record is about (e.g. 'ripgrep', 'pytest', 'GitHub CLI', 'Postgres'). Identifies the `resource` target; keep the human-canonical name and put variants in base `aliases`."
+        },
+        "tool_category": {
+          "type": "string",
+          "enum": [
+            "editor",
+            "cli",
+            "language",
+            "framework",
+            "library",
+            "build",
+            "test",
+            "vcs",
+            "ci_cd",
+            "database",
+            "infra",
+            "observability",
+            "design",
+            "communication",
+            "ai_agent",
+            "other"
+          ],
+          "description": "Coarse classification of the tool, used for retrieval and for matching a task to the right tool. Optional; the base `statement` stays canonical."
+        },
+        "purpose": {
+          "type": "string",
+          "description": "The job-to-be-done this tool is chosen/used/avoided for, in behavioral language (e.g. 'fast code search across the repo', 'schema migrations', 'PR review'). Refines the required base `scope` into a checkable surface (Gate G2) without weakening it."
+        },
+        "preferred_over": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For ToolPreferenceRecord: alternatives this tool is chosen ahead of for the stated `purpose` (e.g. ['grep', 'ack']). Makes the preference an ordering an evaluator (artifact_fit) can score, not a bare like."
+        },
+        "instead_use": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For ToolAvoidanceRecord: the tool(s) the subject reaches for in place of the avoided one (e.g. avoid 'os.system' → ['subprocess.run']). The constructive half of an avoidance rule, so the runtime has a substitute rather than just a prohibition."
+        },
+        "usage_pattern": {
+          "type": "string",
+          "description": "For ToolUsageRecord: the observed habitual way of invoking/configuring the tool — flags, settings, conventions, or a representative command (e.g. 'rg with --hidden and -g to scope globs', 'pytest -x to stop on first failure'). Refines `statement` into the concrete, reproducible usage an evaluator can check."
+        },
+        "binding": {
+          "type": "string",
+          "enum": ["required", "preferred", "default", "discouraged", "forbidden"],
+          "description": "How firmly the runtime should honor this record within scope. required/forbidden are hard constraints; preferred/discouraged are soft leanings overridable by a stronger cue; default is a starting choice a later signal can change. Distinct from `confidence` (evidence strength), which measures how well-supported the record is, not how hard it binds."
+        },
+        "applies_to_tasks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Task kinds/contexts where this tool choice is in effect (e.g. ['code search', 'data migration', 'CI config']). Narrows the required base `scope` into checkable surfaces; complements base `linked_projects`/`linked_domains`."
+        }
+      },
+      "required": ["record_type"]
+    }
+  ],
+  "$comment": "Required fields are inherited unchanged from record.base.schema.json (id, record_type, label, statement, evidence_refs, confidence, scope, review_status, sensitivity, created_at, updated_at); only record_type is constrained here. All fields added by this pack are OPTIONAL — required = base required + record_type, per the pack-focus rule. Base validation still applies: evidence_refs ≥ 1 (G1), non-empty scope (G2), counterexamples required when confidence < 0.7, exception_rules required when sensitivity ∈ {sensitive, restricted}. Display aliases for `statement`: a UI may show 'tool_rule'/'preference', but the stored canonical field is `statement`. record_type is constrained to the three user.tool_stack types; routed from ToolPreferenceCandidate (spec/01-kernel-schema.md §6). tool_name/preferred_over/instead_use targets are the `resource` space in the 9-space crosswalk (구 코드명 t10)."
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.persona_core.schema.json",
+  "title": "Personal Agent — user.persona_core Record",
+  "description": "Schema for the user.persona_core pack (#2 of 14): stable preferences, avoidances, priorities, values, and durable work patterns of the subject (PersonaTrait node). Each record extends the unified base record via allOf and is fed by PersonaTraitCandidate (see spec/01-kernel-schema.md §6 routing). Pack definition: ../spec/03-pack-catalog.md. Gate G4 applies: state observed behavior, not guessed psychology.",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "PreferenceRecord",
+            "AvoidanceRecord",
+            "PriorityRecord",
+            "ValueRecord",
+            "StablePatternRecord"
+          ],
+          "description": "Persona-core record kind. PreferenceRecord = a stable thing the subject favors; AvoidanceRecord = a stable thing the subject avoids/dislikes; PriorityRecord = what the subject puts first when forced to choose; ValueRecord = a durable principle the subject reasons from; StablePatternRecord = a recurring, non-prescriptive behavioral tendency."
+        },
+        "polarity": {
+          "type": "string",
+          "enum": ["favor", "avoid", "neutral"],
+          "description": "Direction of the trait. Typically favor for Preference/Priority/Value, avoid for Avoidance, and either for StablePattern. Optional; statement remains the canonical form."
+        },
+        "trait_dimension": {
+          "type": "string",
+          "description": "Optional short axis label this trait sits on (e.g. 'verbosity', 'risk_tolerance', 'formality', 'autonomy'). Helps cluster related records without inventing per-record vocabulary."
+        },
+        "stability": {
+          "type": "string",
+          "enum": ["situational", "contextual", "durable", "core"],
+          "description": "How resistant the trait is to context. situational = often overridden by scope; durable/core = held across most contexts. Distinct from confidence (evidence strength); a trait can be high-confidence yet situational."
+        },
+        "supersedes_preference": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Other persona_core record ids this one wins over when two traits conflict at runtime (e.g. a PriorityRecord that overrides a PreferenceRecord). Resolution hint only; does not bypass review_status gates."
+        },
+        "trigger_contexts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Concrete situations where the trait was observed to surface (e.g. 'tight deadline', 'public artifact', 'first draft'). Narrows scope without weakening it; supports Gate G2."
+        }
+      },
+      "required": ["record_type"]
+    }
+  ],
+  "$comment": "required = base required + record_type only (no extra mandatory fields, per pack-focus rule). All persona-core additions are optional. Base validation still applies: evidence_refs ≥ 1 (G1), non-empty scope (G2), counterexamples required when confidence < 0.7, exception_rules required when sensitivity ∈ {sensitive, restricted}. Display aliases for `statement`: 'preference'/'value'/'priority' may be shown in UIs but the stored field is `statement`."
+}

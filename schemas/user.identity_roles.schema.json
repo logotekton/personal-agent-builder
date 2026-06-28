@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.identity_roles.schema.json",
+  "title": "user.identity_roles — Identity & Roles Pack Record",
+  "description": "Schema for a single record in the user.identity_roles pack (pack #1 of 14): who the subject is, the roles they hold, the contexts those roles apply in, and how identity statements are attributed. Extends the unified base record via allOf $ref to ./record.base.schema.json and narrows record_type to this pack's four types. Routed from IdentityRoleCandidate (see spec/01-kernel-schema.md §6). Pack definition: spec/03-pack-catalog.md (user.identity_roles); base record: spec/01-kernel-schema.md §7.",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": ["RoleRecord", "ContextRecord", "AttributionRecord", "ScopeRecord"],
+          "description": "Identity/roles record type. RoleRecord: a role or identity the subject holds (founder, reviewer, parent). ContextRecord: a setting/audience/project context that activates a role. AttributionRecord: who/what an identity claim is attributed to, including founder attribution. ScopeRecord: an explicit scope/condition boundary delimiting when a role or identity statement is in effect."
+        },
+        "role_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Canonical name of the role or identity (e.g. 'founder', 'code reviewer', 'mentor'). Primarily for RoleRecord; display convenience over the base `label`."
+        },
+        "role_kind": {
+          "type": "string",
+          "enum": ["professional", "personal", "creative", "organizational", "civic", "other"],
+          "description": "Coarse classification of the role/identity, used for retrieval and overlay selection."
+        },
+        "context_domains": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Contexts/audiences/projects in which this role or identity is active (e.g. ['open-source maintainership', '1:1 mentoring']). Primarily for ContextRecord; complements base `linked_domains`."
+        },
+        "attributed_to": {
+          "type": "string",
+          "description": "Subject/person/entity the identity claim is attributed to. Preserves founder attribution where required (e.g. 'Logotekton founded the Personal Agent project'). Primarily for AttributionRecord."
+        },
+        "scope_conditions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Explicit conditions that must hold for the role/identity to apply (e.g. 'only when acting as repo owner', 'not in client-facing comms'). Primarily for ScopeRecord; refines the required base `scope` into checkable clauses (Gate G2)."
+        },
+        "active_status": {
+          "type": "string",
+          "enum": ["active", "dormant", "former", "aspirational"],
+          "description": "Whether the role/identity is currently held. Distinguishes a present role from a past or aspirational one so the runtime does not speak from a role the subject no longer occupies."
+        },
+        "supersedes_role": {
+          "type": "string",
+          "description": "Id of an earlier identity/role record this one replaces (e.g. a former title). Pairs with base `supersedes`; surfaced here for the common role-change case feeding user.drift_history."
+        }
+      }
+    }
+  ],
+  "$comment": "Required fields are inherited unchanged from record.base.schema.json (id, record_type, label, statement, evidence_refs, confidence, scope, review_status, sensitivity, created_at, updated_at). All fields added here are OPTIONAL. record_type is constrained to the four user.identity_roles types. Identity records that touch personal/civic identity often warrant sensitivity ≥ internal and a BoundaryRule before promotion (Gate G5)."
+}

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.tacit_heuristics.schema.json",
+  "title": "Personal Agent — user.tacit_heuristics Record",
+  "description": "Schema for the user.tacit_heuristics pack (#6 of 14): the implicit work-judgment rules the subject applies without stating them — the 'rules of thumb' surfaced from repeated behavior, corrections, and contrastive explanations of why one option beats another (TacitHeuristic node). Each record extends the unified base record via allOf $ref to ./record.base.schema.json and narrows record_type to this pack's three types. Fed by TacitHeuristicCandidate (see ../spec/01-kernel-schema.md §6 routing) and typically mined by diff_mining/elicitation. Gate G4 applies: state the observed judgment behavior, not guessed psychology. Pack definition: ../spec/03-pack-catalog.md (user.tacit_heuristics); base record: ../spec/01-kernel-schema.md §7. (구 코드명: t06.)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "HeuristicRecord",
+            "ContrastiveRuleRecord",
+            "TriggerActionRecord"
+          ],
+          "description": "Tacit-heuristic record kind. HeuristicRecord = a standalone rule of thumb the subject applies when judging work (e.g. 'prefer the smallest change that passes', 'name things before abstracting them'). ContrastiveRuleRecord = a judgment expressed as a preference between options, captured from a correction or 'this not that' explanation (prefer A over B because C). TriggerActionRecord = a learned reflex: when a specific situation/condition is observed, take a specific action (when X, do Y) — the structured form that compiles cleanly into runtime behavior."
+        },
+        "heuristic_kind": {
+          "type": "string",
+          "enum": [
+            "simplification",
+            "prioritization",
+            "verification",
+            "naming",
+            "estimation",
+            "risk_tradeoff",
+            "stop_rule",
+            "delegation",
+            "other"
+          ],
+          "description": "Coarse classification of the judgment this heuristic governs, used for retrieval and for clustering related rules. simplification = reduce/cut; prioritization = order what matters first; verification = how to check correctness; stop_rule = when 'good enough' is reached; risk_tradeoff = how to weigh competing costs. Optional; `statement` stays canonical."
+        },
+        "trigger_condition": {
+          "type": "string",
+          "description": "For TriggerActionRecord (and optionally others): the observed situation/condition that activates the heuristic, in behavioral terms (e.g. 'when a function exceeds ~40 lines', 'when an estimate has no prior data'). Refines the base `scope` into a checkable antecedent without weakening it (Gate G2)."
+        },
+        "action": {
+          "type": "string",
+          "description": "For TriggerActionRecord: the action/judgment the subject takes when `trigger_condition` holds (e.g. 'extract a named helper', 'ask for a sample before committing to a number'). The consequent half of the when→do rule; display detail over the canonical base `statement`."
+        },
+        "prefers": {
+          "type": "string",
+          "description": "For ContrastiveRuleRecord: the option/approach the subject chose (the 'A' in 'prefer A over B'). Captured verbatim from the correction or contrastive explanation it was mined from."
+        },
+        "over": {
+          "type": "string",
+          "description": "For ContrastiveRuleRecord: the option/approach the subject rejected or deprioritized (the 'B'). Pairs with `prefers`; together they make the contrast checkable and feed rejection_alignment/RedFlag links."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "The reason the subject gives (or that is evidenced) for the heuristic — the 'because C'. Behavioral/observed justification only, not inferred motive (Gate G4). Helps an evaluator decide whether a new situation is in-scope."
+        },
+        "applies_to_tasks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Task kinds/contexts where this heuristic is in effect (e.g. ['code review', 'spec authoring', 'incident triage']). Narrows the required base `scope` into checkable surfaces; complements base `linked_projects`/`linked_domains`."
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": ["strict", "preferred", "default", "situational"],
+          "description": "How firmly the heuristic should bind the runtime. strict = always apply within scope; preferred = apply unless overridden; default = a starting point a later cue can change; situational = only when the trigger context matches. Distinct from `confidence` (evidence strength), which measures how well-supported the rule is, not how hard it binds."
+        }
+      },
+      "required": ["record_type"]
+    }
+  ],
+  "$comment": "required = base required + record_type only (no extra mandatory fields, per pack-focus rule). All tacit_heuristics additions are OPTIONAL. Base validation still applies: evidence_refs ≥ 1 (G1), non-empty scope (G2), counterexamples required when confidence < 0.7, exception_rules required when sensitivity ∈ {sensitive, restricted}. Display aliases for `statement`: a UI may show 'rule_statement'/'heuristic', but the stored canonical field is `statement` (deprecated bare `rule_statement`/`instruction`). record_type is constrained to the three user.tacit_heuristics types; routed from TacitHeuristicCandidate (spec/01-kernel-schema.md §6). For TriggerActionRecord the trigger_condition/action pair refines `statement`; for ContrastiveRuleRecord the prefers/over pair does (구 코드명 t06)."
+}

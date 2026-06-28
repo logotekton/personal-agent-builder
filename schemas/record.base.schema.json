@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/logotekton/personal-agent-builder/schemas/record.base.schema.json",
+  "title": "Personal Agent — Base Instance Record",
+  "description": "Unified base record that every user.* instance record extends. Resolves field drift between v0.1/v0.2 packs (score→confidence; claim/rule_statement/instruction/output_rule→statement). Spec: spec/01-kernel-schema.md §7.",
+  "type": "object",
+  "required": [
+    "id",
+    "record_type",
+    "label",
+    "statement",
+    "evidence_refs",
+    "confidence",
+    "scope",
+    "review_status",
+    "sensitivity",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable record id, format <subject>.<recordkind>.NNN e.g. logotekton.role.001",
+      "pattern": "^[a-z0-9_]+\\.[a-z0-9_]+\\.[0-9]{3,}$"
+    },
+    "record_type": {
+      "type": "string",
+      "description": "Pack-specific record type enum (defined by each user.* schema)."
+    },
+    "label": { "type": "string", "minLength": 1, "description": "Short human name." },
+    "statement": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The scoped claim/rule/instruction in behavioral language. Canonical field name; a pack may document a display alias (rule_statement, instruction, output_rule)."
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "≥1 EvidenceItem id/ref. Gate G1: no evidence-free claim."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "0..1. Replaces deprecated `score`."
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Where/when this record applies. Gate G2: no unscoped record."
+    },
+    "review_status": {
+      "type": "string",
+      "enum": ["pending", "confirmed", "rejected", "narrowed", "sensitive", "deferred"],
+      "description": "Lifecycle state. Gate G3: only confirmed/narrowed/edited are runtime-active."
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": ["public", "internal", "sensitive", "restricted"],
+      "description": "Privacy class. sensitive/restricted require a BoundaryRule before promotion (Gate G5)."
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+
+    "aliases": { "type": "array", "items": { "type": "string" } },
+    "priority_weight": { "type": "number", "minimum": 0, "maximum": 1 },
+    "counterexamples": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Required when confidence < 0.7 (validation rule)."
+    },
+    "exception_rules": { "type": "array", "items": { "type": "string" } },
+    "related_records": { "type": "array", "items": { "type": "string" } },
+    "supersedes": { "type": "array", "items": { "type": "string" } },
+    "linked_projects": { "type": "array", "items": { "type": "string" } },
+    "linked_domains": { "type": "array", "items": { "type": "string" } },
+    "examples": { "type": "array", "items": { "type": "string" } },
+    "anti_examples": { "type": "array", "items": { "type": "string" } }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "confidence": { "exclusiveMaximum": 0.7 } } },
+      "then": { "required": ["counterexamples"] }
+    },
+    {
+      "if": { "properties": { "sensitivity": { "enum": ["sensitive", "restricted"] } } },
+      "then": { "required": ["exception_rules"] }
+    }
+  ],
+  "$comment": "confirmed required before strong runtime use; broad records require repeated support or explicit confirmation (enforced by tools/validate_packs.py with context)."
+}

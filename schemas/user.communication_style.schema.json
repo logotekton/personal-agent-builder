@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.communication_style.schema.json",
+  "title": "Personal Agent — user.communication_style Record",
+  "description": "Schema for the user.communication_style pack (#3 of 14): how the subject wants responses shaped — response format, language, structure, information density, and the revision cues that signal a wanted change (CommunicationStyleRule node). Each record extends the unified base record via allOf $ref to ./record.base.schema.json and is fed by CommunicationStyleCandidate (see ../spec/01-kernel-schema.md §6 routing). Pack definition: ../spec/03-pack-catalog.md (user.communication_style). Gate G4 applies: describe the observed formatting/wording behavior, not guessed intent. (구 코드명: pa.t03.)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "ResponseFormatRecord",
+            "LanguageRecord",
+            "StructureRecord",
+            "DensityRecord",
+            "RevisionCueRecord"
+          ],
+          "description": "Communication-style record kind. ResponseFormatRecord = a preferred output shape/medium (bullet list, table, code block, fenced diff, single paragraph). LanguageRecord = language/tone/register/wording rule (Korean-primary, no emojis, no hedging, plain over jargon). StructureRecord = ordering/sectioning rule (answer-first, TL;DR on top, headings before prose, examples last). DensityRecord = how much detail/verbosity is wanted (terse vs exhaustive, summary length, level of explanation). RevisionCueRecord = a phrase or correction pattern the subject uses to ask for a style change ('더 짧게', 'no preamble', 'just the code')."
+        },
+        "format_target": {
+          "type": "string",
+          "enum": ["bullets", "table", "code_block", "diff", "prose", "numbered_list", "headings", "json", "checklist", "other"],
+          "description": "For ResponseFormatRecord: the concrete output object/shape favored. Coarser-grained than user.artifact_policy (which governs deliverable artifacts); this concerns the in-message presentation. Optional; `statement` stays canonical."
+        },
+        "language_primary": {
+          "type": "string",
+          "description": "For LanguageRecord: the primary language/register the subject expects (e.g. 'ko', 'en', 'ko-primary-with-en-summary'). Mirrors the repo language policy where relevant; informational, not a locale validator."
+        },
+        "tone_register": {
+          "type": "string",
+          "enum": ["formal", "neutral", "casual", "direct", "warm", "technical"],
+          "description": "For LanguageRecord: observed tone/register the subject prefers in replies. Distinct from sentiment; describes how the agent should sound, derived from accepted vs corrected wording."
+        },
+        "structure_pattern": {
+          "type": "string",
+          "enum": ["answer_first", "tldr_top", "headings_then_detail", "steps_in_order", "examples_last", "conclusion_last", "other"],
+          "description": "For StructureRecord: the ordering/sectioning convention the subject favors (e.g. answer_first = lead with the conclusion before rationale)."
+        },
+        "density_level": {
+          "type": "string",
+          "enum": ["minimal", "terse", "balanced", "detailed", "exhaustive"],
+          "description": "For DensityRecord: target verbosity/detail. Pairs with `target_length` for a checkable bound. minimal/terse favor brevity; detailed/exhaustive accept length when warranted."
+        },
+        "target_length": {
+          "type": "string",
+          "description": "For DensityRecord: optional human-readable length budget the subject expects (e.g. '≤3 sentences', 'one screen', 'no more than 5 bullets'). Free-text bound, not a hard token count."
+        },
+        "applies_to_channel": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Channels/surfaces where the style rule holds (e.g. ['chat reply', 'commit message', 'PR description', 'code comment']). Narrows the required base `scope` into checkable surfaces (Gate G2)."
+        },
+        "trigger_phrases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For RevisionCueRecord: the exact phrases/correction patterns the subject uses to request this style change, captured verbatim from evidence (e.g. ['더 짧게', 'no preamble', 'just give me the diff']). Behavioral evidence, not paraphrase (Gate G4)."
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": ["strict", "preferred", "default", "situational"],
+          "description": "How firmly the rule should bind the runtime. strict = always apply within scope; preferred = apply unless overridden; default = starting point a later cue can change; situational = only when trigger context matches. Distinct from confidence (evidence strength)."
+        }
+      },
+      "required": ["record_type"]
+    }
+  ],
+  "$comment": "required = base required + record_type only (no extra mandatory fields, per pack-focus rule). All communication_style additions are OPTIONAL. Base validation still applies: evidence_refs ≥ 1 (G1), non-empty scope (G2), counterexamples required when confidence < 0.7, exception_rules required when sensitivity ∈ {sensitive, restricted}. Display aliases for `statement`: a UI may show 'output_rule'/'style_rule', but the stored canonical field is `statement` (deprecated bare `output_rule`/`instruction`). record_type is constrained to the five user.communication_style types; routed from CommunicationStyleCandidate (spec/01-kernel-schema.md §6)."
+}

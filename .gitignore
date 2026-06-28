@@ -1,0 +1,16 @@
+# Personal instance data is private by default — never commit a real subject's records.
+/private/
+*.private.yaml
+*.private.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/

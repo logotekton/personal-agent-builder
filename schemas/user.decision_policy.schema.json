@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.decision_policy.schema.json",
+  "title": "user.decision_policy — Decision Policy Pack Record",
+  "description": "Schema for a single record in the user.decision_policy pack (#5 of 14): how the subject decides — priority orderings, tradeoff resolutions, conditions under which an action is approved or rejected, and thresholds that force escalation to a human (DecisionPolicy node). Each record extends the unified base record via allOf $ref to ./record.base.schema.json and narrows record_type to this pack's five types. Routed from DecisionPolicyCandidate (see ../spec/01-kernel-schema.md §6 routing); attached to the subject by the `prioritizes` edge and to rejection conditions by the `rejects_when` edge (../spec/01-kernel-schema.md §4). Feeds the rejection_alignment / decision_fidelity evaluation metrics. Pack definition: ../spec/03-pack-catalog.md (user.decision_policy); base record: ../spec/01-kernel-schema.md §7.",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "PriorityRuleRecord",
+            "TradeoffRuleRecord",
+            "ApprovalConditionRecord",
+            "RejectionRuleRecord",
+            "EscalationThresholdRecord"
+          ],
+          "description": "Decision-policy record kind. PriorityRuleRecord: a fixed ordering the subject applies when goals compete (e.g. 'correctness before speed'). TradeoffRuleRecord: how to resolve a specific tension between two desirable things, including the acceptable cost (e.g. 'trade scope for a firm deadline, never quality'). ApprovalConditionRecord: the conditions under which the subject is willing to approve/go ahead with an action. RejectionRuleRecord: conditions under which the subject refuses or backs out (pairs with the `rejects_when` edge and user.red_flags). EscalationThresholdRecord: a measurable threshold past which the agent must hand the decision back to the human (ties to base sensitivity and user.boundary_authority ask_confirm)."
+        },
+        "decision_axis": {
+          "type": "string",
+          "description": "Short label for the dimension this policy governs (e.g. 'quality_vs_speed', 'cost_vs_thoroughness', 'autonomy', 'irreversibility'). Clusters related decision records without inventing per-record vocabulary; display detail over the canonical base `statement`."
+        },
+        "priority_order": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For PriorityRuleRecord: the competing factors listed most-important-first (e.g. ['correctness', 'clarity', 'speed', 'brevity']). Refines `statement` into an ordering an evaluator (decision_fidelity) can score directly."
+        },
+        "tradeoff": {
+          "type": "object",
+          "description": "For TradeoffRuleRecord: the structured tension and its resolution. Optional convenience over `statement`.",
+          "properties": {
+            "give_up": { "type": "string", "description": "What the subject is willing to sacrifice." },
+            "to_protect": { "type": "string", "description": "What must be preserved in exchange." },
+            "acceptable_cost": { "type": "string", "description": "The limit of the concession (e.g. 'up to one extra day, never a quality regression')." }
+          },
+          "additionalProperties": false
+        },
+        "approve_when": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For ApprovalConditionRecord: conjunctive conditions that must hold for the subject to approve the action (e.g. ['evidence_refs ≥ 2', 'reversible', 'inside confirmed scope']). All must be true unless an exception_rules clause says otherwise."
+        },
+        "reject_when": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For RejectionRuleRecord: conditions that trigger refusal or back-out (e.g. ['external comms without confirm', 'no supporting evidence', 'identity-sensitive claim']). Mirrors the `rejects_when` edge; feeds rejection_alignment scoring."
+        },
+        "escalation_threshold": {
+          "type": "object",
+          "description": "For EscalationThresholdRecord: the measurable trigger that forces ask_confirm / hand-back to the human. Optional structured form of `statement`.",
+          "properties": {
+            "metric": { "type": "string", "description": "What is measured (e.g. 'spend', 'blast_radius', 'confidence', 'recipients')." },
+            "comparator": { "type": "string", "enum": [">", ">=", "<", "<=", "==", "!="], "description": "Comparison operator against the threshold value." },
+            "value": { "type": "string", "description": "Threshold value (string to allow units/currency, e.g. '$500', '0.7', '3 people')." },
+            "escalate_to": {
+              "type": "string",
+              "enum": ["ask_confirm", "blocked", "human_review"],
+              "description": "Authority action taken when the threshold is crossed; aligns with the boundary authority ladder (../spec/01-kernel-schema.md, user.boundary_authority)."
+            }
+          },
+          "additionalProperties": false
+        },
+        "default_action": {
+          "type": "string",
+          "enum": ["proceed", "ask_confirm", "defer", "reject", "escalate"],
+          "description": "What the agent should do at runtime when this policy is the matching, runtime-active rule and its conditions are met. Conservative by design; never overrides a stricter BoundaryRule."
+        },
+        "applies_to_decisions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Decision kinds/contexts where this policy is in effect (e.g. ['merging a PR', 'sending an external email', 'choosing scope cuts']). Narrows the required base `scope` without weakening it (Gate G2); complements base linked_projects/linked_domains."
+        },
+        "conflicts_with": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Other decision_policy record ids this rule can collide with at runtime. Conflicts resolve via review and priority_weight, not silently; does not bypass review_status gates."
+        }
+      }
+    }
+  ],
+  "$comment": "Required fields are inherited unchanged from record.base.schema.json (id, record_type, label, statement, evidence_refs, confidence, scope, review_status, sensitivity, created_at, updated_at). All fields added here are OPTIONAL — required = base required only, per the pack-focus rule. Base validation still applies: evidence_refs ≥ 1 (G1), non-empty scope (G2), counterexamples required when confidence < 0.7, exception_rules required when sensitivity ∈ {sensitive, restricted}. Display aliases for `statement`: 'rule_statement'/'decision_rule' may be shown in UIs but the stored field is `statement` (구 코드명 pa.t05)."
+}
