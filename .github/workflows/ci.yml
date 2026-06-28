@@ -1,0 +1,44 @@
+# CI — enforce the project's contract on every push/PR.
+#
+# The repo's thesis is "every figure is reproduced by the commands". This workflow runs those
+# commands so the figures cannot drift unnoticed:
+#   - validate_packs.py  : the quality gates (G1-G6) on the worked example must pass.
+#   - tests/             : the stdlib regression suite that pins every tool number (canonical_key,
+#                          the four dedup verdicts, the six convergence indices, merge_rate, ...).
+#   - convergence_report : informational — prints the live maturity tier and indices for the log.
+#
+# The tools are stdlib-first; PyYAML is the only optional dependency (for YAML I/O and the
+# recursive validate/dedup CLI paths). The Python matrix guards that stdlib-only portability.
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install optional dependency (PyYAML)
+        run: python -m pip install --upgrade pip pyyaml
+
+      - name: Quality gates — validate the worked example (G1-G6)
+        run: python tools/validate_packs.py examples/logotekton
+
+      - name: Regression suite — lock every tool number
+        run: python -m unittest discover -s tests -v
+
+      - name: Convergence report (informational)
+        run: python tools/convergence_report.py examples/logotekton
