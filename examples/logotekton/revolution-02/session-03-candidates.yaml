@@ -1,0 +1,115 @@
+# Logotekton — 세션 3 인입 후보 (incoming candidates for a SECOND flywheel revolution)
+#
+# > **EN:** The confirmed candidates mined from a *third* builder session, fed to the
+# > dedup-judge actuator (tools/pab_merge.py) for a second turn of the data-engine wheel
+# > (spec/02 loop). This batch is designed to exercise the verdicts revolution-01 did NOT —
+# > and, above all, to prove the actuator's SAFETY and RESTRAINT, not just its happy paths:
+# >
+# >   C1 heuristic.301  → DUPLICATE → MERGE   (same heuristic re-derived a 3rd time; rep 2→3)
+# >   C2 artifact.001   → NOVEL     → INSERT   (eval.005 partial fix: next-action required; seeds pack #4)
+# >   C3 tool.001       → NOVEL     → INSERT   (a session-3 tool preference; seeds pack #10)
+# >   C4 style.301      → CONFLICT  → SURFACE  (similar-but-not-equal to style.001 → NOT auto-applied)
+# >
+# > C4 is the point of this revolution: a *confirmed* candidate is still BLOCKED by the actuator
+# > because it conflicts with existing confirmed knowledge (style.001). The judge surfaces it for
+# > human reconciliation and never silently overwrites — proving G3/G5 hold at the merge layer, not
+# > only at the confirmation gate. C4 is therefore left UNRESOLVED and does NOT enter instance-records.
+# > These live in a subdir so convergence_report.py / dedup_check.py (top-level only) ignore them as
+# > inputs, while validate_packs.py (recursive) still checks every one is a valid base record.
+# >
+# > Reproduce the PRE-merge plan (against the frozen T1 snapshot, since the live file is post-merge):
+# >   python tools/pab_merge.py examples/logotekton/revolution-02/instance-records.pre.yaml \
+# >                             examples/logotekton/revolution-02/session-03-candidates.yaml
+#
+# 이 파일은 세 번째 세션에서 채굴·확인된 인입 후보들입니다. dedup judge(tools/pab_merge.py)가
+# 기존 인스턴스 레코드와 대조해 novel/duplicate/refinement/conflict 로 분류합니다. 이번 배치의
+# 핵심은 C4 — *확인된* 후보라도 기존 확인 지식과 충돌하면 actuator 가 자동 적용을 거부하고
+# 사람 검토로 surface 한다는 안전 속성(절대 조용히 덮어쓰지 않음, spec/10 §3)을 증명하는 것입니다.
+
+# ── C1 · 재유도(re-derivation, 3rd time) → DUPLICATE → MERGE ───────────────────
+# 같은 휴리스틱(heuristic.001)이 세 번째 세션에서 또 떠받쳐짐. 새 트윈을 찍지 않고
+# 기존 레코드에 흡수(repetition_count 2→3, evidence 누적, confidence 0.9→0.95). 멱등.
+- id: logotekton.heuristic.301
+  record_type: HeuristicRecord
+  label: "execute when tools exist (re-derived, 3rd)"
+  statement: "If tools are available and the request is operational, perform the concrete action and report the actual result."
+  evidence_refs: ["session_2026-06-28c#rederive_execute_when_tools"]
+  confidence: 0.85
+  scope: opencrab_work
+  review_status: confirmed
+  sensitivity: internal
+  created_at: "2026-06-28T00:00:00Z"
+  updated_at: "2026-06-28T18:00:00Z"
+  heuristic_kind: prioritization
+  trigger_condition: "tools are available and the request is operational"
+  action: "perform the concrete action and report the actual result"
+  applies_to_tasks: ["opencrab work"]
+  enforcement: preferred
+
+# ── C2 · 교정 산물(eval.005 partial → next-action 필수) → NOVEL → INSERT ────────
+# eval.005 가 보고에서 next action 을 빠뜨려 PARTIAL(0.7) 했음. 그 correction_notes 가
+# 처방한 user.artifact_policy ReviewArtifactRecord 를 인입(빈 팩이라 novel insert). 이 규칙이
+# 생기면 eval.005 가 재실행에서 PASS 로 전환됨(../evaluation-cases.yaml). → 팩 #4 시드.
+- id: logotekton.artifact.001
+  record_type: ReviewArtifactRecord
+  label: "report must include next action"
+  statement: "A task or pack report must always include an explicit next action; status, result, and defect alone are an incomplete report."
+  evidence_refs: ["ev.eval.005#next_action_missing", "session_2026-06-28c#report_next_action"]
+  confidence: 0.9
+  scope: project_reporting
+  review_status: confirmed
+  sensitivity: internal
+  created_at: "2026-06-28T00:00:00Z"
+  updated_at: "2026-06-28T18:00:00Z"
+  artifact_kind: report
+  preferred_format: "compact status block: status / result / defect / next action"
+  structure_rules:
+    - "always end with an explicit next action (never omit it)"
+    - "lead with the result (answer_first), keep it terse"
+    - "four slots: status, result, defect, next action"
+  applies_to_tasks: ["pack report", "task status report"]
+  default_for_kind: true
+
+# ── C3 · 세션 3 도구 선호(measured, not asserted) → NOVEL → INSERT ──────────────
+# 세션 3에서 관찰된 도구 선택: 수렴/검증 숫자를 단언하지 말고 결정론적 도구를 실제로 돌려
+# 산출하라(이 프로젝트의 evidence-first 에토스의 도구판). user.tool_stack 빈 팩 → novel insert.
+# → 팩 #10 시드. (G4: 추측 취향이 아니라 관찰된 선택을 기술.)
+- id: logotekton.tool.001
+  record_type: ToolPreferenceRecord
+  label: "run the deterministic tools for numbers"
+  statement: "When reporting convergence or validation numbers, run the deterministic Python tools and quote their output; do not assert metrics from memory."
+  evidence_refs: ["session_2026-06-28c#run_tools_for_numbers", "ev.core.002#evidence_first"]
+  confidence: 0.9
+  scope: convergence_measurement
+  review_status: confirmed
+  sensitivity: internal
+  created_at: "2026-06-28T00:00:00Z"
+  updated_at: "2026-06-28T18:00:00Z"
+  tool_name: "convergence_report.py"
+  tool_category: cli
+  purpose: "produce the six convergence indices and the maturity tier from records, deterministically"
+  preferred_over: ["asserting metrics from memory", "hand-authored numbers"]
+  binding: preferred
+  applies_to_tasks: ["convergence report", "pack validation"]
+
+# ── C4 · 보고 형식 재진술(유사하나 불일치) → CONFLICT → SURFACE (적용 안 함) ────
+# 세션 3에서 사용자가 컴팩트 보고 규칙(style.001)을 살짝 다르게 재진술함: "result 를 먼저,
+# defect 는 생략." 같은 record_type(StructureRecord)·같은 scope(project_reporting)이고 토큰
+# 중첩(Jaccard ≈ 0.6 ∈ [0.5,0.85)) 이라 actuator 는 이를 refinement 인지 모순인지 단정할 수
+# 없어 CONFLICT 로 분류하고 surface 한다 — 자동 적용 절대 금지(spec/10 §3). 이 후보는
+# 사람 검토 대기 상태로 남으며 instance-records 에 적재되지 않는다(= 지표에 영향 없음).
+- id: logotekton.style.301
+  record_type: StructureRecord
+  label: "compact status (lead with result, drop defect)"
+  statement: "Pack reports should be brief and lead with the result, then status and the next action."
+  evidence_refs: ["session_2026-06-28c#report_lead_with_result"]
+  confidence: 0.8
+  scope: project_reporting
+  review_status: confirmed
+  sensitivity: internal
+  created_at: "2026-06-28T00:00:00Z"
+  updated_at: "2026-06-28T18:00:00Z"
+  structure_pattern: answer_first
+  density_level: terse
+  applies_to_channel: ["pack report"]
+  enforcement: preferred

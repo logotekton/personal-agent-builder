@@ -4,8 +4,11 @@
 > 이 리포트가 §5에서 지목한 **"다음 한 수"(`user.boundary_authority`에 `ConfirmationRuleRecord`
 > 시드)** 가 실제로 실행되었습니다. 그 한 바퀴(merge actuator + 교정 + 재평가)와 **T0→T1 측정
 > (L0 → L2 Working, decision_fidelity 0.75→0.92, merge_rate NA→0.059)** 은
-> [`revolution-01/README.md`](./revolution-01/README.md)에 있습니다. **현재 라이브 도구 출력은
-> T1(L2)** 이며, 아래 본문은 그 *이전* 상태를 보존한 베이스라인입니다.
+> [`revolution-01/README.md`](./revolution-01/README.md)에, 바퀴를 한 번 더 돌린 **T1→T2 측정
+> (L2 유지, decision_fidelity 0.92→1.00, coverage 0.57→0.71, merge_rate 0.059→0.095,
+> drift_stability 0.94→0.89)** 은 [`revolution-02/README.md`](./revolution-02/README.md)에 있습니다.
+> **현재 라이브 도구 출력은 T2(L2 — df 1.00, coverage 0.71)** 이며, 아래 본문은 *맨 처음* 상태를
+> 보존한 T0 베이스라인입니다.
 
 > **EN:** A worked convergence report for the `logotekton` subject, computed per
 > [`../../spec/06-convergence-model.md`](../../spec/06-convergence-model.md) from the

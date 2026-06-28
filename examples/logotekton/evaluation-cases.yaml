@@ -23,8 +23,9 @@
 # id 형식: <subject>.evalcase.NNN. record_type=EvaluationCaseRecord(단일). 활성 팩은 정식
 # 14팩 이름만 사용(구 코드명 폐기). evidence_refs ≥ 1(G1), scope 비어있지 않음(G2),
 # confidence ≥ 0.7 이므로 counterexamples 불필요, sensitivity=internal 이므로 exception_rules 불필요.
-# revolution-01 이후: 6개 중 5개 pass / 1개 partial / 0개 fail → decision_fidelity = (5 + 0.5)/6 ≈ 0.92.
-# (이전 T0: 4 pass / 1 partial / 1 fail → 0.75. eval.004 가 교정으로 fail→pass 전환됨.)
+# revolution-02 이후: 6개 모두 pass / 0 partial / 0 fail → decision_fidelity = 6/6 = 1.00.
+# (revolution-01: 5 pass / 1 partial / 0 fail → 0.92. revolution-02 에서 eval.005 가 교정으로 partial→pass.)
+# (T0: 4 pass / 1 partial / 1 fail → 0.75. eval.004 는 revolution-01 에서 fail→pass 전환됨.)
 
 # ── eval.001 · 네이밍 준수 (naming compliance) ────────────────────────────────
 # 공식 모델명/창립자 귀속을 묻는다. metric: decision_fidelity. 활성 팩: decision_policy + identity_roles.
@@ -238,14 +239,19 @@
       - { check: "next action 명시", weight: 0.2, kind: must }
     pass_threshold: 0.8
     judge: mixed
+  # revolution-02: 첫 실행(profile@2026-06-28, 09:08)은 PARTIAL(score 0.7, next action 누락)
+  # → correction_notes 처방대로 logotekton.artifact.001(ReviewArtifactRecord · next action 필수
+  # 슬롯) 추가 → 재컴파일된 profile@2026-06-28 에서 18:05 재실행 시 PASS. 변경 이력은
+  # ../drift-history.yaml(logotekton.drift.002) 에 기록됨.
   result:
-    status: partial
-    score: 0.7
-    observed_behavior: "status/result/defect 는 간결히 제시했으나 next action 을 빠뜨리고 약간의 서두를 덧붙임"
-    failed_checks: ["next action 명시"]
+    status: pass
+    score: 1.0
+    observed_behavior: "결과를 먼저 제시(answer_first)하고 status/result/defect/next action 네 항목을 간결히 보고; next action 을 명시함(logotekton.artifact.001 적용)"
+    failed_checks: []
     agent_profile_ref: logotekton.profile@2026-06-28
-    run_at: "2026-06-28T09:08:00Z"
-  correction_notes: "user.artifact_policy 의 컴팩트 보고 레코드에 next action 을 필수 슬롯으로 narrow. 통과 후 회귀 케이스로 고정."
+    run_at: "2026-06-28T18:05:00Z"
+  correction_notes: "RESOLVED — logotekton.artifact.001(project_reporting · next action 필수 슬롯) 추가로 통과. drift: logotekton.drift.002. 회귀로 고정."
+  regression_for: ["ev.eval.005#next_action_missing"]
 
 # ── eval.006 · 교정 비용 (correction_cost, 재확인 후 편집량 ↓) ─────────────────
 # 동일 작업 재실행 시 사용자가 덜 고치는가(편집 비율 ↓). metric: correction_cost (낮을수록 좋음).

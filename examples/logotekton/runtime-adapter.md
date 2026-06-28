@@ -1,5 +1,17 @@
 # Logotekton — 컴파일된 런타임 어댑터 (Compiled Runtime Adapter = the Personal Agent)
 
+> ⚙️ **이 문서는 T0(데이터-엔진을 돌리기 *전*) 시점에 컴파일된 스냅샷입니다 — 5개 팩만 시드된
+> 상태.** 이후 바퀴가 두 번 돌며 인스턴스 레코드가 바뀌었습니다: revolution-01 이
+> `user.boundary_authority`에 `ConfirmationRuleRecord`(`logotekton.boundary.001`, 외부메일
+> ask_confirm)를 추가했고, revolution-02 가 `user.artifact_policy`(`artifact.001`, 보고 next-action
+> 필수)와 `user.tool_stack`(`tool.001`)을 시드했습니다(현재 **시드 10팩**, df 1.00, L2). 따라서 아래
+> 본문의 *"확인된 BoundaryRule 0개 → 기본 안전 정책"* 과 *"5개 팩"* 단언은 **이 T0 스냅샷에 한해
+> 참**이며, 현재 라이브 상태가 아닙니다 — 재컴파일하면 섹션 7(경계)은 `boundary.001`을, 섹션 8(출력
+> 검증)은 `artifact.001`을 끌어옵니다. 현재 지표·시드는
+> [`convergence-report.md`](./convergence-report.md) 배너와
+> [`revolution-01/`](./revolution-01/) · [`revolution-02/`](./revolution-02/)를 참고하세요. 아래는
+> *맨 처음* 컴파일 결과를 보존한 베이스라인입니다.
+
 > **EN:** This is what the [agent_compiler](../../skills/10-agent-compiler.md) (skill S10)
 > produces when it compiles Logotekton's **confirmed, scoped** instance records
 > ([`instance-records.yaml`](./instance-records.yaml)) into a runtime adapter — the actual
