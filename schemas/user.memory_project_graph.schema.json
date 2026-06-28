@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.memory_project_graph.schema.json",
+  "title": "Personal Agent — user.memory_project_graph Record",
+  "description": "Schema for a single record in the user.memory_project_graph pack (#12 of 14): the subject's projects, the goals those projects serve, and the durable memory links that tie scattered records together so the runtime remembers what the subject is actually working toward (ProjectMemory node). This pack is the connective tissue — most other packs reference it through base `linked_projects`, while this pack records the projects/goals themselves and the links between records. Each record extends the unified base record via allOf $ref to ./record.base.schema.json and narrows record_type to this pack's three types. Routed from ProjectMemoryCandidate (see ../spec/01-kernel-schema.md §6 routing). Gate G4 applies: describe observed project facts and stated goals, not guessed motivation. Pack definition: ../spec/03-pack-catalog.md (user.memory_project_graph); base record: ../spec/01-kernel-schema.md §7. (구 코드명: x12; 구 후보명: ProjectGoalCandidate.)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "ProjectRecord",
+            "GoalRecord",
+            "MemoryLinkRecord"
+          ],
+          "description": "Memory/project-graph record kind. ProjectRecord = a named undertaking the subject works on (a repo, a paper, a launch, a personal initiative) with its own state and timeframe; the canonical `statement` describes what the project is and where it stands. GoalRecord = a desired outcome or objective the subject is pursuing, which one or more projects serve (e.g. 'ship v0.3 publicly', 'reduce review turnaround'); `statement` captures the goal in the subject's own framing. MemoryLinkRecord = a durable, evidence-bound relationship between records or entities (e.g. 'this decision belongs to project X', 'this red flag recurs in the auth subsystem') that makes the graph navigable and lets retrieval pull the right context for a task."
+        },
+        "project_status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "paused",
+            "completed",
+            "abandoned",
+            "planned"
+          ],
+          "description": "For ProjectRecord (and optionally GoalRecord): current lifecycle state of the project/goal. Lets the runtime avoid acting from a project the subject has paused or abandoned, and avoid resurfacing completed work as if still open."
+        },
+        "goal_horizon": {
+          "type": "string",
+          "enum": [
+            "immediate",
+            "short_term",
+            "medium_term",
+            "long_term",
+            "ongoing"
+          ],
+          "description": "For GoalRecord: rough time horizon of the objective, used for prioritization and to weight which goal a task should serve. Optional; the canonical `statement` stays primary."
+        },
+        "parent_goals": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ids of higher-level GoalRecords this project or sub-goal serves (e.g. a feature project pointing at a quarterly goal). Builds the goal hierarchy without duplicating the goal text; complements base `related_records`."
+        },
+        "related_projects": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ids of other ProjectRecords this record connects to (dependency, fork, successor, shared resource). Mirrors base `linked_projects` but kept here for project-to-project edges where this pack owns both endpoints."
+        },
+        "link_relation": {
+          "type": "string",
+          "enum": [
+            "belongs_to",
+            "depends_on",
+            "supersedes",
+            "relates_to",
+            "blocks",
+            "derived_from",
+            "part_of"
+          ],
+          "description": "For MemoryLinkRecord: the kind of relationship the link asserts. Behavioral/structural relations only (Gate G4) — what is connected to what, not inferred intent. Pairs with `link_from`/`link_to`."
+        },
+        "link_from": {
+          "type": "string",
+          "description": "For MemoryLinkRecord: id/ref of the source endpoint of the link (a record in any user.* pack, a project, a goal, or an EvidenceItem). The link's subject."
+        },
+        "link_to": {
+          "type": "string",
+          "description": "For MemoryLinkRecord: id/ref of the target endpoint of the link. Together with `link_from` and `link_relation` this forms one navigable edge of the personal memory graph."
+        },
+        "timeframe": {
+          "type": "object",
+          "description": "Optional observed time bounds for a project or goal, used to scope retrieval temporally and to mark stale context. Distinct from base created_at/updated_at, which track the record itself, not the project it describes.",
+          "properties": {
+            "started_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "When the project/goal began, where known."
+            },
+            "target_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Targeted or actual completion date, where stated."
+            }
+          },
+          "additionalProperties": false
+        },
+        "memory_salience": {
+          "type": "string",
+          "enum": [
+            "core",
+            "active_context",
+            "background",
+            "archival"
+          ],
+          "description": "How readily this project/goal/link should be surfaced into runtime context. core = always in view; active_context = pull when a related task is in scope; background = retrieve on explicit reference; archival = retained for history but not proactively surfaced. Distinct from `confidence` (evidence strength) and from `priority_weight` (how much it should sway a decision)."
+        }
+      },
+      "required": ["record_type"]
+    }
+  ],
+  "$comment": "Required fields are inherited unchanged from record.base.schema.json (id, record_type, label, statement, evidence_refs, confidence, scope, review_status, sensitivity, created_at, updated_at); only record_type is added to required here, per the pack-focus rule. All fields added by this pack are OPTIONAL. Base validation still applies: evidence_refs ≥ 1 (G1), non-empty scope (G2), counterexamples required when confidence < 0.7, exception_rules required when sensitivity ∈ {sensitive, restricted} — note project/goal records can carry sensitive plans, so sensitivity ≥ internal is common and a BoundaryRule may be required before promotion (Gate G5). record_type is constrained to the three user.memory_project_graph types (ProjectRecord, GoalRecord, MemoryLinkRecord); routed from ProjectMemoryCandidate (../spec/01-kernel-schema.md §6). MemoryLinkRecord's link_from/link_to/link_relation express graph edges that complement base related_records/linked_projects; this pack is the hub that base `linked_projects` across other packs points into. (구 코드명 x12; 구 후보명 ProjectGoalCandidate.)"
+}

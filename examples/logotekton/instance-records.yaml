@@ -1,0 +1,160 @@
+# Logotekton — 확인된 인스턴스 레코드 (instance records)
+#
+# > **EN:** Real, confirmed instance records for the `logotekton` subject, mined from an
+# > actual Personal Agent builder session and approved at the confirmation gate. Every
+# > record validates against the unified base record (../../schemas/record.base.schema.json)
+# > and its pack-specific schema (../../schemas/user.<pack>.schema.json). Records are grouped
+# > as a YAML mapping keyed by the canonical pack name. These are the DATA layer of the
+# > instance pack `personal.logotekton.*`, not templates — template/instance separation (G6).
+#
+# 이 파일은 실제 세션에서 채굴되어 확인 게이트(skill 07)를 통과한 logotekton 주체의
+# 인스턴스 레코드입니다. 모든 레코드는 통합 베이스 레코드와 해당 팩 스키마를 동시에 만족합니다.
+#   - 베이스 스키마        : ../../schemas/record.base.schema.json   (필수 11필드)
+#   - 커널 스키마(어휘)    : ../../spec/01-kernel-schema.md          (§5 팩, §6 라우팅, §7 레코드)
+#   - 팩 카탈로그          : ../../spec/03-pack-catalog.md           (팩별 정의)
+# 매핑 키는 정식 14팩 이름(구 코드명 폐기)을 씁니다. id 형식: <subject>.<recordkind>.NNN.
+# evidence_refs 는 이 세션(current_session)을 가리키며, 모든 항목은 검토 후 confirmed 상태입니다.
+# 모든 레코드는 confidence ≥ 0.8 이므로 counterexamples 불필요(G), sensitivity=internal 이므로
+# exception_rules 불필요. review_status=confirmed 만 런타임 활성화 가능(G3).
+
+# ── 팩 #1 · user.identity_roles ──────────────────────────────────────────────
+# 누가/어떤 역할/어떤 맥락인가. 후보: IdentityRoleCandidate. 스키마: user.identity_roles.schema.json
+user.identity_roles:
+  - id: logotekton.role.001
+    record_type: AttributionRecord
+    label: founder
+    statement: "Logotekton founded the Personal Agent project."
+    evidence_refs: ["current_session"]
+    confidence: 1.0
+    scope: naming
+    review_status: confirmed
+    sensitivity: internal
+    created_at: "2026-06-27T00:00:00Z"
+    updated_at: "2026-06-28T00:00:00Z"
+    attributed_to: Logotekton
+    role_name: founder
+    role_kind: organizational
+    active_status: active
+
+  - id: logotekton.role.002
+    record_type: ContextRecord
+    label: "builder project"
+    statement: "The builder project is personal agent builder skills."
+    evidence_refs: ["current_session"]
+    confidence: 1.0
+    scope: project_context
+    review_status: confirmed
+    sensitivity: internal
+    created_at: "2026-06-27T00:00:00Z"
+    updated_at: "2026-06-28T00:00:00Z"
+    context_domains: ["personal agent builder", "builder skills"]
+    role_kind: organizational
+    active_status: active
+
+# ── 팩 #2 · user.persona_core ────────────────────────────────────────────────
+# 안정 선호/가치/우선순위. 후보: PersonaTraitCandidate. 스키마: user.persona_core.schema.json
+user.persona_core:
+  - id: logotekton.trait.001
+    record_type: PriorityRecord
+    label: "micro pack split"
+    statement: "Use small separated packs instead of one mixed pack."
+    evidence_refs: ["current_session"]
+    confidence: 0.9
+    scope: pack_design
+    review_status: confirmed
+    sensitivity: internal
+    created_at: "2026-06-27T00:00:00Z"
+    updated_at: "2026-06-28T00:00:00Z"
+    polarity: favor
+    trait_dimension: pack_granularity
+    stability: durable
+
+  - id: logotekton.trait.002
+    record_type: PriorityRecord
+    label: "evidence first"
+    statement: "Keep extracted records linked to sources and review status."
+    evidence_refs: ["current_session"]
+    confidence: 0.9
+    scope: record_flow
+    review_status: confirmed
+    sensitivity: internal
+    created_at: "2026-06-27T00:00:00Z"
+    updated_at: "2026-06-28T00:00:00Z"
+    polarity: favor
+    trait_dimension: evidence_discipline
+    stability: core
+
+# ── 팩 #3 · user.communication_style ─────────────────────────────────────────
+# 응답 형식/언어/구조/밀도. 후보: CommunicationStyleCandidate. 스키마: user.communication_style.schema.json
+user.communication_style:
+  - id: logotekton.style.001
+    record_type: StructureRecord
+    label: "compact status"
+    statement: "Pack reports should be brief: status, result, defect, next action."
+    evidence_refs: ["current_session"]
+    confidence: 0.8
+    scope: project_reporting
+    review_status: confirmed
+    sensitivity: internal
+    created_at: "2026-06-27T00:00:00Z"
+    updated_at: "2026-06-28T00:00:00Z"
+    structure_pattern: answer_first
+    density_level: terse
+    applies_to_channel: ["pack report"]
+    enforcement: preferred
+
+  - id: logotekton.style.002
+    record_type: LanguageRecord
+    label: "korean review"
+    statement: "When the user reviews candidates, use Korean for the review sentence for quick approval."
+    evidence_refs: ["current_session"]
+    confidence: 0.85
+    scope: review
+    review_status: confirmed
+    sensitivity: internal
+    created_at: "2026-06-27T00:00:00Z"
+    updated_at: "2026-06-28T00:00:00Z"
+    language_primary: ko
+    tone_register: direct
+    applies_to_channel: ["candidate review"]
+    enforcement: preferred
+
+# ── 팩 #5 · user.decision_policy ─────────────────────────────────────────────
+# 우선순위/트레이드오프/승인/거부/에스컬레이션. 후보: DecisionPolicyCandidate.
+# 스키마: user.decision_policy.schema.json
+user.decision_policy:
+  - id: logotekton.decision.001
+    record_type: RejectionRuleRecord
+    label: "official model name"
+    statement: "Use Personal Agent as the official model name; OpenCrab is platform context, not the model name."
+    evidence_refs: ["current_session"]
+    confidence: 1.0
+    scope: naming
+    review_status: confirmed
+    sensitivity: internal
+    created_at: "2026-06-27T00:00:00Z"
+    updated_at: "2026-06-28T00:00:00Z"
+    decision_axis: naming
+    reject_when: ["OpenCrab used as the official model name"]
+    applies_to_decisions: ["naming the model"]
+    default_action: reject
+
+# ── 팩 #6 · user.tacit_heuristics ────────────────────────────────────────────
+# 암묵 판단 규칙. 후보: TacitHeuristicCandidate. 스키마: user.tacit_heuristics.schema.json
+user.tacit_heuristics:
+  - id: logotekton.heuristic.001
+    record_type: HeuristicRecord
+    label: "execute when tools exist"
+    statement: "If tools are available and the request is operational, perform the concrete action and report the actual result."
+    evidence_refs: ["current_session"]
+    confidence: 0.85
+    scope: opencrab_work
+    review_status: confirmed
+    sensitivity: internal
+    created_at: "2026-06-27T00:00:00Z"
+    updated_at: "2026-06-28T00:00:00Z"
+    heuristic_kind: prioritization
+    trigger_condition: "tools are available and the request is operational"
+    action: "perform the concrete action and report the actual result"
+    applies_to_tasks: ["opencrab work"]
+    enforcement: preferred

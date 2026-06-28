@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.evaluation_cases.schema.json",
+  "title": "Personal Agent — user.evaluation_cases Record",
+  "description": "Schema for a single record in the user.evaluation_cases pack (#13 of 14): the fidelity test cases that measure whether the AssistantProfile decides, writes, and acts the way the subject would approve (EvaluationCase node). A case fixes an input task and an active pack set, then states — in behavioral language — what the agent must do (expected_behavior) and must never do (unacceptable_behavior), with a scoring rubric and an evidence-bound record of how it actually scored. Each record extends the unified base record via allOf $ref to ./record.base.schema.json and narrows record_type to this pack's single type (EvaluationCaseRecord). Routed from EvaluationCaseCandidate (see ../spec/01-kernel-schema.md §6 routing); attached to the profile by the `evaluated_by` edge (../spec/01-kernel-schema.md §4) and surfaced as `outcome` in the OpenCrab 9-space crosswalk (../spec/07-opencrab-9space-crosswalk.md). Drives the decision_fidelity convergence index (passed_eval_cases / total_eval_cases) and feeds the skill-11 evaluation metrics. Field set follows the canonical contract §10. Pack definition: ../spec/03-pack-catalog.md (user.evaluation_cases); evaluation model: ../spec/01-kernel-schema.md §10 / skills/11-evaluation-drift.md; base record: ../spec/01-kernel-schema.md §7. (구 코드명: x13.)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": ["EvaluationCaseRecord"],
+          "description": "Evaluation-case record kind. EvaluationCaseRecord = one reproducible fidelity test: a fixed input task run against a named set of active packs, judged against an expected/unacceptable behavior pair and a scoring rubric, then recorded with the observed result. The base `statement` holds the case intent — what this case is meant to check (e.g. 'agent must refuse to send an external email without confirmation'); the structured task/expectation/rubric/result fields below make that intent runnable and scorable."
+        },
+        "case_id": {
+          "type": "string",
+          "description": "Stable case identifier. Maps onto the base `id` (which is canonical and pattern-validated as <subject>.<recordkind>.NNN, e.g. logotekton.evalcase.001); this convenience field carries the contract §10 name and any external/test-suite handle. When both are present they refer to the same case."
+        },
+        "input_task": {
+          "type": "string",
+          "description": "The task or prompt given to the AssistantProfile under test, stated concretely enough to re-run (e.g. 'Draft a reply declining the vendor's proposal and ask for a revised quote'). This is the fixed stimulus the expected/unacceptable behaviors are judged against; pair with `input_context` for any setup the task assumes."
+        },
+        "input_context": {
+          "type": "object",
+          "description": "Optional fixed setup the case assumes so the run is reproducible — the world the input_task lands in. Keeps the stimulus deterministic without bloating `input_task`.",
+          "properties": {
+            "given": { "type": "array", "items": { "type": "string" }, "description": "Facts/state assumed true at run time (e.g. ['deadline is tomorrow', 'recipient is external'])." },
+            "persona_subject": { "type": "string", "description": "The UserSubject whose fidelity is being tested (e.g. 'logotekton'); the agent should behave as this person would approve." },
+            "channel": { "type": "string", "description": "Where the output would land (e.g. 'external_email', 'internal_note', 'code_review'), since boundaries differ by channel." }
+          },
+          "additionalProperties": false
+        },
+        "active_pack_set": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The canonical user.* pack names whose confirmed, runtime-active records are loaded for this case (e.g. ['user.communication_style', 'user.boundary_authority', 'user.decision_policy']). Pins which slice of the persona is under test so a score is attributable to specific packs; only confirmed/narrowed records participate (Gate G3). Names must come from the canonical 14 (../spec/01-kernel-schema.md §5)."
+        },
+        "expected_behavior": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What the agent MUST do, each item a single checkable behavioral assertion in observed-behavior language, not guessed psychology (Gate G4) — e.g. ['asks for confirmation before sending', 'keeps the tone direct and brief', 'cites the prior decision record']. All items should hold for the case to count as passed unless the rubric weights them. Refines `statement` into the positive acceptance criteria."
+        },
+        "unacceptable_behavior": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What the agent MUST NOT do — hard-fail behaviors that sink the case regardless of how well the rest scored (e.g. ['sends the email without asking', 'invents a price not in evidence', 'states an identity-sensitive claim']). Mirrors blocked_actions in user.boundary_authority and the red flags in user.red_flags; any single match forces result = fail."
+        },
+        "scoring_rubric": {
+          "type": "object",
+          "description": "How the run is judged. Optional structured form of the rubric the base `statement` summarizes; lets decision_fidelity be computed reproducibly rather than by impression.",
+          "properties": {
+            "metric": {
+              "type": "string",
+              "enum": [
+                "decision_fidelity",
+                "red_flag_recall",
+                "rejection_alignment",
+                "artifact_fit",
+                "boundary_compliance",
+                "evidence_traceability",
+                "correction_cost",
+                "drift_score"
+              ],
+              "description": "Primary skill-11 evaluation metric this case scores against (../spec/01-kernel-schema.md §10). A case may probe one metric directly while contributing to the overall decision_fidelity index."
+            },
+            "criteria": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "check": { "type": "string", "description": "The single thing being scored (often quoting an expected_behavior/unacceptable_behavior item)." },
+                  "weight": { "type": "number", "minimum": 0, "maximum": 1, "description": "Relative importance 0..1; weights across criteria should sum to 1." },
+                  "kind": { "type": "string", "enum": ["must", "must_not", "prefer", "avoid"], "description": "must/must_not = pass-gating; prefer/avoid = graded quality." }
+                },
+                "required": ["check"],
+                "additionalProperties": false
+              },
+              "description": "Weighted, individually checkable criteria so a partial score is explainable and reproducible."
+            },
+            "pass_threshold": { "type": "number", "minimum": 0, "maximum": 1, "description": "Minimum weighted score (0..1) for result = pass, assuming no unacceptable_behavior fired." },
+            "judge": { "type": "string", "enum": ["human", "automated", "llm_judge", "mixed"], "description": "Who/what applies the rubric. Records grading provenance for traceability." }
+          },
+          "additionalProperties": false
+        },
+        "result": {
+          "type": "object",
+          "description": "The observed outcome of the most recent run. Optional until the case has been executed (a defined-but-unrun case is valid). Feeds the decision_fidelity convergence index.",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["pass", "fail", "partial", "not_run", "needs_review"],
+              "description": "Run verdict. pass = met expected, no unacceptable fired, score ≥ pass_threshold; fail = an unacceptable_behavior fired or score below threshold; partial = mixed; not_run = defined but never executed; needs_review = human adjudication required."
+            },
+            "score": { "type": "number", "minimum": 0, "maximum": 1, "description": "Weighted rubric score 0..1 for this run (distinct from base `confidence`, which is evidence strength in the record itself)." },
+            "observed_behavior": { "type": "string", "description": "What the agent actually did, in behavioral language (Gate G4) — the basis for the verdict." },
+            "failed_checks": { "type": "array", "items": { "type": "string" }, "description": "Which expected/unacceptable items or rubric criteria did not pass; drives correction_notes and any follow-up DriftRecord." },
+            "agent_profile_ref": { "type": "string", "description": "Id/version of the AssistantProfile that was tested (the `evaluated_by` edge target), so scores are attributable to a specific compiled runtime." },
+            "run_at": { "type": "string", "format": "date-time", "description": "When this run was executed." }
+          },
+          "additionalProperties": false
+        },
+        "correction_notes": {
+          "type": "string",
+          "description": "If the case failed or scored partial, what should change — which pack/record to add, narrow, or supersede to close the gap (e.g. 'add a ConfirmationRuleRecord in user.boundary_authority for external_email'). The feedback that loops a failing case back into evidence/candidates and may spawn a DriftRecord in user.drift_history; complements base `supersedes`."
+        },
+        "regression_for": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ids of prior eval cases or drift records this case guards against re-breaking. Marks the case as a regression test so a previously fixed failure stays fixed across runtime recompiles; complements base `related_records`."
+        }
+      },
+      "required": ["record_type"]
+    }
+  ],
+  "$comment": "Required fields are inherited unchanged from record.base.schema.json (id, record_type, label, statement, evidence_refs, confidence, scope, review_status, sensitivity, created_at, updated_at); only record_type is constrained here (single value EvaluationCaseRecord). All fields added by this pack are OPTIONAL — required = base required + record_type, per the pack-focus rule. Base validation still applies: evidence_refs ≥ 1 (G1) — a case cites the EvidenceItem(s) of the behavior it tests; non-empty scope (G2); counterexamples required when confidence < 0.7; exception_rules required when sensitivity ∈ {sensitive, restricted}. Field mapping to canonical contract §10: case_id → base `id` (case_id kept as a convenience handle), statement = the case intent, with input_task / active_pack_set / expected_behavior / unacceptable_behavior / scoring_rubric / result / correction_notes modeled as properties and evidence_refs inherited from base. record_type is constrained to the single user.evaluation_cases type; routed from EvaluationCaseCandidate (../spec/01-kernel-schema.md §6), attached by the `evaluated_by` edge, surfaced as `outcome` in the 9-space crosswalk, and drives the decision_fidelity convergence index. Display aliases for `statement`: a UI may show 'case_intent', but the stored canonical field is `statement` (구 코드명 x13)."
+}

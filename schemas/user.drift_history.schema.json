@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.drift_history.schema.json",
+  "title": "Personal Agent — user.drift_history Record",
+  "description": "Schema for a single record in the user.drift_history pack (#14 of 14): the change, supersession, and version history of the subject's confirmed records — the audit trail that records when a rule was replaced, when a preference decayed, when two records contradicted, and when a record's value moved (DriftRecord node). This is the only pack whose records are *about* other records: it makes the convergence visible and reversible by remembering what was true, what replaced it, and why. Each record extends the unified base record via allOf $ref to ./record.base.schema.json and narrows record_type to this pack's three types. Routed from DriftRecordCandidate (see ../spec/01-kernel-schema.md §6 routing); attached to the record it changes by the `supersedes` edge (../spec/01-kernel-schema.md §4) and surfaced as part of `outcome` in the OpenCrab 9-space crosswalk (../spec/07-opencrab-9space-crosswalk.md). Gate G4 applies: describe the observed change and its evidence, not guessed reasons. This pack feeds the drift_score evaluation metric and the drift_stability convergence index (drift_stability = 1 − supersessions_last_period / confirmed_records; ../spec/06-convergence-model.md). Pack definition: ../spec/03-pack-catalog.md (user.drift_history); base record: ../spec/01-kernel-schema.md §7. (구 코드명: x14.)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "DriftRecord",
+            "SupersessionRecord",
+            "VersionRecord"
+          ],
+          "description": "Drift-history record kind. DriftRecord = a logged movement in the subject's persona/knowledge over time — a preference, heuristic, or policy that shifted, decayed, or came into conflict; the canonical `statement` describes what changed and the substance lives in `change_type` + `from_value`/`to_value`. SupersessionRecord = a specific 'this record replaces that record' event: the new record takes over and the old one is retired; pairs with `superseded_id` and the `supersedes` edge to the retired record, and is the unit the drift_stability index counts. VersionRecord = a point-in-time snapshot/version marker for a record or for a pack slice (what it said as of a date), so the agent can answer 'what was true when' and roll back if a change is later judged wrong."
+        },
+        "change_type": {
+          "type": "string",
+          "enum": [
+            "supersession",
+            "decay",
+            "contradiction",
+            "update"
+          ],
+          "description": "The nature of the change this record logs. supersession = an existing record was replaced by a newer, evidence-bound record (old one retired; pairs with `superseded_id`). decay = a once-supported preference/rule lost support — fewer or weaker confirmations, or recency dropping below relevance — and should be down-weighted or retired even without a direct replacement. contradiction = two confirmed records conflict within overlapping scope, flagging a conflict to resolve rather than silently picking one. update = the same record's value moved while its identity/scope held (refined wording, adjusted threshold, narrowed scope); pairs with `from_value`/`to_value`. Optional structured facet; the base `statement` stays canonical and behavioral (Gate G4)."
+        },
+        "superseded_id": {
+          "type": "string",
+          "description": "For SupersessionRecord (and supersession-type DriftRecord): the id of the record this change retires/replaces, in the base id format <subject>.<recordkind>.NNN. Mirrors the `supersedes` edge (../spec/01-kernel-schema.md §4) and the base `supersedes[]` array, but as a single typed pointer so a supersession event names exactly one prior record. The retired record should be marked rejected/narrowed in its own pack; this field preserves the lineage so retrieval can still explain 'why the old rule no longer applies'."
+        },
+        "period": {
+          "type": "object",
+          "description": "The observation window over which this change happened or was detected — the bounds used to attribute a supersession/decay to a convergence period for the drift_stability index (supersessions_last_period; ../spec/06-convergence-model.md). Distinct from base created_at/updated_at, which track this drift record itself, not the span of the change it describes.",
+          "properties": {
+            "from": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Start of the window in which the old value/record held or the change began."
+            },
+            "to": {
+              "type": "string",
+              "format": "date-time",
+              "description": "End of the window — when the change took effect or was detected."
+            },
+            "label": {
+              "type": "string",
+              "description": "Optional human label for the period (e.g. '2026-Q2', 'sprint-14'), used to bucket drift for per-period metrics."
+            }
+          },
+          "additionalProperties": false
+        },
+        "from_value": {
+          "type": "string",
+          "description": "The prior value/wording/threshold before the change, captured verbatim where possible so the movement is auditable (e.g. previous `statement`, old scope, old priority_weight). For update and supersession types especially. Lets retrieval and the evaluator show exactly what moved without re-reading the retired record."
+        },
+        "to_value": {
+          "type": "string",
+          "description": "The new value/wording/threshold after the change (the value now in force). Together with `from_value` this forms the diff that makes the drift checkable and reversible; for a rollback the runtime restores `from_value`. For decay, `to_value` may be empty/'retired' to mark loss of support without a replacement."
+        },
+        "drift_reason": {
+          "type": "string",
+          "description": "Behavioral, evidence-grounded reason the change occurred (Gate G4): what observed signal triggered it — a new correction, a repeated counterexample, an explicit user reversal, a contradiction surfaced in evaluation. Not guessed psychology; points back at the same evidence carried in base `evidence_refs`. Optional; `statement` remains the canonical summary."
+        },
+        "resolution_status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "resolved",
+            "accepted",
+            "reverted"
+          ],
+          "description": "For contradiction/decay events especially: where the change stands. open = flagged but not yet resolved (e.g. two records still conflict); resolved = the conflict was settled (often by a supersession); accepted = the change is confirmed and in force; reverted = the change was rolled back to `from_value` after review. Lets the agent avoid acting on an unresolved contradiction and feeds correction_cost/drift_score scoring."
+        },
+        "drift_magnitude": {
+          "type": "string",
+          "enum": [
+            "minor",
+            "moderate",
+            "major",
+            "reversal"
+          ],
+          "description": "How large the change is relative to the prior value: minor = wording/threshold tweak within the same intent; moderate = scope or priority shift; major = the rule's substance changed; reversal = the new value contradicts the old (a flip). Weights the drift_score metric and distinguishes routine refinement from instability. Distinct from `confidence` (evidence strength of this drift record itself)."
+        },
+        "affected_pack": {
+          "type": "string",
+          "description": "Canonical name of the user.* pack that owns the record this drift concerns (e.g. 'user.decision_policy', 'user.communication_style'). One of the 14 canonical pack names (../spec/01-kernel-schema.md §5). Lets drift be aggregated per pack to see which areas of the persona are still moving versus converged. Excludes this pack itself in normal use; complements `superseded_id` (which names the specific record)."
+        }
+      },
+      "required": ["record_type"]
+    }
+  ],
+  "$comment": "Required fields are inherited unchanged from record.base.schema.json (id, record_type, label, statement, evidence_refs, confidence, scope, review_status, sensitivity, created_at, updated_at); only record_type is added to required here, per the pack-focus rule. All fields added by this pack are OPTIONAL — required = base required + record_type. Base validation still applies: evidence_refs ≥ 1 (G1) — a drift event is itself a claim and must cite the correction/reversal that caused it; non-empty scope (G2); counterexamples required when confidence < 0.7; exception_rules required when sensitivity ∈ {sensitive, restricted}. record_type is constrained to the three user.drift_history types (DriftRecord, SupersessionRecord, VersionRecord); routed from DriftRecordCandidate (../spec/01-kernel-schema.md §6). This pack is the audit layer behind the `supersedes` edge and the drift_stability convergence index (1 − supersessions_last_period / confirmed_records; ../spec/06-convergence-model.md) and the drift_score evaluation metric. superseded_id is a single typed pointer that complements base `supersedes[]`; from_value/to_value form the auditable, reversible diff. Display aliases for `statement`: a UI may show 'change_note'/'drift_note', but the stored canonical field is `statement`. (구 코드명 x14.)"
+}

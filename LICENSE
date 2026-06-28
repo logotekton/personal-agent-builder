@@ -1,0 +1,122 @@
+Personal Agent Builder — Dual License (spec v0.3)
+=================================================
+
+EN: This repository is dual-licensed. SOURCE CODE and JSON SCHEMAS are released
+under the MIT License (full text in Part A). DOCUMENTATION and the SPECIFICATION
+(prose specs, skill documents, catalogs, and other written material) are released
+under the Creative Commons Attribution-ShareAlike 4.0 International License
+(CC BY-SA 4.0; summary in Part B). A private user's own Personal Agent INSTANCE
+DATA — their evidence, candidate assertions, and confirmed records — is owned by
+that user and is NOT covered by either license (Part C).
+
+한국어: 이 저장소는 이중 라이선스입니다. 소스 코드와 JSON 스키마는 MIT 라이선스(Part A
+전문)로, 문서와 사양(산문 사양, 스킬 문서, 카탈로그 등 글로 된 모든 자료)은 CC BY-SA 4.0
+(Part B 요약)로 배포됩니다. 개인 사용자의 개인 에이전트 인스턴스 데이터(증거,
+CandidateAssertion, 확인된 레코드)는 그 사용자의 것이며 어느 라이선스의 적용도 받지
+않습니다(Part C).
+
+
+What each part covers (적용 범위)
+---------------------------------
+
+  MIT (Part A) applies to:
+    - Source code: everything under  tools/  and any executable scripts.
+    - JSON Schemas: everything under  schemas/  (e.g. record.base.schema.json
+      and the 14 user.* pack schemas).
+    - Machine-readable configuration and example record files distributed as
+      reference fixtures.
+
+  CC BY-SA 4.0 (Part B) applies to:
+    - Documentation and the specification: everything under  spec/  and
+      skills/ , the README, CONTRIBUTING, GOVERNANCE, CHANGELOG, QUICKSTART,
+      and all other prose/Markdown written material in this repository.
+
+  Not covered (Part C):
+    - A user's private Personal Agent instance data (see Part C below).
+
+When a single file mixes code/schema and prose, the operative material governs:
+JSON Schema files are MIT; Markdown prose is CC BY-SA 4.0. If in genuine doubt
+about a specific file, treat it under the more permissive MIT terms for code and
+schema and under CC BY-SA 4.0 for prose, and ask in an issue.
+
+
+=====================================================================
+Part A — MIT License  (CODE AND JSON SCHEMAS)
+=====================================================================
+
+Copyright (c) 2026 Logotekton / Personal Agent Builder contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+=====================================================================
+Part B — Documentation & Specification  (CC BY-SA 4.0)
+=====================================================================
+
+The documentation and specification in this repository are licensed under the
+Creative Commons Attribution-ShareAlike 4.0 International License.
+
+You are free to:
+  - Share — copy and redistribute the material in any medium or format.
+  - Adapt — remix, transform, and build upon the material for any purpose,
+    even commercially.
+
+Under the following terms:
+  - Attribution — You must give appropriate credit to "Logotekton / Personal
+    Agent Builder contributors", provide a link to this license, and indicate
+    if changes were made.
+  - ShareAlike — If you remix, transform, or build upon the material, you must
+    distribute your contributions under the same license as the original.
+  - No additional restrictions — You may not apply legal terms or technological
+    measures that legally restrict others from doing anything the license
+    permits.
+
+Full legal text:  https://creativecommons.org/licenses/by-sa/4.0/legalcode
+Human-readable summary:  https://creativecommons.org/licenses/by-sa/4.0/
+
+Attribution string (suggested):
+  "Based on Personal Agent Builder (spec v0.3) by Logotekton / Personal Agent
+   Builder contributors, CC BY-SA 4.0."
+
+
+=====================================================================
+Part C — Private Personal Agent Instance Data  (NOT LICENSED HERE)
+=====================================================================
+
+A "Personal Agent instance" is the private data a user produces by running this
+method on their own sessions: their captured EvidenceItem material, their
+CandidateAssertion extractions, and the confirmed, scoped records that fill
+their 14 user.* ontology packs and compile into their AssistantProfile.
+
+Such instance data — for example, the records under a per-subject namespace
+like  personal.<subject>.*  — is OWNED BY THE USER who created it. It is the
+user's own content, NOT a contribution to this project, and is NOT covered by
+the MIT License or by CC BY-SA 4.0. Publishing this repository grants no right
+in, and makes no claim to, any individual's private persona, tacit knowledge,
+or instance records. By default a user's instance data is private and stays
+with the user; sharing it is the user's decision alone.
+
+The reference example under  examples/logotekton/  is an exception: it is a
+deliberately published demonstration instance and is provided under the same
+terms as the rest of the repository (schemas/code: MIT; prose: CC BY-SA 4.0).
+
+This carve-out concerns ownership and licensing only. It is not legal advice
+and creates no warranty. See spec/04-privacy-boundary-model conventions and the
+boundary/authority model (user.boundary_authority) for how instance data is
+handled at runtime.

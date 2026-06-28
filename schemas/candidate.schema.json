@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/candidate.schema.json",
+  "title": "Personal Agent — CandidateAssertion",
+  "description": "Schema for a single CandidateAssertion: a typed, evidence-bound extraction awaiting human review (CandidateAssertion node). This is the pre-confirmation artifact emitted by skill 05 (candidate_extraction) from EvidenceItems produced by skills 01–04, scoped by skill 06, then judged at the confirmation gate (skill 07) and, once confirmed, routed by skill 08 (pack_router) into one of the 14 user.* packs — where it becomes a base instance record (../schemas/record.base.schema.json). A candidate is therefore NOT a base record: it does not extend record.base.schema.json. It carries the lighter contract §8 / skill-05 field set and uses `concise_claim` + `validation_status` where a promoted record uses `statement` + `review_status`. The `candidate_type` ↔ `proposed_target_pack` pair is the 1:1 total router from ../spec/01-kernel-schema.md §6; this schema enforces that mapping so a candidate cannot propose a pack its type does not route to. Gate G1 (≥1 evidence_ref) and Gate G2 (non-empty scope) apply already at the candidate stage. Pack catalog: ../spec/03-pack-catalog.md; routing & lifecycle: ../spec/01-kernel-schema.md §1/§6; base record (post-promotion shape): ../spec/01-kernel-schema.md §7. (구 코드명: 후보 타입 DomainSpecificCandidate→DomainOverlayCandidate, ProjectGoalCandidate→ProjectMemoryCandidate.)",
+  "type": "object",
+  "required": [
+    "candidate_id",
+    "candidate_type",
+    "concise_claim",
+    "evidence_refs",
+    "confidence",
+    "scope",
+    "sensitivity",
+    "proposed_target_pack",
+    "validation_status",
+    "extraction_method"
+  ],
+  "properties": {
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable candidate identifier. Follows the instance id grammar <subject>.<recordkind>.NNN (e.g. logotekton.candidate.001 or logotekton.heuristic_cand.014). On confirmation+routing (skill 08) it maps to the base record `id`; on rejection it is retained for audit/drift. Pattern mirrors record.base.schema.json `id`.",
+      "pattern": "^[a-z0-9_]+\\.[a-z0-9_]+\\.[0-9]{3,}$"
+    },
+    "candidate_type": {
+      "type": "string",
+      "enum": [
+        "IdentityRoleCandidate",
+        "PersonaTraitCandidate",
+        "CommunicationStyleCandidate",
+        "ArtifactPolicyCandidate",
+        "DecisionPolicyCandidate",
+        "TacitHeuristicCandidate",
+        "RedFlagCandidate",
+        "WorkflowPatternCandidate",
+        "DomainOverlayCandidate",
+        "ToolPreferenceCandidate",
+        "BoundaryRuleCandidate",
+        "ProjectMemoryCandidate",
+        "EvaluationCaseCandidate",
+        "DriftRecordCandidate"
+      ],
+      "description": "One of the 14 candidate types (../spec/01-kernel-schema.md §6). Determines `proposed_target_pack` via the 1:1 total router (enforced by the allOf rules below). DomainOverlayCandidate was DomainSpecificCandidate; ProjectMemoryCandidate was ProjectGoalCandidate (구 코드명)."
+    },
+    "concise_claim": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The candidate claim in one concise sentence, written in observed-behavior language, not guessed psychology (Gate G4). This is the candidate-stage analogue of the base record `statement`; on promotion the (possibly edited) text becomes `statement`. Keep it scoped and checkable — e.g. 'Prefers terse, bulleted replies in code-review contexts' rather than 'Likes things short'."
+    },
+    "evidence_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "≥1 EvidenceItem id/ref the claim is `supported_by`/`extracted_from` (../spec/01-kernel-schema.md §4). Gate G1: no evidence-free candidate — a candidate that cannot cite at least one EvidenceItem must not be created. Carried unchanged into the base record's `evidence_refs` on promotion."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "0..1 extraction confidence that this candidate faithfully reflects the subject (not certainty that it should be a rule — that is the human's call at the gate). May be derived from `confidence_inputs`. Carried into the base record `confidence`; note the base rule that confidence < 0.7 requires counterexamples applies after promotion."
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Where/when the claim is asserted to hold (e.g. 'code-review sessions on own repos', 'external email only'). Gate G2: no unscoped candidate — assigned/refined by skill 06 (scope_context). A candidate may enter with a provisional scope; it must be non-empty before it can pass the confirmation gate."
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": ["public", "internal", "sensitive", "restricted"],
+      "description": "Privacy class, same enum as record.base.schema.json `sensitivity`. Set as early as extraction so the confirmation gate (skill 07) and privacy_boundary (skill 09) can require a BoundaryRule before any sensitive/restricted candidate is promoted (Gate G5)."
+    },
+    "proposed_target_pack": {
+      "type": "string",
+      "enum": [
+        "user.identity_roles",
+        "user.persona_core",
+        "user.communication_style",
+        "user.artifact_policy",
+        "user.decision_policy",
+        "user.tacit_heuristics",
+        "user.red_flags",
+        "user.workflow_playbooks",
+        "user.domain_overlays",
+        "user.tool_stack",
+        "user.boundary_authority",
+        "user.memory_project_graph",
+        "user.evaluation_cases",
+        "user.drift_history"
+      ],
+      "description": "The single canonical user.* pack this candidate is proposed to route into on confirmation (skill 08 pack_router). MUST match the 1:1 mapping for `candidate_type` (../spec/01-kernel-schema.md §6); the allOf rules below reject any other pairing. 'Proposed' because routing only happens after the gate confirms — pending candidates never enter a pack (Gate G3)."
+    },
+    "validation_status": {
+      "type": "string",
+      "enum": ["pending", "confirmed", "rejected", "narrowed", "sensitive", "deferred"],
+      "description": "Confirmation-gate state (skill 07), same value set as the base record `review_status` to keep one lifecycle vocabulary. pending = awaiting review; confirmed = approved (may promote); rejected = declined (retained for audit/drift); narrowed = approved with a tightened scope; sensitive = approved in principle but blocked on a BoundaryRule (Gate G5); deferred = revisit later. Only confirmed/narrowed/edited candidates may promote to a pack (Gate G3)."
+    },
+    "extraction_method": {
+      "type": "string",
+      "enum": [
+        "evidence_capture",
+        "session_mining",
+        "elicitation_questioning",
+        "diff_mining",
+        "manual",
+        "other"
+      ],
+      "description": "How this candidate was produced, naming the upstream builder skill (01–04) or a manual/other source. evidence_capture=skill 01; session_mining=skill 02; elicitation_questioning=skill 03 (structured interview); diff_mining=skill 04 (before/after corrections). Records extraction provenance for traceability and for weighting `confidence_inputs` (e.g. diff_mining tends to carry strong correction_strength)."
+    },
+    "confidence_inputs": {
+      "type": "object",
+      "description": "Optional explicit signals behind `confidence` (contract §8 / skill 05). Making the basis of a score legible keeps confidence auditable rather than a black-box number; a tool may recompute `confidence` from these.",
+      "properties": {
+        "explicit_statement": {
+          "type": "boolean",
+          "description": "True if the subject stated this directly (e.g. 'always do X'), vs. it being inferred from behavior. Direct statements warrant higher confidence."
+        },
+        "repetition_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How many distinct EvidenceItems independently support the claim. Repeated support across sessions raises confidence and helps satisfy the base rule that broad records need repeated support or explicit confirmation."
+        },
+        "correction_strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0..1 strength of any corrective signal behind the claim — how firmly the subject changed/rejected an output (typically from diff_mining). Strong corrections are high-signal evidence of a real preference."
+        },
+        "recency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0..1 recency weight of the supporting evidence (1 = most recent). Newer evidence weighs more so the agent tracks current, not stale, behavior; feeds drift detection."
+        },
+        "contradiction_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of EvidenceItems that conflict with the claim. Higher counts lower confidence and may force narrowed/deferred at the gate or a counterexample on the promoted record."
+        },
+        "domain_specificity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0..1 how domain-bound the claim is (1 = highly domain-specific). Informs `scope` tightness and whether the claim belongs in user.domain_overlays vs. a general pack."
+        },
+        "evidence_quality": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0..1 quality/directness of the cited evidence (e.g. a verbatim correction scores higher than a loose inference). Guards confidence from being inflated by weak sources."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "candidate_type": { "const": "IdentityRoleCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.identity_roles" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "PersonaTraitCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.persona_core" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "CommunicationStyleCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.communication_style" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "ArtifactPolicyCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.artifact_policy" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "DecisionPolicyCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.decision_policy" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "TacitHeuristicCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.tacit_heuristics" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "RedFlagCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.red_flags" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "WorkflowPatternCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.workflow_playbooks" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "DomainOverlayCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.domain_overlays" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "ToolPreferenceCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.tool_stack" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "BoundaryRuleCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.boundary_authority" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "ProjectMemoryCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.memory_project_graph" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "EvaluationCaseCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.evaluation_cases" } } } },
+    { "if": { "properties": { "candidate_type": { "const": "DriftRecordCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.drift_history" } } } }
+  ],
+  "additionalProperties": true,
+  "$comment": "A CandidateAssertion is the pre-confirmation artifact, so this schema deliberately does NOT $ref record.base.schema.json — it carries the contract §8 / skill-05 field set (candidate_id, candidate_type, concise_claim, evidence_refs, confidence, scope, sensitivity, proposed_target_pack, validation_status, extraction_method) and the optional confidence_inputs object. Vocabulary is shared with the base: `sensitivity` and `validation_status` reuse the base enums (validation_status mirrors review_status). Field correspondence on promotion (skill 08): candidate_id→id, concise_claim→statement, validation_status→review_status, evidence_refs/confidence/scope/sensitivity carried over, proposed_target_pack selects the destination user.* schema. The 14 allOf if/then rules pin candidate_type→proposed_target_pack to the 1:1 total router (../spec/01-kernel-schema.md §6) so the two fields cannot disagree. Gates already active at candidate stage: G1 (evidence_refs ≥ 1), G2 (non-empty scope), G4 (behavioral language in concise_claim), G5 (sensitive/restricted blocked on a BoundaryRule before promotion); G3 means pending candidates never reach a pack. Pack catalog: ../spec/03-pack-catalog.md."
+}

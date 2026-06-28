@@ -1,0 +1,21 @@
+%YAML 1.2
+# Auto-split from _ALL_TEMPLATES.yaml — single blank template for one user.* pack.
+# Copy this file into your private instance folder, rename `template` in the id to your
+# handle, pick a record_type from the enum comment, then fill base fields against real
+# evidence (G1), scope it (G2), use behavioral language (G4). Templates never hold live
+# records (G6). Schema + full index: ../schemas/ · ./README.md · ./QUICKSTART.md
+--- # user.drift_history
+# 팩 14: 변경·대체·갱신 이력 (../schemas/user.drift_history.schema.json)
+# record_type enum: DriftRecord | SupersessionRecord | VersionRecord
+# id 종류 토큰: drift  (구 코드명: x14)
+id: "template.drift.000"         # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: DriftRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 무엇이 어떻게 바뀌었는가 (관찰된 변경으로, G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어느 레코드/기간의 변경인가 (G2). supersedes로 대상 연결
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time

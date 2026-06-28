@@ -1,0 +1,21 @@
+%YAML 1.2
+# Auto-split from _ALL_TEMPLATES.yaml — single blank template for one user.* pack.
+# Copy this file into your private instance folder, rename `template` in the id to your
+# handle, pick a record_type from the enum comment, then fill base fields against real
+# evidence (G1), scope it (G2), use behavioral language (G4). Templates never hold live
+# records (G6). Schema + full index: ../schemas/ · ./README.md · ./QUICKSTART.md
+--- # user.identity_roles
+# 팩 1: 역할·정체성·맥락 (../schemas/user.identity_roles.schema.json)
+# record_type enum: RoleRecord | ContextRecord | AttributionRecord | ScopeRecord
+# id 종류 토큰: role  (구 코드명: pa.roles — 더 이상 쓰지 않음)
+id: "template.role.000"          # <subject>.<recordkind>.NNN 형식. template→당신 핸들
+record_type: ""                  # 위 enum 중 하나 (예: RoleRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 스코프된 주장 (추측 심리 금지, G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1) — 증거 없으면 채우지 말 것
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 언제/어디서 참인가 — 비우지 말 것 (G2)
+review_status: "pending"         # pending|confirmed|rejected|narrowed|sensitive|deferred (G3)
+sensitivity: "internal"          # public|internal|sensitive|restricted (G5)
+created_at: ""                   # ISO-8601 date-time (예: 2026-06-28T00:00:00Z)
+updated_at: ""                   # ISO-8601 date-time

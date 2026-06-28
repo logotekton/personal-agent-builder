@@ -1,0 +1,21 @@
+%YAML 1.2
+# Auto-split from _ALL_TEMPLATES.yaml — single blank template for one user.* pack.
+# Copy this file into your private instance folder, rename `template` in the id to your
+# handle, pick a record_type from the enum comment, then fill base fields against real
+# evidence (G1), scope it (G2), use behavioral language (G4). Templates never hold live
+# records (G6). Schema + full index: ../schemas/ · ./README.md · ./QUICKSTART.md
+--- # user.evaluation_cases
+# 팩 13: 충실도 테스트 케이스 (../schemas/user.evaluation_cases.schema.json)
+# record_type enum: EvaluationCaseRecord
+# id 종류 토큰: evalcase  (구 코드명: x13)
+id: "template.evalcase.000"      # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # enum: EvaluationCaseRecord
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 케이스 요지 (입력 과제·기대/불가 행동은 스키마 추가 필드로, G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어떤 팩 셋/맥락을 평가하는가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time

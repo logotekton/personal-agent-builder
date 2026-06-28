@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/logotekton/personal-agent-builder/schemas/record.base.schema.json",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/record.base.schema.json",
   "title": "Personal Agent — Base Instance Record",
   "description": "Unified base record that every user.* instance record extends. Resolves field drift between v0.1/v0.2 packs (score→confidence; claim/rule_statement/instruction/output_rule→statement). Spec: spec/01-kernel-schema.md §7.",
   "type": "object",

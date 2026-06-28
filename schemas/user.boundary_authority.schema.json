@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.boundary_authority.schema.json",
+  "title": "Personal Agent — user.boundary_authority Record",
+  "description": "Schema for a single record in the user.boundary_authority pack (#11 of 14): the privacy, authority, and confirmation rules that decide what the runtime may do on its own and what it must hand back to the human — what may be remembered, retrieved, said, or acted on, how far the agent's authority extends, and which information is sensitive (BoundaryRule node). Each record extends the unified base record via allOf $ref to ./record.base.schema.json and narrows record_type to this pack's four types. Routed from BoundaryRuleCandidate (see ../spec/01-kernel-schema.md §6 routing); attached to the subject by the `requires_confirmation` edge (../spec/01-kernel-schema.md §4) and surfaced as `policy` in the OpenCrab 9-space crosswalk (../spec/07-opencrab-9space-crosswalk.md). This pack carries Gate G5: a sensitive item must get a boundary rule before any promotion or runtime use. Feeds the boundary_compliance evaluation metric. Pack definition: ../spec/03-pack-catalog.md (user.boundary_authority); privacy/authority model: ../spec/01-kernel-schema.md §9; base record: ../spec/01-kernel-schema.md §7. (구 코드명: t11, .ba.)",
+  "type": "object",
+  "allOf": [
+    { "$ref": "./record.base.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "record_type": {
+          "type": "string",
+          "enum": [
+            "BoundaryRuleRecord",
+            "AuthorityLevelRecord",
+            "ConfirmationRuleRecord",
+            "SensitivityRecord"
+          ],
+          "description": "Boundary-authority record kind. BoundaryRuleRecord = a constraint on one of the six boundary categories — what the runtime may or may not remember, retrieve, output, or act on within scope (substance lives in `boundary_type` + `allowed_actions`/`blocked_actions`). AuthorityLevelRecord = how far the agent's autonomy extends for a class of work; sets the ceiling on the escalating ladder (substance lives in `authority_level`). ConfirmationRuleRecord = a trigger that forces the agent to stop and ask the human before proceeding (pairs with `requires_confirmation` + `confirmation_trigger`); the `requires_confirmation` edge points at the subject. SensitivityRecord = declares a class of information sensitive/restricted and what handling it requires, satisfying Gate G5 before any item of that class is promoted."
+        },
+        "boundary_type": {
+          "type": "string",
+          "enum": [
+            "memory",
+            "retrieval",
+            "output",
+            "action",
+            "authority",
+            "sensitivity"
+          ],
+          "description": "Which of the six boundary categories this record governs (../spec/01-kernel-schema.md §9: memory_boundary, retrieval_boundary, output_boundary, action_boundary, authority_boundary, sensitivity_boundary). memory = what may be stored/recalled; retrieval = what may be searched/surfaced; output = what may appear in produced text; action = what side-effecting operations are allowed; authority = how much autonomy is granted; sensitivity = how a class of information must be handled. Optional structured facet; the base `statement` stays canonical."
+        },
+        "allowed_actions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Operations explicitly permitted within `scope` for this boundary (e.g. ['summarize internal notes', 'draft a reply', 'search the project history']). The permissive half of the rule, so the runtime has an allowlist rather than only prohibitions. Distinct from `authority_level`, which sets the autonomy ceiling these actions sit under."
+        },
+        "blocked_actions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Operations explicitly forbidden within `scope`, hard-stop regardless of confidence (e.g. ['send external email', 'delete files', 'quote a restricted document verbatim', 'state an identity-sensitive claim']). A match here always wins over any allowance and over a weaker DecisionPolicy default_action; never silently overridden."
+        },
+        "requires_confirmation": {
+          "type": "boolean",
+          "description": "For ConfirmationRuleRecord (and any record that gates an action): if true, the runtime must ask_confirm and obtain explicit human approval before the governed action proceeds. Mirrors the `requires_confirmation` edge to the subject (../spec/01-kernel-schema.md §4). Defaults to false only when the action is clearly within the safe default policy (§9)."
+        },
+        "confirmation_trigger": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For ConfirmationRuleRecord: the specific conditions that force a stop-and-ask (e.g. ['external comms', 'irreversible action', 'contractual commitment', 'identity-sensitive statement', 'high-impact decision']). Any one being true raises ask_confirm; mirrors the safe default policy in ../spec/01-kernel-schema.md §9. Makes `requires_confirmation` checkable for boundary_compliance scoring."
+        },
+        "authority_level": {
+          "type": "string",
+          "enum": [
+            "observe",
+            "summarize",
+            "classify",
+            "draft",
+            "compare",
+            "recommend",
+            "ask_confirm",
+            "blocked"
+          ],
+          "description": "For AuthorityLevelRecord: the ceiling on the escalating autonomy ladder for the governed class of work (../spec/01-kernel-schema.md §9). observe < summarize < classify < draft < compare < recommend < ask_confirm < blocked, where ask_confirm forces a human gate and blocked forbids the action outright. The runtime may act at or below this ceiling within confirmed scope; the safe default permits summarize/draft/classify/compare/recommend but requires ask_confirm before external comms, irreversible actions, contractual commitments, identity-sensitive statements, and high-impact decisions."
+        },
+        "sensitivity_class": {
+          "type": "string",
+          "description": "For SensitivityRecord: short label for the class of information this rule covers (e.g. 'PII', 'client_identity', 'unpublished_finances', 'health', 'credentials', 'legal_privileged'). Clusters records and drives retrieval/redaction; complements the per-record base `sensitivity` enum (public|internal|sensitive|restricted) rather than replacing it."
+        },
+        "handling_rule": {
+          "type": "string",
+          "description": "For SensitivityRecord: the required handling for the named class in behavioral terms (e.g. 'never quote verbatim; reference by role only', 'redact account numbers', 'restrict to internal output, never external'). The constructive instruction that lets Gate G5 be satisfied before promotion; refines `statement` into a checkable handling step."
+        },
+        "applies_to_actions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Action kinds/contexts where this boundary is in effect (e.g. ['sending messages', 'file writes', 'web fetches', 'memory writes']). Narrows the required base `scope` into checkable surfaces (Gate G2) without weakening it; complements base `linked_projects`/`linked_domains`."
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": ["hard", "soft", "advisory"],
+          "description": "How firmly the runtime must honor this record within scope. hard = non-overridable constraint (blocked_actions, restricted sensitivity); soft = strong default a stronger explicit cue can change; advisory = surfaced as guidance only. Distinct from `confidence` (evidence strength); a hard boundary can be enforced even while its supporting evidence is still accumulating. Never used to relax a stricter sibling rule."
+        },
+        "on_violation": {
+          "type": "string",
+          "enum": ["block", "ask_confirm", "redact", "warn", "log"],
+          "description": "What the runtime does when an attempted action would cross this boundary: block = refuse; ask_confirm = stop and request human approval; redact = strip the sensitive part and continue; warn = proceed but flag; log = record only. Conservative by design; aligns with the authority ladder and feeds boundary_compliance scoring."
+        }
+      },
+      "required": ["record_type"]
+    }
+  ],
+  "$comment": "Required fields are inherited unchanged from record.base.schema.json (id, record_type, label, statement, evidence_refs, confidence, scope, review_status, sensitivity, created_at, updated_at); only record_type is constrained here. All fields added by this pack are OPTIONAL — required = base required + record_type, per the pack-focus rule. Base validation still applies: evidence_refs ≥ 1 (G1), non-empty scope (G2), counterexamples required when confidence < 0.7, exception_rules required when sensitivity ∈ {sensitive, restricted}. This pack is the one that satisfies Gate G5 (privacy before promotion): a SensitivityRecord/BoundaryRuleRecord is the boundary rule a sensitive item must receive before it can be promoted or used at runtime (../spec/01-kernel-schema.md §2, §9). Display aliases for `statement`: a UI may show 'boundary_rule'/'authority_rule'/'confirmation_rule', but the stored canonical field is `statement`. record_type is constrained to the four user.boundary_authority types; routed from BoundaryRuleCandidate (../spec/01-kernel-schema.md §6) and surfaced as `policy` in the 9-space crosswalk (구 코드명 t11, .ba)."
+}

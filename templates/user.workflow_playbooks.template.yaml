@@ -1,0 +1,21 @@
+%YAML 1.2
+# Auto-split from _ALL_TEMPLATES.yaml — single blank template for one user.* pack.
+# Copy this file into your private instance folder, rename `template` in the id to your
+# handle, pick a record_type from the enum comment, then fill base fields against real
+# evidence (G1), scope it (G2), use behavioral language (G4). Templates never hold live
+# records (G6). Schema + full index: ../schemas/ · ./README.md · ./QUICKSTART.md
+--- # user.workflow_playbooks
+# 팩 8: 반복 작업 시퀀스·산출물 (../schemas/user.workflow_playbooks.schema.json)
+# record_type enum: WorkflowRecord | StepSequenceRecord | PlaybookRecord
+# id 종류 토큰: workflow  (구 코드명: t08)
+id: "template.workflow.000"      # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: WorkflowRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 반복 작업 시퀀스 (G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어떤 작업/트리거에서 실행되는가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time

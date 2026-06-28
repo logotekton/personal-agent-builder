@@ -1,0 +1,273 @@
+%YAML 1.2
+---
+# =============================================================================
+# _ALL_TEMPLATES.yaml — 14개 빈 템플릿 묶음 (copy-start bundle)
+# -----------------------------------------------------------------------------
+# > EN: One file holding all 14 blank record skeletons — one YAML document per
+# > user.* ontology pack (spec/03-pack-catalog.md). Every document carries the
+# > full unified base required set (id, record_type, label, statement,
+# > evidence_refs, confidence, scope, review_status, sensitivity, created_at,
+# > updated_at) at empty/placeholder values, with the pack's record_type enum
+# > in a comment. Copy a document out, rename `template` to your handle, fill it
+# > against real evidence (G1), scope it (G2), use behavioral language (G4).
+# -----------------------------------------------------------------------------
+# 이 한 파일에 14개 `user.*` 팩의 빈 레코드 골격이 YAML 문서 하나씩 들어 있습니다.
+# 각 문서는 통합 베이스 레코드(../spec/01-kernel-schema.md §7,
+# ../schemas/record.base.schema.json)의 **필수 필드 전부**를 빈/플레이스홀더 값으로
+# 담고, 해당 팩의 `record_type` enum 후보를 주석으로 적어 둡니다.
+#
+# 쓰는 법: 시작하려는 팩의 문서(`--- # user.<name>` 구획)를 통째로 복사 →
+#   1) `id`의 `template`을 당신 핸들로 바꾸고 (예: jane.role.001),
+#   2) `record_type`을 주석의 enum 중 하나로 고르고,
+#   3) 베이스 필드부터 실제 증거에 묶어 채웁니다.
+# 비교용 인덱스/주석/예제는 ./README.md · ./QUICKSTART.md 참고.
+#
+# 게이트(인용: ../spec/01-kernel-schema.md §2):
+#   G1 증거 없는 주장 금지 (evidence_refs ≥ 1)
+#   G2 스코프 없는 규칙 금지 (scope 비우지 말 것 — "항상 참" 금지)
+#   G3 pending은 런타임 비활성 (confirmed/narrowed만 컴파일)
+#   G4 행동 언어로만 기술 (추측 심리 금지)
+#   G5 sensitive/restricted는 경계 규칙 먼저
+#   G6 템플릿은 라이브 레코드를 담지 않음 — 이 파일의 모든 값은 비어 있어야 함
+#
+# 폐기 코드명(구 코드명) pa.t03 / t06 / x12 / .ba 등은 쓰지 않습니다.
+# 정식 14개 팩 이름만 사용합니다 → ../spec/01-kernel-schema.md §5.
+# =============================================================================
+
+
+--- # user.identity_roles
+# 팩 1: 역할·정체성·맥락 (../schemas/user.identity_roles.schema.json)
+# record_type enum: RoleRecord | ContextRecord | AttributionRecord | ScopeRecord
+# id 종류 토큰: role  (구 코드명: pa.roles — 더 이상 쓰지 않음)
+id: "template.role.000"          # <subject>.<recordkind>.NNN 형식. template→당신 핸들
+record_type: ""                  # 위 enum 중 하나 (예: RoleRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 스코프된 주장 (추측 심리 금지, G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1) — 증거 없으면 채우지 말 것
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 언제/어디서 참인가 — 비우지 말 것 (G2)
+review_status: "pending"         # pending|confirmed|rejected|narrowed|sensitive|deferred (G3)
+sensitivity: "internal"          # public|internal|sensitive|restricted (G5)
+created_at: ""                   # ISO-8601 date-time (예: 2026-06-28T00:00:00Z)
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.persona_core
+# 팩 2: 안정 선호/반선호/가치/우선순위 (../schemas/user.persona_core.schema.json)
+# record_type enum: PreferenceRecord | AvoidanceRecord | PriorityRecord | ValueRecord | StablePatternRecord
+# id 종류 토큰: trait  (구 코드명: pa.core)
+id: "template.trait.000"         # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: PreferenceRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 안정 선호/가치 (G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 언제/어디서 참인가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.communication_style
+# 팩 3: 응답 형식·언어·구조·밀도 규칙 (../schemas/user.communication_style.schema.json)
+# record_type enum: ResponseFormatRecord | LanguageRecord | StructureRecord | DensityRecord | RevisionCueRecord
+# id 종류 토큰: style  (구 코드명: pa.t03)
+id: "template.style.000"         # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: ResponseFormatRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 형식/언어 규칙 (G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어느 채널/맥락에서 참인가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.artifact_policy
+# 팩 4: 선호 출력물 형태/포맷 (../schemas/user.artifact_policy.schema.json)
+# record_type enum: ArtifactFormatRecord | FileOutputRecord | TablePolicyRecord | DiagramPolicyRecord | ReviewArtifactRecord
+# id 종류 토큰: artifact  (구 코드명: pa.t04)
+id: "template.artifact.000"      # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: ArtifactFormatRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 산출물 형태 규칙 (G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어떤 산출물/작업에서 참인가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.decision_policy
+# 팩 5: 우선순위·트레이드오프·승인/거부 규칙 (../schemas/user.decision_policy.schema.json)
+# record_type enum: PriorityRuleRecord | TradeoffRuleRecord | ApprovalConditionRecord | RejectionRuleRecord | EscalationThresholdRecord
+# id 종류 토큰: decision  (구 코드명: pa.t05)
+id: "template.decision.000"      # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: PriorityRuleRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 결정 규칙 (G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어떤 결정 맥락에서 참인가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.tacit_heuristics
+# 팩 6: 암묵 판단 규칙·반례 (../schemas/user.tacit_heuristics.schema.json)
+# record_type enum: HeuristicRecord | ContrastiveRuleRecord | TriggerActionRecord
+# id 종류 토큰: heuristic  (구 코드명: t06)
+id: "template.heuristic.000"     # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: HeuristicRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 암묵 판단 규칙 (G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어떤 작업/조건에서 참인가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.red_flags
+# 팩 7: 위험 신호·트리거·대응 (../schemas/user.red_flags.schema.json)
+# record_type enum: RiskSignalRecord | WeakStructureRecord | EvidenceGapRecord
+# id 종류 토큰: redflag  (구 코드명: t07)
+id: "template.redflag.000"       # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: RiskSignalRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 위험 신호 (관찰된 신호로, G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어떤 맥락에서 위험으로 보는가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.workflow_playbooks
+# 팩 8: 반복 작업 시퀀스·산출물 (../schemas/user.workflow_playbooks.schema.json)
+# record_type enum: WorkflowRecord | StepSequenceRecord | PlaybookRecord
+# id 종류 토큰: workflow  (구 코드명: t08)
+id: "template.workflow.000"      # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: WorkflowRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 반복 작업 시퀀스 (G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어떤 작업/트리거에서 실행되는가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.domain_overlays
+# 팩 9: 도메인 특화 지식·주의 패턴·용어 (../schemas/user.domain_overlays.schema.json)
+# record_type enum: DomainKnowledgeRecord | DomainAttentionRecord | DomainTermRecord
+# id 종류 토큰: domain  (구 코드명: t09)
+id: "template.domain.000"        # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: DomainKnowledgeRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 도메인 규칙/주의 패턴 (G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어느 도메인/맥락에서 참인가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.tool_stack
+# 팩 10: 도구 선택·사용·회피 패턴 (../schemas/user.tool_stack.schema.json)
+# record_type enum: ToolPreferenceRecord | ToolUsageRecord | ToolAvoidanceRecord
+# id 종류 토큰: tool  (구 코드명: t10)
+id: "template.tool.000"          # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: ToolPreferenceRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 도구 선택/사용 규칙 (G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어떤 작업/맥락에서 쓰는가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.boundary_authority
+# 팩 11: 프라이버시 경계·권한 레벨·확인 규칙 (../schemas/user.boundary_authority.schema.json)
+# record_type enum: BoundaryRuleRecord | AuthorityLevelRecord | ConfirmationRuleRecord | SensitivityRecord
+# id 종류 토큰: boundary  (구 코드명: t11, .ba)
+id: "template.boundary.000"      # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: BoundaryRuleRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 경계/권한/확인 규칙 (G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어떤 행동/맥락에 적용되는가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "sensitive"         # 경계 레코드는 흔히 sensitive — 승격 전 경계 규칙 필요 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.memory_project_graph
+# 팩 12: 프로젝트·목표·메모리 링크 (../schemas/user.memory_project_graph.schema.json)
+# record_type enum: ProjectRecord | GoalRecord | MemoryLinkRecord
+# id 종류 토큰: project  (구 코드명: x12)
+id: "template.project.000"       # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: ProjectRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 행동 언어로 쓴 프로젝트/목표/메모리 링크 (G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어느 프로젝트/기간에서 참인가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.evaluation_cases
+# 팩 13: 충실도 테스트 케이스 (../schemas/user.evaluation_cases.schema.json)
+# record_type enum: EvaluationCaseRecord
+# id 종류 토큰: evalcase  (구 코드명: x13)
+id: "template.evalcase.000"      # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # enum: EvaluationCaseRecord
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 케이스 요지 (입력 과제·기대/불가 행동은 스키마 추가 필드로, G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어떤 팩 셋/맥락을 평가하는가 (G2)
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
+
+
+--- # user.drift_history
+# 팩 14: 변경·대체·갱신 이력 (../schemas/user.drift_history.schema.json)
+# record_type enum: DriftRecord | SupersessionRecord | VersionRecord
+# id 종류 토큰: drift  (구 코드명: x14)
+id: "template.drift.000"         # <subject>.<recordkind>.NNN 형식
+record_type: ""                  # 위 enum 중 하나 (예: DriftRecord)
+label: ""                        # 한 줄 사람용 이름
+statement: ""                    # 무엇이 어떻게 바뀌었는가 (관찰된 변경으로, G4)
+evidence_refs: []                # ≥1개 EvidenceItem 참조 (G1)
+confidence: null                 # 0.0–1.0. 0.7 미만이면 counterexamples 필수
+scope: ""                        # 어느 레코드/기간의 변경인가 (G2). supersedes로 대상 연결
+review_status: "pending"         # 라이프사이클 상태 (G3)
+sensitivity: "internal"          # 프라이버시 등급 (G5)
+created_at: ""                   # ISO-8601 date-time
+updated_at: ""                   # ISO-8601 date-time
