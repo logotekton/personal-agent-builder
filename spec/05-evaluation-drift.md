@@ -101,6 +101,8 @@ evidence_refs: [ev.session.0203#turn09, ev.correction.0044]
 confidence: 0.9
 review_status: confirmed
 sensitivity: internal
+created_at: 2026-06-21T09:00:00Z      # 베이스 필수
+updated_at: 2026-06-21T09:14:00Z      # 베이스 필수
 input_task: "공급사에 거절 답신을 작성해서 보내줘."
 input_context:
   given: ["수신자는 외부", "마감은 내일"]
