@@ -39,6 +39,7 @@ sys.path.insert(0, TOOLS)
 import pab_merge          # noqa: E402
 import convergence_report as cr   # noqa: E402
 import validate_packs as vp       # noqa: E402
+import check_anchors as ca        # noqa: E402
 
 try:
     import yaml  # noqa: F401
@@ -304,6 +305,41 @@ class TestEndToEnd(unittest.TestCase):
                  "examples/logotekton/revolution-01/session-02-candidates.yaml")
         self.assertIn("duplicate", r.stdout)
         self.assertIn("novel", r.stdout)
+
+
+class TestAnchorSlug(unittest.TestCase):
+    """Lock the GitHub-slug algorithm on the exact cases this repo's links depend on."""
+
+    def test_colon_one_to_one_collapses(self):
+        # "(1:1, 전수)" -> the heading slug used by spec/01 §6 and skills/08 §3
+        self.assertEqual(ca.gh_slug("3. 라우팅 표 (1:1, 전수)"), "3-라우팅-표-11-전수")
+
+    def test_symbol_between_spaces_yields_double_hyphen(self):
+        # a symbol dropped from between two spaces leaves two spaces -> two hyphens
+        self.assertEqual(ca.gh_slug("6. 후보 타입 ↔ 라우팅 (1:1 전수)"),
+                         "6-후보-타입--라우팅-11-전수")
+
+    def test_middle_dot_is_removed_not_hyphenated(self):
+        self.assertEqual(ca.gh_slug("9. 프라이버시·권한 모델 (요약)"), "9-프라이버시권한-모델-요약")
+
+
+class TestAnchorIntegrity(unittest.TestCase):
+    """The repo's cross-document links are a claim; this gate keeps them true."""
+
+    def test_repo_has_no_broken_anchors(self):
+        r = _run("tools/check_anchors.py", ".")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("0 broken", r.stdout)
+
+    def test_checker_actually_catches_a_break(self):
+        # prove the guard guards: a planted bad anchor must make it exit nonzero
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "a.md"), "w", encoding="utf-8") as fh:
+                fh.write("# Hello World\n\n[bad](#does-not-exist)\n[good](#hello-world)\n")
+            r = _run("tools/check_anchors.py", d)
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn("1 broken", r.stdout)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@
 순수 표준 라이브러리 테스트입니다(외부 의존성 없음; PyYAML이 있으면 재귀 CLI 경로까지 검사). 프로젝트가
 의존하는 *모든 숫자*를 회귀로 잠급니다.
 
-## 무엇을 잠그나 (`test_tools.py`, 30 tests)
+## 무엇을 잠그나 (`test_tools.py`, 35 tests)
 
 - **`tools/pab_merge.py`** — `canonical_key` 결정성 + 알려진 값(`3cabb5142158`); 네 판정
   (`novel→insert` · `duplicate→merge` · `refinement→supersede` · `conflict→surface`) + `already_merged`;
@@ -20,6 +20,9 @@
 - **`tools/validate_packs.py`** — 게이트: 정상 레코드 통과, G1(증거)·G2(스코프)·confidence 범위·
   `confidence<0.7→counterexamples`·필수필드·enum 위반 거부.
 - **`tools/dedup_check.py`** — 예제 `merge_rate` `0.095`.
+- **`tools/check_anchors.py`** — GitHub 슬러그 규약 잠금(`(1:1, 전수)`→`11`, `↔`→이중 하이픈,
+  `·`→제거) + 저장소 전체 교차문서 링크·앵커가 **broken=0**임을 확인, 그리고 심어둔 깨진 앵커를
+  실제로 잡아 비-0 종료하는지(가드가 가드인지)까지.
 - **end-to-end** — `examples/logotekton` 전체 검증 **42 PASS**, 그리고 `revolution-01/02`의 `.pre`
   픽스처가 문서화된 merge/insert/conflict 판정을 그대로 재현.
 
