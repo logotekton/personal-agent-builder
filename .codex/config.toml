@@ -1,59 +1,59 @@
-# Personal Agent Builder — Codex CLI hooks (repo-committed).
+# Personal Agent Builder — Codex CLI hooks (repo-committed, cross-platform).
 #
 # WHERE THIS LIVES (Codex paths can be confusing — this is the repo-level config):
-#   Codex reads hooks from EITHER `[[hooks.*]]` tables in config.toml OR a hooks.json,
-#   at two layers:
-#     user level : ~/.codex/config.toml   ·  ~/.codex/hooks.json
+#   Codex reads hooks from `[[hooks.*]]` tables in config.toml OR a hooks.json, at two layers:
+#     user level : ~/.codex/config.toml  ·  ~/.codex/hooks.json
 #     repo level : <repo>/.codex/config.toml  ·  <repo>/.codex/hooks.json   <-- THIS FILE
-#   Repo-level config applies whenever Codex runs inside this repository (desktop or CI),
-#   so committing it here is the portable choice — same idea as Claude Code's
-#   <repo>/.claude/settings.json.
+#   Use ONE representation per layer (this repo uses config.toml; no hooks.json). Verified on
+#   codex-cli 0.141.0: TOML parses, the 5 hooks load.
 #
-# EVENTS (verbatim): SessionStart, UserPromptSubmit, PreToolUse, PermissionRequest,
-#   PostToolUse, PreCompact, PostCompact, SubagentStart, SubagentStop, Stop.
-# TRUST: command hooks must be reviewed & trusted by hash before they run — use `/hooks`.
-# INPUT: each hook receives JSON on stdin (session_id, transcript_path, cwd,
-#   hook_event_name, model; turn events also add turn_id).
+# WHY `python` (not `bash`): on native Windows the older `bash "$(git rev-parse ...)/tools/pab"`
+#   form FAILS (no `bash`/`$(...)` on the Windows shell). `python tools/pab.py <sub>` needs only
+#   `python` on PATH and a cwd of the repo root (Codex runs hooks from the repo root). If `python`
+#   is Python 2 on some Unix, use `python3 tools/pab.py` or the `tools/pab` bash wrapper instead.
 #
-# NOTE: tools/pab is a STUB right now (see docs/hooks-setup.md). It logs what it WOULD do
-#   and exits 0; it does not yet stage to OpenCrab. Wire real MCP staging to go live.
-# These mirror .claude/settings.json 1:1 (trigger model: spec/09; adapters: skills/14).
+# EVENTS (verbatim): SessionStart, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse,
+#   PreCompact, PostCompact, SubagentStart, SubagentStop, Stop.
+# TRUST: command hooks must be reviewed & trusted by hash before they run — run `/hooks` inside
+#   Codex in this repo and trust all 5. They re-enter review whenever the command or tools/pab.py
+#   changes. (notify is a separate agent-turn-complete channel.)
+# NOTE: tools/pab.py is a STUB (logs intent, exits 0, no OpenCrab staging yet). See
+#   docs/hooks-setup.md. Mirrors .claude/settings.json 1:1.
 
 [[hooks.SessionStart]]
 [[hooks.SessionStart.hooks]]
 type = "command"
-command = 'bash "$(git rev-parse --show-toplevel)/tools/pab" compile-adapter'
+command = "python tools/pab.py compile-adapter"
 timeout = 30
 statusMessage = "PAB: compile runtime adapter"
 
 [[hooks.UserPromptSubmit]]
 [[hooks.UserPromptSubmit.hooks]]
 type = "command"
-command = 'bash "$(git rev-parse --show-toplevel)/tools/pab" capture --from prompt'
+command = "python tools/pab.py capture --from prompt"
 timeout = 20
 statusMessage = "PAB: capture prompt evidence"
 
 [[hooks.PostToolUse]]
 [[hooks.PostToolUse.hooks]]
 type = "command"
-command = 'bash "$(git rev-parse --show-toplevel)/tools/pab" capture --from tool'
+command = "python tools/pab.py capture --from tool"
 timeout = 20
 statusMessage = "PAB: capture tool evidence"
 
 [[hooks.PreToolUse]]
-# matcher is a regex over tool names; "" (or "*", or omitting) matches everything.
-# Codex tool names differ from Claude's, so this is left broad — narrow it to your
-# shell/file/MCP tools once you confirm the names with `/hooks`.
+# matcher is a regex over Codex tool names; "" (or "*", or omitting) matches everything.
+# Kept broad until the real Codex tool names are confirmed with `/hooks` (do not guess).
 matcher = ""
 [[hooks.PreToolUse.hooks]]
 type = "command"
-command = 'bash "$(git rev-parse --show-toplevel)/tools/pab" boundary-check'
+command = "python tools/pab.py boundary-check"
 timeout = 20
 statusMessage = "PAB: boundary check"
 
 [[hooks.Stop]]
 [[hooks.Stop.hooks]]
 type = "command"
-command = 'bash "$(git rev-parse --show-toplevel)/tools/pab" mine-and-review'
+command = "python tools/pab.py mine-and-review"
 timeout = 60
 statusMessage = "PAB: mine + review board"

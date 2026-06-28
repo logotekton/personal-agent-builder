@@ -1,49 +1,11 @@
 #!/usr/bin/env bash
-# pab — Personal Agent Builder host-binding hook entrypoint (STUB).
-#
-# Called by Claude Code (.claude/settings.json) and Codex CLI (.codex/config.toml) hooks.
-# Both hosts pass a JSON event on stdin (session_id, transcript_path, cwd, hook_event_name,
-# turn_id, model). One script, many host triggers — the action substrate is meant to be MCP
-# (OpenCrab), so this same file is reused by every host (see skills/14-host-binding.md).
-#
-# THIS IS A STUB. It only logs what it WOULD do and ALWAYS exits 0 (never blocks a tool or a
-# turn). It does NOT yet stage anything to OpenCrab. To go LIVE, replace the ':' no-ops below
-# with real calls (OpenCrab ingest_text pack_visibility=draft / pack_update) per
-# spec/09-triggers.md (triggers) and spec/10-dedup-and-merge.md (upsert, not duplicate).
-#
-# Invariants it must honor when made live (host-agnostic):
-#   - capture/mine = STAGE ONLY (draft/pending); never promote (G3).
-#   - promotion happens only in the Stop review board, after human confirm.
-#   - sensitive items get a boundary rule before promotion (G5).
-set -u
-
-SUB="${1:-}"; shift 2>/dev/null || true
-LOG="${PAB_LOG:-${TMPDIR:-/tmp}/pab-hooks.log}"
-
-# Hook JSON arrives on stdin (may be empty when run manually). Read it without blocking.
-payload="$(cat 2>/dev/null || true)"
-ts="$(date -u +%FT%TZ 2>/dev/null || echo now)"
-printf '%s\tpab %s %s\n' "$ts" "$SUB" "$*" >> "$LOG" 2>/dev/null || true
-
-case "$SUB" in
-  compile-adapter)
-    # SessionStart: compile confirmed+scoped slices -> runtime adapter (skills/10).
-    : ;;
-  capture)
-    # UserPromptSubmit / PostToolUse: stage an EvidenceItem and detect corrections (diff_mining).
-    # LIVE: opencrab ingest_text(pack_visibility="draft") -> staged candidate (pending).
-    : ;;
-  boundary-check)
-    # PreToolUse: enforce the boundary before an external/irreversible action (skills/09).
-    # LIVE: emit an ask_confirm/deny decision when a boundary rule matches. STUB allows all.
-    : ;;
-  mine-and-review)
-    # Stop: mine the transcript -> typed candidates -> Korean review board.
-    # Promotion (pending -> confirmed) happens ONLY here, after human confirm. dedup judge
-    # (spec/10) classifies novel/duplicate/refinement/conflict -> confirm/merge/supersede.
-    : ;;
-  *)
-    : ;;
-esac
-
-exit 0
+# pab — Unix/macOS convenience wrapper around the cross-platform Python entrypoint tools/pab.py.
+# Both hosts' committed hook configs call `python tools/pab.py <sub>` directly (works on Windows,
+# no bash needed). This wrapper just lets Unix users run `./tools/pab <sub>` and keeps one source
+# of stub logic in pab.py. Always exits with pab.py's status (0 for the stub). See pab.py header.
+DIR="$(cd "$(dirname "$0")" && pwd)"
+if command -v python3 >/dev/null 2>&1; then
+  exec python3 "$DIR/pab.py" "$@"
+else
+  exec python "$DIR/pab.py" "$@"
+fi

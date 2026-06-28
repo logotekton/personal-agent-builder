@@ -45,27 +45,27 @@ Stop 훅을 사용 → 메커니즘 검증됨). 훅은 셸 명령을 실행하�
 OpenCrab MCP로 스테이징합니다.
 
 ```jsonc
-// .claude/settings.json (발췌, 대표값)
+// .claude/settings.json (커밋된 실제 형태)
 {
   "hooks": {
-    "SessionStart":     [{ "hooks": [{ "type": "command", "command": "pab compile-adapter" }] }],
-    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "pab capture --from prompt" }] }],
-    "PostToolUse":      [{ "hooks": [{ "type": "command", "command": "pab capture --from tool" }] }],
-    "PreToolUse":       [{ "matcher": "Bash|Write|Edit|mcp__.*",
-                          "hooks": [{ "type": "command", "command": "pab boundary-check" }] }],
-    "Stop":             [{ "hooks": [{ "type": "command", "command": "pab mine-and-review" }] }]
+    "SessionStart":     [{ "hooks": [{ "type": "command", "command": "python tools/pab.py compile-adapter" }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "python tools/pab.py capture --from prompt" }] }],
+    "PostToolUse":      [{ "hooks": [{ "type": "command", "command": "python tools/pab.py capture --from tool" }] }],
+    "PreToolUse":       [{ "matcher": "Bash|Write|Edit|MultiEdit|mcp__.*",
+                          "hooks": [{ "type": "command", "command": "python tools/pab.py boundary-check" }] }],
+    "Stop":             [{ "hooks": [{ "type": "command", "command": "python tools/pab.py mine-and-review" }] }]
   }
 }
 ```
 
-- `pab capture` = 발화/도구 결과를 EvidenceItem으로 적재 + 교정 감지 → **draft 후보 스테이징**
+- 진입점은 **`python tools/pab.py`** — `bash`가 필요 없어 native Windows에서도 돕니다(`python`만 PATH에).
+- `capture` = 발화/도구 결과를 EvidenceItem으로 적재 + 교정 감지 → **draft 후보 스테이징**
   (OpenCrab `ingest_text(pack_visibility:"draft")`). `requires_confirmation:false`, 스테이징만.
-- `pab boundary-check` = 외부·비가역 도구 호출 직전 경계 검사 → 필요시 ask_confirm/block(G5).
-- `pab mine-and-review` = 세션 끝에 트랜스크립트 마이닝 → **한국어 리뷰보드** 제시(승격은 여기만).
-- 설정/문제 해결은 `update-config` 스킬, 검증은 `pab validate`로.
+- `boundary-check` = 외부·비가역 도구 호출 직전 경계 검사 → 필요시 ask_confirm/block(G5).
+- `mine-and-review` = 세션 끝에 트랜스크립트 마이닝 → **한국어 리뷰보드** 제시(승격은 여기만).
 
-> 훅은 셸을 실행할 뿐이므로, MCP 호출은 `pab` 같은 얇은 스크립트(또는 로컬 큐)가 담당합니다.
-> 행동은 전부 MCP라 호스트가 바뀌어도 이 스크립트는 재사용됩니다.
+> 행동(스테이징/승격)은 전부 MCP(OpenCrab)로 — `pab.py` 한 벌이 호스트가 바뀌어도 재사용됩니다.
+> 플랫폼·경로 주의는 [../docs/hooks-setup.md](../docs/hooks-setup.md).
 
 ## 4. Codex CLI — 같은 이벤트, 다른 설정 파일
 
@@ -81,14 +81,17 @@ Codex CLI는 Claude식 훅 시스템을 제공합니다. 라이프사이클 이�
 - **승인/샌드박스 모드:** 도구 실행 게이트(= `PreToolUse` 경계의 또 다른 표면).
 
 ```toml
-# ~/.codex/config.toml (발췌, 대표값)
-[hooks]
-SessionStart = [{ command = "pab compile-adapter" }]
-PostToolUse  = [{ command = "pab capture --from tool" }]
-Stop         = [{ command = "pab mine-and-review" }]
+# <repo>/.codex/config.toml (커밋된 실제 형태 — 배열 테이블 [[hooks.EVENT]] + 중첩 [[hooks.EVENT.hooks]])
+[[hooks.SessionStart]]
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = "python tools/pab.py compile-adapter"
+timeout = 30
+# PostToolUse / UserPromptSubmit / PreToolUse / Stop 도 같은 [[hooks.EVENT]] 구조로 반복
 ```
-
-→ Claude 배선(§3)의 `pab ...` 스크립트를 **그대로 재사용**하고 설정 파일만 바꾸면 됩니다.
+⚠️ 레거시 `[hooks]` + `EVENT = [{...}]` 인라인 배열 형태는 **무효**(config 로드가 깨짐) — 위
+`[[hooks.EVENT]]` 형태를 쓴다. → Claude 배선(§3)과 **같은 `python tools/pab.py` 명령을 그대로
+재사용**하고 설정 파일만 바꾸면 됩니다(codex-cli 0.141.0 확인).
 
 ## 5. OpenAI Agents SDK — 프로그램형 에이전트(자체 빌드)
 
@@ -146,8 +149,9 @@ ChatGPT 소비자 제품은 *memory*(인스턴스 팩의 가장 가까운 유사
 
 - Claude Code: [`../.claude/settings.json`](../.claude/settings.json)
 - Codex CLI: [`../.codex/config.toml`](../.codex/config.toml)  (레포 단위 `<repo>/.codex/`)
-- 공유 진입점(양쪽이 호출): [`../tools/pab`](../tools/pab) — **STUB**(로그만, exit 0). 라이브로
-  만들려면 `pab`의 분기를 OpenCrab MCP 스테이징으로 교체(§7 불변식 유지).
+- 공유 진입점(양쪽이 `python tools/pab.py`로 호출): [`../tools/pab.py`](../tools/pab.py) —
+  **크로스플랫폼 STUB**(로그만, exit 0; `bash` 불필요 → Windows OK). Unix 편의 래퍼
+  [`../tools/pab`](../tools/pab). 라이브로 만들려면 `pab.py`의 분기를 OpenCrab MCP 스테이징으로 교체.
 
 5개 훅이 1:1로 배선됨: SessionStart→compile, UserPromptSubmit/PostToolUse→capture,
 PreToolUse→boundary, Stop→mine+review(승격은 여기만).
