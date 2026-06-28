@@ -148,3 +148,21 @@ v0.1은 `score`, v0.2는 `confidence`; 어떤 팩은 `statement`, 어떤 팩은 
 Orchestrator · Pack Architect · Evidence · Session Miner · Questioning · Diff Miner ·
 Candidate Extractor · Scope · Confirmation · Pack Router · Boundary · Agent Compiler ·
 Evaluator. 각 역할의 소유 작업·핸드오프 → [12-crab-orchestration](../skills/12-crab-orchestration.md).
+
+## 9. 프라이버시·권한 모델 (요약)
+
+무엇을 스스로 해도 되고 무엇을 사람에게 되돌려야 하는가의 어휘 요약입니다. **정식 정의·표·근거는
+[04 프라이버시·경계](./04-privacy-boundary.md)가 단일 진실원**이며, 이 절은 커널 어휘로서 그 이름만
+고정하고 깊이는 spec/04로 미룹니다(다른 문서가 "커널 §9"로 가리키는 대상).
+
+- **`BoundaryRule` 노드 (팩 #11 `user.boundary_authority`).** 민감 항목이 승격·런타임 사용 전 받아야
+  하는 규칙. 게이트 **G5**(승격 전 프라이버시, §2)를 만족시키는 유일한 팩.
+- **여섯 경계 범주** — memory · retrieval · output · action · authority · sensitivity. 정식 정의
+  → [04 §1 여섯 경계 범주](./04-privacy-boundary.md#1-여섯-경계-범주-boundary-categories).
+- **여덟 권한 레벨(자율성 사다리)** — `observe < summarize < classify < draft < compare <
+  recommend < ask_confirm < blocked`(단조 상승). 런타임은 확정 스코프 안에서 이 천장 *이하*로만
+  행동. 정식 정의 → [04 §2 여덟 권한 레벨](./04-privacy-boundary.md#2-여덟-권한-레벨-authority-ladder).
+- **기본 안전 정책** — 인스턴스 `BoundaryRule`이 없을 때의 보수적 하한(외부 통신·비가역 행동·계약·
+  정체성 민감 발언·고임팩트 결정 앞에서 `ask_confirm`). 정식 정의 → [04 §3 기본 안전 정책](./04-privacy-boundary.md#3-기본-안전-정책-default-safe-policy).
+- 평가 지표는 `boundary_compliance`([05](./05-evaluation-drift.md)). 승격 직전 충돌은 dedup judge가
+  `conflict`로 사람에게 노출([10](./10-dedup-and-merge.md), §2 G3·G5).

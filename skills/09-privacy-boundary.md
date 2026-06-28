@@ -136,7 +136,7 @@ commitment·identity-sensitive statement·high-impact decision)와 대조한다.
 
 자율성은 단조 상승하는 사다리다. 스키마의 `authority_level` enum과 동일한 순서이며, 정식 정의는
 [04 프라이버시·경계 §2](../spec/04-privacy-boundary.md#2-여덟-권한-레벨-authority-ladder)에 있다
-(권한·경계 모델의 단일 진실원은 spec/04이며, 커널[spec/01]은 §8까지로 권한 §은 없다).
+(권한·경계 모델의 단일 진실원은 spec/04; 커널 요약은 [01 §9 프라이버시·권한 모델](../spec/01-kernel-schema.md#9-프라이버시권한-모델-요약)).
 
 ```
 observe < summarize < classify < draft < compare < recommend < ask_confirm < blocked
