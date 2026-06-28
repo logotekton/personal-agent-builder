@@ -109,6 +109,14 @@
 맥락 매칭으로 *어떤 슬라이스를 켤지* 결정합니다. 한 후보가 여러 맥락에 걸치면 다중 `applies_in`을
 달되, 그 자체가 *과일반화 신호*이니 쪼갤 수 있는지 검토합니다(§4 규칙 2).
 
+> **두 종류의 노드를 잇는다 — `Context`와 `Condition`.** 스코프 지정된 후보의 출력은 *맥락*
+> (`applies_in → Context`: 작업·청중·산출물·도메인·채널 — 규칙이 *켜지는* 곳)뿐 아니라 *조건*
+> (`Condition` 노드 — 규칙이 *조건부로* 적용·거부되는 상태)도 연결한다(계약 [02 §출력](../spec/02-builder-pipeline.md):
+> "`Context`/`Condition` 연결"). [D]에서 뽑는 `exception_rules`("어디서 안 통하는가")가 바로 이
+> `Condition` 면이며, `rejects_when` 엣지([커널 §4](../spec/01-kernel-schema.md#4-엣지-타입-edge-types):
+> `rejects_when → RedFlag | Condition`)로 이어진다. 즉 Context는 *적용 경계*를, Condition은
+> *조건·예외 상태*를 나눠 맡는다.
+
 **[D] 예외 추출.** 규칙이 *깨지는* 경계를 `exception_rules`로 명시합니다. "결론부터 — 단,
 *법적 고지·계약 문구*에서는 정해진 서식을 따름." 예외는 두 곳에서 옵니다: (1) 증거 안의 반례
 ([04 diff 마이닝](./04-diff-mining.md)의 `anti_examples`/버려진 before), (2) 충돌하는 다른 후보
