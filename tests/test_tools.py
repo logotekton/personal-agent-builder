@@ -231,6 +231,61 @@ class TestValidateGates(unittest.TestCase):
         self.assertFalse(vp.validate_record(r, "t").ok)
 
 
+def _good_eval():
+    r = _good()
+    r["id"] = "x.evalcase.001"
+    r["record_type"] = "EvaluationCaseRecord"
+    r["scoring_rubric"] = {
+        "criteria": [
+            {"check": "a", "weight": 0.6, "kind": "must"},
+            {"check": "b", "weight": 0.4, "kind": "prefer"},
+        ],
+        "pass_threshold": 0.8,
+        "judge": "human",
+    }
+    r["result"] = {"status": "pass", "score": 0.9}
+    return r
+
+
+class TestEvalIntegrity(unittest.TestCase):
+    """#3: a recorded eval verdict must be self-consistent with its own rubric (validate gate)."""
+
+    def test_consistent_eval_passes(self):
+        self.assertTrue(vp.validate_record(_good_eval(), "t").ok)
+
+    def test_pass_below_threshold_fails(self):
+        # the headline catch: a human typed status=pass while the rubric score says fail
+        r = _good_eval(); r["result"]["score"] = 0.5
+        res = vp.validate_record(r, "t")
+        self.assertFalse(res.ok)
+        self.assertTrue(any("status=pass" in e for e in res.errors), res.errors)
+
+    def test_weight_sum_not_one_fails(self):
+        r = _good_eval(); r["scoring_rubric"]["criteria"][0]["weight"] = 0.9  # 0.9 + 0.4 = 1.3
+        res = vp.validate_record(r, "t")
+        self.assertFalse(res.ok)
+        self.assertTrue(any("가중치 합" in e for e in res.errors), res.errors)
+
+    def test_hardfail_must_be_fail(self):
+        r = _good_eval(); r["result"]["unacceptable_fired"] = ["leaked a secret"]  # but status=pass
+        res = vp.validate_record(r, "t")
+        self.assertFalse(res.ok)
+        self.assertTrue(any("하드페일" in e for e in res.errors), res.errors)
+
+    def test_hardfail_with_fail_status_is_consistent(self):
+        r = _good_eval()
+        r["result"] = {"status": "fail", "score": 0.9, "unacceptable_fired": ["x"]}
+        self.assertTrue(vp.validate_record(r, "t").ok)  # hard-fail sinks a high score → fail is right
+
+    def test_llm_judge_requires_determinism_config(self):
+        r = _good_eval(); r["scoring_rubric"]["judge"] = "llm_judge"
+        res = vp.validate_record(r, "t")
+        self.assertFalse(res.ok)
+        self.assertTrue(any("judge_config" in e for e in res.errors), res.errors)
+        r["scoring_rubric"]["judge_config"] = {"model": "claude-opus-4-8", "temperature": 0}
+        self.assertTrue(vp.validate_record(r, "t").ok)
+
+
 # ───────────────────────── convergence: locked example numbers ─────────────
 class TestConvergenceExample(unittest.TestCase):
     @classmethod

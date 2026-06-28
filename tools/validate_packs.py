@@ -108,6 +108,75 @@ class RecordResult:
         return not self.errors
 
 
+# ── 평가 케이스 무결성 (검증자 검증, #3) ───────────────────────────────────────────
+def _eval_integrity(record: Any, res: "RecordResult") -> None:
+    """평가 케이스의 기록된 판정이 자기 채점 rubric 과 정합하는지 검사한다 (spec/05).
+
+    `decision_fidelity` 는 `result.status` 를 읽어 충실도를 잰다. 그 status 가 *사람이 친 자유
+    문자열*이고 아무도 rubric 과 대조하지 않으면, "보상이 검증이 아니라 기록"이 된다(카파시 #3).
+    이 함수는 *라이브 채점기*(프로필을 실제 실행)는 아니지만 — 그건 컴파일된 런타임이 필요 — 기록의
+    **내부 정합성**을 강제한다: 가중치 합·status↔score·하드페일·judge 결정성.
+    """
+    rubric = record.get("scoring_rubric")
+    result = record.get("result")
+    if not isinstance(rubric, dict) and not isinstance(result, dict):
+        return  # 평가 케이스가 아님 (rubric/result 둘 다 없음)
+
+    def _num(v):
+        return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+    if isinstance(rubric, dict):
+        # (a) criteria 가중치 합 ≈ 1.0 — 가중 평균 score 가 의미를 가지려면.
+        crit = rubric.get("criteria")
+        if isinstance(crit, list) and crit:
+            weights = [c.get("weight") for c in crit if isinstance(c, dict)]
+            nums = [w for w in weights if _num(w)]
+            if len(nums) == len(crit):  # 모든 criteria 에 숫자 weight 가 있을 때만 판정
+                s = sum(nums)
+                if abs(s - 1.0) > 0.01:
+                    res.errors.append(
+                        f"[EVAL] scoring_rubric 가중치 합이 1.0 이 아닙니다: {s:.3f}"
+                    )
+
+        # (d) llm_judge 결정성 — model+temperature 고정 없으면 재현 불가한 판정.
+        judge = rubric.get("judge")
+        jc = rubric.get("judge_config")
+        has_cfg = isinstance(jc, dict) and bool(jc.get("model")) and ("temperature" in jc)
+        if judge == "llm_judge" and not has_cfg:
+            res.errors.append(
+                "[EVAL] judge=llm_judge 인데 judge_config(model+temperature) 가 없습니다 "
+                "— 순수 기계 판정이 비결정적(재현 불가). model·temperature·prompt 를 고정하세요"
+            )
+
+    if isinstance(result, dict):
+        status = str(result.get("status", "")).strip().lower()
+        score = result.get("score")
+        thr = rubric.get("pass_threshold") if isinstance(rubric, dict) else None
+        fired = result.get("unacceptable_fired")
+        fired_any = isinstance(fired, list) and any(isinstance(x, str) and x.strip() for x in fired)
+
+        # (c) 하드페일: unacceptable 이 발동하면 점수와 무관하게 status 는 fail (RLVR).
+        if fired_any and status != "fail":
+            res.errors.append(
+                f"[EVAL] unacceptable_behavior 발동(unacceptable_fired={fired})인데 status={status!r} "
+                "— 하드페일은 점수와 무관하게 fail 이어야 합니다"
+            )
+
+        # (b) status=pass 면 score ≥ pass_threshold 여야 한다.
+        if status == "pass" and _num(score) and _num(thr):
+            if float(score) + 1e-9 < float(thr):
+                res.errors.append(
+                    f"[EVAL] status=pass 인데 score({score}) < pass_threshold({thr}) "
+                    "— 기록된 pass 가 rubric 점수와 모순됩니다"
+                )
+        # status=fail 인데 점수는 통과선 이상이고 하드페일도 없으면 근거 불명확 (경고).
+        if status == "fail" and _num(score) and _num(thr) and float(score) >= float(thr) and not fired_any:
+            res.warnings.append(
+                f"[EVAL] status=fail 인데 score({score}) ≥ pass_threshold({thr})·하드페일 없음 "
+                "— fail 근거가 불명확합니다"
+            )
+
+
 # ── 코어 레코드 검증 ────────────────────────────────────────────────────────────
 def validate_record(record: Any, locator: str) -> RecordResult:
     """베이스 레코드 코어 규칙으로 단일 레코드를 검증합니다."""
@@ -189,6 +258,9 @@ def validate_record(record: Any, locator: str) -> RecordResult:
                 f"런타임 활성(review_status={rs}) 레코드인데 evidence_refs 가 "
                 "비어 있습니다 — 런타임에서 추적 불가 (G1/G3)"
             )
+
+    # 9) 평가 케이스 무결성 (검증자 검증, #3) — rubric/result 를 가진 레코드에만 적용.
+    _eval_integrity(record, res)
 
     return res
 

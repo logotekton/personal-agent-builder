@@ -47,6 +47,7 @@
 | `sensitivity` ∈ {public, internal, sensitive, restricted} | — | FAIL |
 | `confidence < 0.7` 이면 `counterexamples`(≥1) 필수 | — | FAIL |
 | 런타임 활성(`confirmed`/`narrowed`)인데 `evidence_refs` 가 빔 | **G1·G3** (대기 후보의 런타임 활성 금지) | WARN |
+| (평가 케이스) 루브릭 무결성 — `criteria` 가중치 합=1 · `status=pass`면 `score≥pass_threshold` · `unacceptable_fired`면 status=`fail` · `judge=llm_judge`면 `judge_config` 필수 | **검증자 검증(#3)** | FAIL |
 
 > G4(행동 언어), G5(승격 전 프라이버시 경계), G6(템플릿/인스턴스 분리)는 사람·리뷰·구조 차원의
 > 게이트라 이 스크립트만으로 완전 자동화되지 않습니다. 이 검증기는 **G1·G2·G3와 베이스 필드

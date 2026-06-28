@@ -22,6 +22,15 @@
 ## [Unreleased]
 
 ### Karpathy review 후속 — 자기기만 방지 (실행 게이트 강화)
+- **#3 채점 무결성 게이트 — "보상이 검증이 아니라 기록"의 부분 해소.** `decision_fidelity`가 읽는
+  `result.status`가 *사람이 친 자유 문자열*이라 아무도 루브릭과 대조하지 않던 문제에 대해,
+  [`validate_packs.py`](./tools/validate_packs.py)가 평가 케이스의 **기록 내부 정합성**을 강제하도록
+  했습니다: 가중치 합=1 · `status=pass`면 `score≥pass_threshold` · `unacceptable_fired`면 status=`fail`
+  (하드페일) · `judge=llm_judge`면 `judge_config`(model·temperature) 필수. 스키마에 `judge_config`·
+  `result.unacceptable_fired` 추가. logotekton 예제는 모두 정합이라 **42 PASS 불변**. 테스트 +6(46개).
+  *정직한 한계:* 프로필을 실제 실행해 status를 도출하는 **라이브 채점기**는 컴파일된 런타임(현 스텁)이
+  필요해 별개이며, 이 게이트는 그 전제인 "기록이 자기 루브릭과 모순되지 않음"만 보장합니다.
+  → [`spec/05`](./spec/05-evaluation-drift.md), [`schemas/user.evaluation_cases.schema.json`](./schemas/user.evaluation_cases.schema.json).
 - **#4 자율성 자기인증 차단 — `human_confirmation_ratio`.** spec/12 §4.4가 정의만 해 둔 *사람 게이트 흐름만
   세는* 비율을 [`convergence_report.py`](./tools/convergence_report.py)에 구현하고, **성숙도 L2 게이트가
   `confirmation_ratio` 대신 이 값을 쓰도록** 바꿨습니다(베이스 레코드 `auto_confirmed` 플래그 → 자동확정

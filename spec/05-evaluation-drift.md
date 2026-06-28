@@ -86,6 +86,16 @@ AssistantProfile이 *주체가 승인했을 방식*대로 판단·작성·행동
 > `confidence`는 *케이스 레코드 자체*의 증거 강도입니다. 정의되었지만 한 번도 실행 안 된
 > 케이스(`status: not_run`)도 유효합니다.
 
+> **채점 무결성 게이트(검증자 검증).** `decision_fidelity`는 `result.status`를 읽어 충실도를
+> 잽니다. 그 status가 *사람이 친 자유 문자열*인데 아무도 루브릭과 대조하지 않으면 "보상이 검증이
+> 아니라 기록"이 됩니다. 그래서 [`tools/validate_packs.py`](../tools/validate_packs.py)가 평가
+> 케이스의 **기록 내부 정합성**을 게이트로 강제합니다: ① `criteria` 가중치 합 = 1.0, ②
+> `status=pass`면 `score ≥ pass_threshold`(점수와 모순되는 pass 거부), ③ `result.unacceptable_fired`가
+> 비어있지 않으면 status는 **반드시 `fail`**(하드페일은 점수와 무관, RLVR), ④ `judge=llm_judge`면
+> `judge_config`(model·temperature·prompt 고정) 필수 — 비결정 판정 금지. *라이브 채점기*(프로필을
+> 실제 실행해 status를 도출)는 컴파일된 런타임이 필요한 별개 작업이며, 이 게이트는 그 전제인
+> **기록이 자기 루브릭과 거짓말하지 않음**을 보장합니다.
+
 전체 기계 스키마 → [`../schemas/user.evaluation_cases.schema.json`](../schemas/user.evaluation_cases.schema.json).
 팩 정의 → [03 팩 카탈로그 §13](./03-pack-catalog.md#13-userevaluation_cases).
 
