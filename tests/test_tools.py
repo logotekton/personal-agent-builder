@@ -289,6 +289,15 @@ class TestEndToEnd(unittest.TestCase):
         r = _run("tools/dedup_check.py", "examples/logotekton")
         self.assertIn("0.095", r.stdout)
 
+    def test_convergence_report_cli_directory_form(self):
+        # the single-directory form documented in tools/README §2, CONTRIBUTING, QUICKSTART and CI
+        # (the broken two-file / --subject / no-arg forms are what this guards against). Locks that
+        # the documented command runs AND prints the tier/coverage the README now advertises.
+        r = _run("tools/convergence_report.py", "examples/logotekton")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("L2 Working", r.stdout)
+        self.assertIn("0.71", r.stdout)
+
     def test_rev02_pre_reproduces_four_verdicts(self):
         r = _run("tools/pab_merge.py",
                  "examples/logotekton/revolution-02/instance-records.pre.yaml",

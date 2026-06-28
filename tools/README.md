@@ -125,33 +125,34 @@ python tools/validate_packs.py --help
 
 ### 사용 예 — `examples/logotekton/` 수렴 리포트
 
+스크립트는 **디렉터리 하나**를 받아 그 안의 인스턴스 레코드·평가 케이스·드리프트 이력을 모두 읽습니다
+(파일을 따로 나열하지 않습니다):
+
 ```bash
-# 한 주체의 인스턴스 + 평가 케이스를 입력으로 6개 지표와 성숙도 단계 산출
-python tools/convergence_report.py \
-    examples/logotekton/instance-records.yaml \
-    examples/logotekton/evaluation-cases.yaml
+# 한 주체의 인스턴스 + 평가 + 드리프트가 든 디렉터리 → 6개 지표와 성숙도 단계
+python tools/convergence_report.py examples/logotekton
 ```
 
-이 입력에 대한 결과는 손으로 계산한 워크드 리포트
-[`examples/logotekton/convergence-report.md`](../examples/logotekton/convergence-report.md)와
-일치해야 합니다 — 즉 스크립트는 그 문서의 **재현 가능한 출처**입니다. 기대 값(2026-06-28 스냅샷):
+현재 라이브 출력(2026-06-28 — 데이터-엔진을 두 바퀴 돌린 **T2** 상태):
 
 ```
-coverage              0.43   (폭 6/14)   |  엄격 0.07 (≥3 확인: 1/14)
-confirmation_ratio    1.00
-decision_fidelity     0.75
-correction_cost       0.21   (↓ 좋음)
-drift_stability       1.00*  (초기값 — 표본 얇음)
-traceability          1.00   (필수 충족)
+coverage             0.71   (시드폭 0.71 · 엄격 ≥3 0.07)
+confirmation_ratio   1.00
+decision_fidelity    1.00
+correction_cost      0.08   (↓ 좋음 — #3 계측 후 NA→측정값)
+drift_stability      0.89
+traceability         1.00   (필수 충족)
 ──────────────────────────────────────────
-maturity tier         L1 Sketch  → L2 Working 직전
+maturity tier        L2 Working   (L3까지 남은 빗장: coverage≥0.8 하나)
 ```
 
-해석과 다음 단계(무엇을 더해야 L2를 여는가)는
-[`convergence-report.md` §3–§4](../examples/logotekton/convergence-report.md)에 서술돼 있습니다.
-요지: `traceability=1.0`(L1 필수)은 충족, `decision_fidelity`는 L3 임계(0.8)에 0.05 부족,
-`correction_cost`/`drift_stability`는 아직 표본이 얇아 곡선이 아니라 점입니다 — 세션이 누적돼야
-[수렴 모델 §4](../spec/06-convergence-model.md)의 두 곡선이 의미를 가집니다.
+이 숫자는 [`tests/`](../tests/README.md)가 회귀로 잠그고 있어, 도구를 바꾸면 테스트가 먼저 깨집니다.
+**라이브 디렉터리는 이미 플라이휠을 두 번 돌린 T2 상태**입니다 — *맨 처음*(T0) 베이스라인은
+[`convergence-report.md`](../examples/logotekton/convergence-report.md)가 보존하고, 두 번의 전이
+(T0→T1→T2)는 [`revolution-01`](../examples/logotekton/revolution-01/README.md)·
+[`revolution-02`](../examples/logotekton/revolution-02/README.md)가 추적합니다. 요지: `traceability=1.0`
+(타협 불가)과 `decision_fidelity≥0.8`(L3 충실도 빗장)은 이미 충족, 남은 L3 병목은 `coverage`(0.71→0.8)
+하나입니다.
 
 ---
 
@@ -176,9 +177,7 @@ CI 권장 순서:
 python tools/validate_packs.py examples/logotekton/
 
 # 2. 리포트: 게이트 통과 후 현재 수렴 상태 출력 (정보성)
-python tools/convergence_report.py \
-    examples/logotekton/instance-records.yaml \
-    examples/logotekton/evaluation-cases.yaml
+python tools/convergence_report.py examples/logotekton
 ```
 
 ## 크로스링크

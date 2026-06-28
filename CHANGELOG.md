@@ -60,6 +60,13 @@
   `#3-라우팅-표-1-1-전수`로 잘못 작성되어 실제 헤딩 슬러그(`#3-라우팅-표-11-전수`, `(1:1, 전수)`의
   `1:1`이 `11`로 정규화)와 어긋났음 → 다른 모든 링크가 쓰는 `11` 규약으로 통일. 저장소 전체 166개
   교차문서 앵커 링크를 GitHub 슬러그 알고리즘으로 일괄 점검(broken=0 확인).
+- **실행되지 않던 문서 명령·낡은 라이브 출력 정정("모든 figure는 명령으로 재현"의 위반).**
+  `convergence_report.py`는 *디렉터리 하나*를 받는데 문서 세 곳이 깨진 형태였음 — `tools/README.md`
+  §2의 두-파일 형태, `CONTRIBUTING.md`의 인자 없는 형태, `templates/QUICKSTART.md`의 존재하지 않는
+  `--subject` 플래그(모두 exit 2). 디렉터리 형태로 통일. 더불어 `tools/README.md` §2의 "기대 출력"이
+  플라이휠 이전(T0: L1·coverage 0.43·df 0.75·correction_cost 0.21)을 *라이브*인 양 제시 → 실제 라이브
+  **T2(L2·0.71·1.00·0.08·drift 0.89)** 로 교정하고 T0 베이스라인은 `convergence-report.md`,
+  델타는 revolution-01/02가 보존함을 명시. 회귀 테스트로 디렉터리-형 CLI를 잠금(36 tests).
 
 ### Added (예정)
 - 더 많은 평가 케이스(EvaluationCase) 시드 및 다중 사용자 예제.

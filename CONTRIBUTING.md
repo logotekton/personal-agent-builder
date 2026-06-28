@@ -98,8 +98,9 @@
 ### 3.3 제출 전 반드시 실행
 
 ```bash
-python tools/validate_packs.py        # 스키마·게이트·정식 이름 검증 (필수, 통과해야 머지)
-python tools/convergence_report.py    # 예제 인스턴스에 영향 줬다면 지표 재계산
+python tools/validate_packs.py examples/logotekton      # 스키마·게이트·정식 이름 검증 (필수, 통과해야 머지)
+python tools/convergence_report.py examples/logotekton  # 예제 인스턴스에 영향 줬다면 지표 재계산
+#   (도구를 바꿨다면) python -m unittest discover -s tests   # 모든 숫자를 잠근 회귀 스위트
 ```
 
 `tools/validate_packs.py`는 게이트(G1·G2·G3·G6)와 정식 이름, 베이스 레코드 적합성을
