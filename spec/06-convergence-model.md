@@ -31,7 +31,11 @@
 | `traceability` | 증거를 가진 활성 규칙 / 활성 규칙 | = | **1.0 필수** |
 
 - `coverage`는 **폭** — 자기표현이 14개 영역에 고루 퍼졌는가.
-- `confirmation_ratio`는 **포착 품질** — 추출이 실제로 승인되는가, 잡음만 많은가.
+- `confirmation_ratio`는 **포착 품질** — 추출이 실제로 승인되는가, 잡음만 많은가. **단, 성숙도 게이트는
+  이 값이 아니라 `human_confirmation_ratio`(auto-confirm 승격을 분자·분모에서 제외한 *사람 게이트* 흐름만)를
+  쓴다** — auto-confirm 이 `confirmed` 분자를 스스로 밀어올려 *떨어졌어야 할* 성숙도를 가리는 자기인증 루프를
+  막기 위해서다([12 확인 정책 §4.4](./12-confirmation-policy.md), 베이스 레코드의 `auto_confirmed` 필드).
+  auto-confirm 이 0건이면 둘은 같다.
 - `decision_fidelity`는 **충실도** — 에이전트가 당신이 승인할 답을 고르는가([평가](./05-evaluation-drift.md)).
 - `correction_cost`는 가장 정직한 지표 — *얼마나 덜 고치게 되었는가*. 유일하게 낮을수록 좋음.
 - `drift_stability`는 **수렴의 증거** — 초기엔 대체가 잦고(높은 드리프트), 수렴할수록 잦아듦이
@@ -46,7 +50,7 @@
 |------|------|-----------|
 | **L0** | Seed (씨앗) | 3개 미만 팩 시드, 평가 케이스 없음 |
 | **L1** | Sketch (스케치) | ≥7개 팩 시드, ≥3개 평가 케이스, `traceability`=1.0 |
-| **L2** | Working (작동) | `coverage`≥0.5, `decision_fidelity`≥0.6, `confirmation_ratio`≥0.6 |
+| **L2** | Working (작동) | `coverage`≥0.5, `decision_fidelity`≥0.6, `human_confirmation_ratio`≥0.6 |
 | **L3** | Reliable (신뢰) | `coverage`≥0.8, `decision_fidelity`≥0.8, `correction_cost`≤0.3, `drift_stability`≥0.7 |
 | **L4** | Convergent (수렴) | `coverage`=1.0, `decision_fidelity`≥0.9, `correction_cost`≤0.15, `drift_stability`≥0.85, `traceability`=1.0, **N기간 이상 지속** |
 

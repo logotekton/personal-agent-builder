@@ -27,6 +27,7 @@ JSON과 YAML의 안전한 부분집합을 읽습니다.
 여섯 지표 (spec/06 §2):
   coverage            = 확인 레코드 ≥3개인 팩 수 / 14         (↑, 목표 1.0)
   confirmation_ratio  = confirmed / (confirmed+pending+rejected)  (↑, ≥0.6)
+                        성숙도 게이트는 auto-confirm 을 제외한 human_confirmation_ratio 를 쓴다(§4.4)
   decision_fidelity   = 통과 평가 케이스 / 전체 평가 케이스    (↑, ≥0.8; partial=0.5)
   correction_cost     = 작업당 사용자 편집 비율 평균          (↓, ≤0.2; 없으면 NA)
   drift_stability     = 1 − (최근 대체수 / 확인 레코드수)     (↑, ≥0.8; 드리프트 없으면 1.0)
@@ -35,7 +36,7 @@ JSON과 YAML의 안전한 부분집합을 읽습니다.
 성숙도 단계 (spec/06 §3):
   L0 Seed       : 시드 팩 < 3, 평가 케이스 없음
   L1 Sketch     : 시드 팩 ≥ 7, 평가 케이스 ≥ 3, traceability == 1.0
-  L2 Working    : coverage ≥ 0.5, decision_fidelity ≥ 0.6, confirmation_ratio ≥ 0.6
+  L2 Working    : coverage ≥ 0.5, decision_fidelity ≥ 0.6, human_confirmation_ratio ≥ 0.6
   L3 Reliable   : coverage ≥ 0.8, decision_fidelity ≥ 0.8, correction_cost ≤ 0.3,
                   drift_stability ≥ 0.7
   L4 Convergent : coverage == 1.0, decision_fidelity ≥ 0.9, correction_cost ≤ 0.15,
@@ -487,6 +488,20 @@ def _status_of(rec) -> str:
     return str(rec.get("review_status", "")).strip().lower()
 
 
+def _is_auto_confirmed(rec) -> bool:
+    """이 confirmed 레코드가 auto_confirm_policy 로 승격됐는가 (사람 게이트를 거치지 않음).
+
+    기본값은 False = 사람이 직접 확인. spec/12 §4.4 의 순환 차단을 위해, 성숙도 게이트가 세는
+    'human_confirmation_ratio' 에서 auto-confirm 승격을 제외하는 데 쓰인다.
+    """
+    v = rec.get("auto_confirmed")
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v.strip().lower() in ("true", "auto", "yes", "1")
+    return False
+
+
 def _eval_result_status(rec) -> str | None:
     """평가 케이스의 result.status (pass/partial/fail) 를 소문자로."""
     result = rec.get("result")
@@ -531,6 +546,7 @@ def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=Fal
     confirmed_by_pack = {}
     seeded_packs = 0
     n_confirmed = n_pending = n_rejected = 0
+    n_auto_confirmed = 0
     for pack in CANONICAL_PACKS:
         recs = pack_records.get(pack, [])
         c = sum(1 for r in recs if _status_of(r) in CONFIRMED_STATES)
@@ -541,6 +557,8 @@ def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=Fal
             st = _status_of(r)
             if st in CONFIRMED_STATES:
                 n_confirmed += 1
+                if _is_auto_confirmed(r):
+                    n_auto_confirmed += 1
             elif st in PENDING_STATES:
                 n_pending += 1
             elif st in REJECTED_STATES:
@@ -555,6 +573,14 @@ def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=Fal
 
     denom_cr = n_confirmed + n_pending + n_rejected
     confirmation_ratio = (n_confirmed / denom_cr) if denom_cr else None
+
+    # human_confirmation_ratio: auto-confirm 으로 승격된 레코드를 분자·분모에서 제외한 '사람 게이트'
+    # 흐름만 (spec/12 §4.4 순환 차단). 성숙도 게이트는 confirmation_ratio 가 아니라 이 값을 써야,
+    # auto-confirm 이 confirmed 분자를 스스로 밀어올려 '떨어졌어야 할' 성숙도를 가리는 루프를 막는다.
+    # auto-confirm 이 0건이면 human_confirmation_ratio == confirmation_ratio.
+    n_human_confirmed = n_confirmed - n_auto_confirmed
+    denom_hcr = n_human_confirmed + n_pending + n_rejected
+    human_confirmation_ratio = (n_human_confirmed / denom_hcr) if denom_hcr else None
 
     # decision_fidelity: pass=1, partial=0.5, fail/그외=0
     n_eval = len(eval_cases)
@@ -623,6 +649,7 @@ def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=Fal
         "coverage_seeded": coverage_seeded,
         "coverage_strict": coverage_strict,
         "confirmation_ratio": confirmation_ratio,
+        "human_confirmation_ratio": human_confirmation_ratio,
         "decision_fidelity": decision_fidelity,
         "correction_cost": correction_cost,
         "drift_stability": drift_stability,
@@ -631,6 +658,8 @@ def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=Fal
         "_seeded_packs": seeded_packs,
         "_packs_with_3": packs_with_3,
         "_n_confirmed": n_confirmed,
+        "_n_auto_confirmed": n_auto_confirmed,
+        "_n_human_confirmed": n_human_confirmed,
         "_n_pending": n_pending,
         "_n_rejected": n_rejected,
         "_n_eval": n_eval,
@@ -652,6 +681,9 @@ def maturity_tier(ix):
     """
     coverage = ix["coverage"]
     cr = ix["confirmation_ratio"]
+    # 성숙도 게이트는 auto-confirm 에 오염되지 않는 human_confirmation_ratio 를 쓴다 (spec/12 §4.4).
+    # 값이 없으면(사람 게이트 흐름이 0건) None → 게이트 미충족: 사람 신호 없이는 성숙을 인증하지 않는다.
+    hcr = ix.get("human_confirmation_ratio")
     df = ix["decision_fidelity"]
     cost = ix["correction_cost"]
     drift = ix["drift_stability"]
@@ -667,7 +699,7 @@ def maturity_tier(ix):
 
     # 각 단계 진입 조건 (spec/06 §3)
     l1 = (seeded >= 7) and (n_eval >= 3) and (trace == 1.0)
-    l2 = ge(coverage, 0.5) and ge(df, 0.6) and ge(cr, 0.6)
+    l2 = ge(coverage, 0.5) and ge(df, 0.6) and ge(hcr, 0.6)
     l3 = ge(coverage, 0.8) and ge(df, 0.8) and le(cost, 0.3) and ge(drift, 0.7)
     l4 = (
         coverage == 1.0
@@ -701,7 +733,7 @@ def maturity_tier(ix):
         "L1_traceability==1.0": trace == 1.0,
         "L2_coverage>=0.5": ge(coverage, 0.5),
         "L2_decision_fidelity>=0.6": ge(df, 0.6),
-        "L2_confirmation_ratio>=0.6": ge(cr, 0.6),
+        "L2_human_confirmation_ratio>=0.6": ge(hcr, 0.6),
         "L3_coverage>=0.8": ge(coverage, 0.8),
         "L3_decision_fidelity>=0.8": ge(df, 0.8),
         "L3_correction_cost<=0.3": le(cost, 0.3),
@@ -770,6 +802,11 @@ def render_table(ix, tier_id, tier_name, directory, n_files, strict_coverage):
         f"    └ coverage 상세: 시드폭 {ix['coverage_seeded']:0.2f} · "
         f"엄격(≥3) {ix['coverage_strict']:0.2f}  (게이트 사용값: {used})"
     )
+    lines.append(
+        f"    └ confirmation: 전체 {_fmt(ix['confirmation_ratio'])} · "
+        f"사람게이트 {_fmt(ix['human_confirmation_ratio'])}  "
+        f"(성숙도 게이트 사용값: 사람게이트 — auto-confirm {ix['_n_auto_confirmed']}건 제외, spec/12 §4.4)"
+    )
     lines.append("")
     lines.append("[3] 팩별 확인 레코드 수")
     for i, pack in enumerate(CANONICAL_PACKS, start=1):
@@ -807,6 +844,7 @@ def render_json(ix, tier_id, tier_name, directory, n_files):
             "coverage_seeded": ix["coverage_seeded"],
             "coverage_strict": ix["coverage_strict"],
             "confirmation_ratio": ix["confirmation_ratio"],
+            "human_confirmation_ratio": ix["human_confirmation_ratio"],
             "decision_fidelity": ix["decision_fidelity"],
             "correction_cost": ix["correction_cost"],
             "drift_stability": ix["drift_stability"],
@@ -816,6 +854,8 @@ def render_json(ix, tier_id, tier_name, directory, n_files):
             "seeded_packs": ix["_seeded_packs"],
             "packs_with_3_confirmed": ix["_packs_with_3"],
             "confirmed": ix["_n_confirmed"],
+            "auto_confirmed": ix["_n_auto_confirmed"],
+            "human_confirmed": ix["_n_human_confirmed"],
             "pending": ix["_n_pending"],
             "rejected": ix["_n_rejected"],
             "eval_total": ix["_n_eval"],

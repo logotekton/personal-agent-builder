@@ -21,6 +21,15 @@
 
 ## [Unreleased]
 
+### Karpathy review 후속 — 자기기만 방지 (실행 게이트 강화)
+- **#4 자율성 자기인증 차단 — `human_confirmation_ratio`.** spec/12 §4.4가 정의만 해 둔 *사람 게이트 흐름만
+  세는* 비율을 [`convergence_report.py`](./tools/convergence_report.py)에 구현하고, **성숙도 L2 게이트가
+  `confirmation_ratio` 대신 이 값을 쓰도록** 바꿨습니다(베이스 레코드 `auto_confirmed` 플래그 → 자동확정
+  승격은 분자·분모에서 제외). auto-confirm을 켜도 시스템이 *제 성숙도를 자기인증*(목줄이 스스로 풀림)하지
+  못합니다. auto-confirm 0건인 logotekton 예제는 값·티어 불변(L2). 회귀 테스트가 "confirmation_ratio 0.75는
+  통과하나 human_confirmation_ratio 0.30은 L2를 막음"을 잠금. → [`spec/06`](./spec/06-convergence-model.md)·
+  [`spec/12 §4.4`](./spec/12-confirmation-policy.md), [`schemas/record.base.schema.json`](./schemas/record.base.schema.json).
+
 ### Added
 - **`result.edit_fraction`(0..1) — `correction_cost` 계측.** `user.evaluation_cases`의 `result`에
   작업별 사용자 편집 비율 필드를 형식화해, `correction_cost` 지표가 NA에서 *측정값*으로 전환됩니다

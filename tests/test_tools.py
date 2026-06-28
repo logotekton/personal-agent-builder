@@ -248,6 +248,7 @@ class TestConvergenceExample(unittest.TestCase):
         self.assertTrue(almost(ix["coverage"], 0.714285, 3), ix["coverage"])
         self.assertTrue(almost(ix["coverage_strict"], 0.071428, 3), ix["coverage_strict"])
         self.assertEqual(ix["confirmation_ratio"], 1.0)
+        self.assertEqual(ix["human_confirmation_ratio"], 1.0)  # example has 0 auto-confirm
         self.assertEqual(ix["decision_fidelity"], 1.0)
         self.assertTrue(almost(ix["correction_cost"], 0.083333, 4), ix["correction_cost"])
         self.assertTrue(almost(ix["drift_stability"], 0.894736, 4), ix["drift_stability"])
@@ -257,6 +258,8 @@ class TestConvergenceExample(unittest.TestCase):
         ix = self.ix
         self.assertEqual(ix["_seeded_packs"], 10)
         self.assertEqual(ix["_n_confirmed"], 19)
+        self.assertEqual(ix["_n_auto_confirmed"], 0)
+        self.assertEqual(ix["_n_human_confirmed"], 19)
         self.assertEqual(ix["_supersessions"], 2)
         self.assertEqual((ix["_eval_pass"], ix["_eval_partial"], ix["_eval_fail"]), (6, 0, 0))
 
@@ -270,6 +273,41 @@ class TestConvergenceExample(unittest.TestCase):
         _, _, reasons = cr.maturity_tier(self.ix)
         unmet = [k for k, ok in reasons.items() if k.startswith("L3_") and not ok]
         self.assertEqual(unmet, ["L3_coverage>=0.8"])
+
+
+class TestHumanConfirmationRatio(unittest.TestCase):
+    """spec/12 §4.4 circularity break: auto-confirm must NOT inflate the maturity gate (#4)."""
+
+    def test_auto_confirm_excluded_from_human_ratio(self):
+        # 1 human-confirmed + 5 auto-confirmed + 2 human-rejected, all in one pack
+        recs = {"user.identity_roles": (
+            [{"review_status": "confirmed"}]
+            + [{"review_status": "confirmed", "auto_confirmed": True}] * 5
+            + [{"review_status": "rejected"}] * 2
+        )}
+        ix = cr.compute_indices(recs, [], [])
+        self.assertEqual(ix["_n_confirmed"], 6)
+        self.assertEqual(ix["_n_auto_confirmed"], 5)
+        self.assertEqual(ix["_n_human_confirmed"], 1)
+        # confirmation_ratio counts auto-confirms → looks healthy (0.75)
+        self.assertAlmostEqual(ix["confirmation_ratio"], 6 / 8)
+        # human-only ratio tells the truth: only 1 of 3 HUMAN-gated decisions was a confirm
+        self.assertAlmostEqual(ix["human_confirmation_ratio"], 1 / 3)
+
+    def test_gate_blocks_self_certification(self):
+        # confirmation_ratio 0.75 would pass L2, but the human stream (0.30) must not →
+        # the gate reads human_confirmation_ratio, so auto-confirm cannot unlock its own maturity.
+        base = {
+            "coverage": 0.6, "confirmation_ratio": 0.75, "human_confirmation_ratio": 0.30,
+            "decision_fidelity": 0.9, "correction_cost": 0.1, "drift_stability": 0.9,
+            "traceability": 1.0, "_seeded_packs": 8, "_n_eval": 3,
+        }
+        tier, _, reasons = cr.maturity_tier(base)
+        self.assertFalse(reasons["L2_human_confirmation_ratio>=0.6"])
+        self.assertNotEqual(tier, "L2")  # blocked despite confirmation_ratio 0.75
+        # had the same confirms been human-gated (hcr 0.75), L2 legitimately opens
+        tier2, _, _ = cr.maturity_tier({**base, "human_confirmation_ratio": 0.75})
+        self.assertEqual(tier2, "L2")
 
 
 # ───────────────────────── end-to-end CLI (subprocess) ─────────────────────

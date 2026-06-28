@@ -63,6 +63,11 @@
     "created_at": { "type": "string", "format": "date-time" },
     "updated_at": { "type": "string", "format": "date-time" },
 
+    "auto_confirmed": {
+      "type": "boolean",
+      "description": "True if this record reached review_status=confirmed via an auto_confirm_policy (spec/12) rather than a human gate. Default false = human-confirmed. The maturity gate counts a human-only human_confirmation_ratio that EXCLUDES auto_confirmed records, so auto-confirm cannot inflate the confirmed numerator and let the system self-certify its own maturity (spec/12 §4.4 circularity break)."
+    },
+
     "aliases": { "type": "array", "items": { "type": "string" } },
     "priority_weight": { "type": "number", "minimum": 0, "maximum": 1 },
     "counterexamples": {
