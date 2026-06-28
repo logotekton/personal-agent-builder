@@ -86,7 +86,7 @@
 
 | 필드 | 필수 | 의미 |
 |------|:----:|------|
-| `id` | ✓ | 안정 증거 id. 형식 `<subject>.evidence.NNN` (예: `logotekton.evidence.001`). 이 값이 후보의 `evidence_refs`에 들어간다. |
+| `id` | ✓ | 안정 증거 id. 권장 관례 `<subject>.evidence.NNN`(예: `logotekton.evidence.001`)이되, **출처-앵커 ref**(예: `current_session`, `session_2026-06-28c#rederive_…`, `ev.eval.005#…`)도 유효하다 — 워크된 예제(examples/logotekton)가 쓰는 형식. 스키마는 `evidence_refs`에 자유 문자열을 허용하므로 핵심은 *안정성·재방문 가능성*이지 고정 패턴이 아니다. 이 값이 후보의 `evidence_refs`에 들어간다. |
 | `source_type` | ✓ | §3.1 열거값 중 하나 (`session_log` … `event_log`). |
 | `source_title` | ✓ | 사람이 알아볼 짧은 출처 이름 (예: `"2026-06-21 리뷰 세션 — 보고서 톤 교정"`). |
 | `source_timestamp` | ✓ | 신호가 발생한 시각, RFC 3339 (`2026-06-21T14:03:00+09:00`). 포착 시각이 아니라 **원본 발생 시각**. |
@@ -146,9 +146,13 @@
    **G5**(승격 전 프라이버시)로 흘러가, [S09 privacy_boundary](../skills/09-privacy-boundary.md)가
    `BoundaryRule`을 *먼저* 부착하도록 만듭니다. 의심스러우면 더 높은 등급으로 올리세요.
 5. **모든 후보는 ≥1개 증거를 가리킨다 (Every candidate references ≥1 evidence).** 이 단계는
-   그 *가리킬 대상*을 만드는 단계입니다. 안정 `id`를 부여하고, 같은 신호를 두 번 포착하지 않게
-   `hash_or_version`/`source_ref`로 중복을 거릅니다. 가리킬 수 없는 증거(불안정 id, 사라질
-   링크)는 G1을 무력화하므로 금지입니다.
+   그 *가리킬 대상*을 만드는 단계입니다. 안정 `id`를 부여하고, **같은 `source_ref`의 동일 신호를
+   글자 그대로 두 번 적재하지 않게** `hash_or_version`/`source_ref`로 중복(같은 물리적 발화의 재포착)을
+   거릅니다. **단, 다른 세션에서 같은 패턴이 다시 나타나면 그것은 중복이 아니라 새 `EvidenceItem`입니다**
+   — 그 재유도가 바로 병합 층이 누적해 `repetition_count`↑·`merge_rate`로 바꾸는 연료이기 때문입니다.
+   즉 *반복 신호를 하나의 정식 레코드로 누적*하는 일은 이 단계가 아니라 하류 병합 층의 책임입니다
+   ([10 중복 억제·병합](../spec/10-dedup-and-merge.md), [`tools/pab_merge.py`](../tools/pab_merge.py)).
+   가리킬 수 없는 증거(불안정 id, 사라질 링크)는 G1을 무력화하므로 금지입니다.
 
 ## 5. 품질 검사 (Quality checks)
 
@@ -192,6 +196,7 @@
 - 노드/엣지/게이트/라이프사이클 어휘 → [01 커널 스키마](../spec/01-kernel-schema.md)
 - 증거를 가리키는 후보의 필드 → [05 candidate_extraction](../skills/05-candidate-extraction.md) ·
   [`candidate.schema.json`](../schemas/candidate.schema.json)
+- 반복 증거가 하나의 정식 레코드로 누적되는 방식(repetition_count·merge_rate) → [10 중복 억제·병합](../spec/10-dedup-and-merge.md) · [`tools/pab_merge.py`](../tools/pab_merge.py)
 - 베이스 레코드의 `sensitivity`/`evidence_refs` 규약 → [`record.base.schema.json`](../schemas/record.base.schema.json)
 - 민감 항목이 받는 경계 규칙 → [04 프라이버시·경계](../spec/04-privacy-boundary.md) ·
   [09 privacy_boundary](../skills/09-privacy-boundary.md)
