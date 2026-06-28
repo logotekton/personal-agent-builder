@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/trigger.schema.json",
+  "title": "Personal Agent — Builder Skill Trigger",
+  "description": "Declarative activation condition for a builder skill. A trigger says WHEN a skill fires and WHAT it produces, mapped onto a host hook (Claude Code hooks / OpenCrab crab_orchestration entry conditions / cron). The cardinal rule: a trigger fires DETECTION/STAGING only; promotion to a confirmed runtime-active record stays gated (requires_confirmation) unless an explicit auto_confirm_policy permits it for narrow high-confidence, non-sensitive cases. Spec: spec/09-triggers.md. Skills own their trigger; crab_orchestration aggregates them into a routing table.",
+  "type": "object",
+  "required": ["trigger_id", "skill", "signal", "cadence", "produces", "requires_confirmation", "default_state"],
+  "properties": {
+    "trigger_id": {
+      "type": "string",
+      "description": "Stable id, format pab.<skill>.<on_signal> e.g. pab.diff_mining.on_correction",
+      "pattern": "^pab\\.[a-z_]+\\.[a-z0-9_]+$"
+    },
+    "skill": {
+      "type": "string",
+      "description": "Owning builder skill (skill.pab.* short name).",
+      "enum": [
+        "evidence_capture", "session_mining", "elicitation_questioning", "diff_mining",
+        "candidate_extraction", "scope_context", "confirmation_gate", "pack_router",
+        "privacy_boundary", "agent_compiler", "evaluation_drift", "crab_orchestration"
+      ]
+    },
+    "signal": {
+      "type": "string",
+      "description": "The observable event/condition that fires the trigger.",
+      "enum": [
+        "turn", "tool_result", "user_correction", "repeated_request", "explicit_preference",
+        "coverage_gap", "sensitivity_flag", "pre_external_action", "candidate_created",
+        "candidate_confirmed", "session_start", "session_end", "review_queue_threshold",
+        "pack_updated", "schedule", "command"
+      ]
+    },
+    "condition": {
+      "type": "string",
+      "description": "Human-readable predicate refining the signal (e.g. 'agent output edited or rejected by user')."
+    },
+    "cadence": {
+      "type": "string",
+      "description": "How often / on what rhythm the trigger evaluates.",
+      "enum": ["continuous", "turn", "event", "threshold", "session_boundary", "schedule", "command"]
+    },
+    "host_hook": {
+      "type": "string",
+      "description": "Where the trigger binds in the host runtime. Claude Code hook events, an OpenCrab crab_orchestration entry condition, cron, or a slash command. SessionStart=compile; UserPromptSubmit/PostToolUse=ambient capture; PreToolUse=pre-action boundary; Stop=session-end mining + review board.",
+      "enum": [
+        "SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop",
+        "Cron", "orchestrator", "command", "chained"
+      ]
+    },
+    "produces": {
+      "type": "string",
+      "description": "The lifecycle stage output this trigger creates. NOTE: capture/mine/extract/scope/route produce STAGED artifacts (pending); only confirmation_gate produces a confirmed/runtime-active record (or auto_confirm_policy does, narrowly).",
+      "enum": [
+        "evidence_staged", "candidate_staged", "scoped", "review_requested",
+        "routed", "boundary_applied", "compiled", "evaluated", "drift_recorded"
+      ]
+    },
+    "requires_confirmation": {
+      "type": "boolean",
+      "description": "If true, the produced artifact cannot become a runtime-active record without explicit human review (Gate G3). Detection/staging triggers set false (they only stage pending items); the confirmation_gate and any boundary/decision-affecting promotion set true."
+    },
+    "default_state": {
+      "type": "string",
+      "description": "Privacy-conservative default. enabled=on out of the box; suggested=proposed to the user, off until accepted; off=opt-in only. Sensitive/high-stakes skills default to suggested or off.",
+      "enum": ["enabled", "suggested", "off"]
+    },
+    "debounce": {
+      "type": "string",
+      "description": "Throttle to prevent floods (e.g. 'per_turn', 'per_session', '1/min', 'batch_at_session_end')."
+    },
+    "stages_to": {
+      "type": "string",
+      "description": "Optional pack visibility for staged output: 'draft' (OpenCrab draft pack) or 'pending' (in-session queue). Promotion changes this to the live instance pack only after the gate."
+    },
+    "auto_confirm_policy": {
+      "type": "object",
+      "description": "OPTIONAL narrow bypass of the confirmation gate. When ALL conditions hold, a staged candidate may be promoted without interactive review. Absent = always require human review (the safe default).",
+      "additionalProperties": false,
+      "properties": {
+        "min_confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "e.g. 0.9" },
+        "allowed_sensitivity": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["public", "internal", "sensitive", "restricted"] },
+          "description": "Only these sensitivity classes may auto-confirm (never restricted; sensitive only with a boundary rule)."
+        },
+        "require_any": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["explicit_user_statement", "repetition_ge_3", "correction_backed"] },
+          "description": "At least one strong-evidence condition must hold."
+        },
+        "never_auto_confirm_types": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Candidate types that ALWAYS require human review regardless of confidence (e.g. BoundaryRuleCandidate, DecisionPolicyCandidate)."
+        }
+      }
+    }
+  },
+  "$comment": "Trigger fires detection/staging only; promotion stays gated unless auto_confirm_policy narrowly permits it. This is how the system stays safe to leave 'always on' (Gates G3 no-pending-activation, G5 privacy-before-promotion). Host mapping: Claude Code hooks for in-session ambient capture + session-boundary review; Cron(durable) for batch processing of prior transcripts; OpenCrab ingest_text(pack_visibility='draft') as the staging store."
+}

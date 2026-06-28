@@ -294,3 +294,26 @@ OpenCrab 도구로 실행할 때는 `opencrab_query`/`opencrab_search_documents`
 - 라우팅 도착지인 14개 팩 → [03 팩 카탈로그](../spec/03-pack-catalog.md)
 - 민감 후보가 받는 경계 규칙 → [04 프라이버시·경계](../spec/04-privacy-boundary.md) · [09 privacy_boundary](./09-privacy-boundary.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> 이 스킬의 발화 조건. 전체 2계층 모델·호스트(훅) 매핑·게이트 보존은
+> [../spec/09-triggers.md](../spec/09-triggers.md), 머신 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json) 참고.
+
+```yaml
+trigger:
+  trigger_id: pab.candidate_extraction.on_threshold
+  skill: candidate_extraction
+  signal: review_queue_threshold
+  condition: "enough evidence signals have accumulated"
+  cadence: threshold
+  host_hook: Stop · chained
+  produces: candidate_staged
+  requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
+  default_state: enabled
+  debounce: batch
+```
+
+신호가 임계에 닿으면 14개 타입 중 하나의 후보로 배치 추출합니다.

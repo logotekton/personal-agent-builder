@@ -354,3 +354,26 @@ OpenCrab 도구로 실행할 때는 `opencrab_search_packs`로 도착지 팩을 
 - 평가 케이스 팩의 케이스 필드(특수 매핑) → [05 평가·드리프트](../spec/05-evaluation-drift.md)
 - 1:1 라우팅이 지키는 검색 정밀도·추적성·수렴 지표 → [06 수렴 모델](../spec/06-convergence-model.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> 이 스킬의 발화 조건. 전체 2계층 모델·호스트(훅) 매핑·게이트 보존은
+> [../spec/09-triggers.md](../spec/09-triggers.md), 머신 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json) 참고.
+
+```yaml
+trigger:
+  trigger_id: pab.pack_router.on_confirmed
+  skill: pack_router
+  signal: candidate_confirmed
+  condition: "route only confirmed or edited candidates"
+  cadence: event
+  host_hook: chained
+  produces: routed
+  requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
+  default_state: enabled
+  debounce: per_candidate
+```
+
+게이트를 통과한 후보만 1:1로 라우팅합니다 — pending은 절대 팩에 들어가지 않습니다(G3).

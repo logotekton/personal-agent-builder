@@ -288,3 +288,26 @@ OpenCrab 도구로 실행할 때는 `opencrab_get_node_context`/`opencrab_query`
 - 민감·경계 후보의 권한·경계 처리 → [04 프라이버시·경계](../spec/04-privacy-boundary.md) ·
   [09 privacy_boundary](./09-privacy-boundary.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> 이 스킬의 발화 조건. 전체 2계층 모델·호스트(훅) 매핑·게이트 보존은
+> [../spec/09-triggers.md](../spec/09-triggers.md), 머신 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json) 참고.
+
+```yaml
+trigger:
+  trigger_id: pab.scope_context.on_candidate
+  skill: scope_context
+  signal: candidate_created
+  condition: "a new candidate needs scope, exception, and temporal validity"
+  cadence: event
+  host_hook: chained
+  produces: scoped
+  requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
+  default_state: enabled
+  debounce: per_candidate
+```
+
+후보 생성 직후 체이닝되어 스코프를 부여합니다 — 스코프 없는 규칙 방지(G2).

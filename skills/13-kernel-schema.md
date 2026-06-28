@@ -236,3 +236,10 @@ OpenCrab 도구로 실행할 때는 `opencrab_search_packs`로 거버넌스/스�
 - 후보 추출 시 타입 어휘 사용 → [05 후보 추출](./05-candidate-extraction.md)
 - 확정 후보의 1:1 라우팅 실행 → [08 팩 라우팅](./08-pack-router.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> **없음 (스키마 척추).** kernel_schema는 실행되는 단계가 아니라 다른 모든 스킬이 *먼저 읽는*
+> 공유 스키마이므로 발화 트리거가 없습니다. 트리거 시스템은 이 스키마의 라이프사이클·게이트
+> (G1~G6) 위에서 동작합니다 → 전체 모델 [../spec/09-triggers.md](../spec/09-triggers.md).

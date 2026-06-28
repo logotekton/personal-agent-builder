@@ -290,3 +290,26 @@ OpenCrab 도구로 실행할 때는 `opencrab_query`/`opencrab_search_documents`
 - 민감 후보가 받는 경계 규칙·권한 모델 → [04 프라이버시·경계](../spec/04-privacy-boundary.md)
 - 거부·드리프트·rejection_alignment 평가 → [11 evaluation_drift](./11-evaluation-drift.md) · [05 평가·드리프트](../spec/05-evaluation-drift.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> 이 스킬의 발화 조건. 전체 2계층 모델·호스트(훅) 매핑·게이트 보존은
+> [../spec/09-triggers.md](../spec/09-triggers.md), 머신 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json) 참고.
+
+```yaml
+trigger:
+  trigger_id: pab.confirmation_gate.on_session_end
+  skill: confirmation_gate
+  signal: session_end
+  condition: "review staged candidates before any promotion (also queue>=K or /review)"
+  cadence: session_boundary
+  host_hook: Stop · command
+  produces: review_requested
+  requires_confirmation: true     # 사람 검토 필요 (게이트)
+  default_state: enabled
+  debounce: batch_at_session_end
+```
+
+유일한 사람 체크포인트입니다 — 세션 끝에 한국어 리뷰보드로 빠르게 confirm/edit/reject(comm.002).

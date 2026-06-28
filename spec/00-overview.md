@@ -27,6 +27,7 @@
 | [06 수렴 모델](./06-convergence-model.md) | 6개 수렴 지표 + 5단계 성숙도 (참여 훅) |
 | [07 9-space 크로스워크](./07-opencrab-9space-crosswalk.md) | OpenCrab 정식 문법과의 정합 |
 | [08 네이밍·ID](./08-naming-and-ids.md) | 정식 이름, system_pack_id vs display_name |
+| [09 트리거](./09-triggers.md) | 스킬 발화 조건, 훅 매핑, 스테이징/승격 경계, auto-confirm 정책 |
 
 ## 한눈에 보는 파이프라인
 

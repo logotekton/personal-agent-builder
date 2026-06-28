@@ -259,3 +259,26 @@ OpenCrab 도구로 실행할 때는 `opencrab_search_documents`/`opencrab_query`
 - 민감·경계 교정이 받는 경계 규칙 → [04 프라이버시·경계](../spec/04-privacy-boundary.md) ·
   [09 privacy_boundary](./09-privacy-boundary.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> 이 스킬의 발화 조건. 전체 2계층 모델·호스트(훅) 매핑·게이트 보존은
+> [../spec/09-triggers.md](../spec/09-triggers.md), 머신 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json) 참고.
+
+```yaml
+trigger:
+  trigger_id: pab.diff_mining.on_correction
+  skill: diff_mining
+  signal: user_correction
+  condition: "agent output is edited, rejected, or followed by 'do X instead'"
+  cadence: event
+  host_hook: UserPromptSubmit · PostToolUse
+  produces: candidate_staged
+  requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
+  default_state: enabled
+  debounce: per_correction
+```
+
+★플래그십 — 교정은 선호 경계가 드러나는 가장 강한 신호라 1순위 트리거입니다.

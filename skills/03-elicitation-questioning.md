@@ -236,3 +236,26 @@ S05의 일입니다. 답변을 미리 후보처럼 해석해 적어두지 마세
 - 민감 답변이 받는 경계 규칙 → [04 프라이버시·경계](../spec/04-privacy-boundary.md) ·
   [09 privacy_boundary](../skills/09-privacy-boundary.md)
 - 역할·핸드오프 운영 모델 → [12 crab 오케스트레이션](../skills/12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> 이 스킬의 발화 조건. 전체 2계층 모델·호스트(훅) 매핑·게이트 보존은
+> [../spec/09-triggers.md](../spec/09-triggers.md), 머신 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json) 참고.
+
+```yaml
+trigger:
+  trigger_id: pab.elicitation_questioning.on_coverage_gap
+  skill: elicitation_questioning
+  signal: coverage_gap
+  condition: "a pack is under-covered and an opportune moment arises, or the user runs /interview"
+  cadence: event
+  host_hook: orchestrator · command
+  produces: candidate_staged
+  requires_confirmation: true     # 사람 검토 필요 (게이트)
+  default_state: suggested
+  debounce: 1/session
+```
+
+사용자에게 직접 묻기 때문에 확인이 필요하고, 기본은 '제안' 상태입니다(끼어들지 않음).

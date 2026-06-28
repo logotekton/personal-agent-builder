@@ -372,3 +372,26 @@ OpenCrab 도구로 실행할 때는 `opencrab_query`/`opencrab_search_documents`
 - 규칙 부착 후 흘러가는 하류 → [08 pack_router](./08-pack-router.md) · [10 agent_compiler](./10-agent-compiler.md)
 - `boundary_compliance` 지표·드리프트 → [11 evaluation_drift](./11-evaluation-drift.md) · [05 평가·드리프트](../spec/05-evaluation-drift.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> 이 스킬의 발화 조건. 전체 2계층 모델·호스트(훅) 매핑·게이트 보존은
+> [../spec/09-triggers.md](../spec/09-triggers.md), 머신 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json) 참고.
+
+```yaml
+trigger:
+  trigger_id: pab.privacy_boundary.on_sensitivity
+  skill: privacy_boundary
+  signal: sensitivity_flag
+  condition: "a sensitive item is detected, or before an external/irreversible tool call (pre_external_action)"
+  cadence: event
+  host_hook: PreToolUse
+  produces: boundary_applied
+  requires_confirmation: true     # 사람 검토 필요 (게이트)
+  default_state: enabled
+  debounce: per_action
+```
+
+항상 켜진 가드 — 승격 전 민감 항목을 잡고(G5), 외부·비가역 행동 직전 ask_confirm/block.

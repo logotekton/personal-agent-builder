@@ -209,3 +209,26 @@ OpenCrab 도구로 실행할 때는 `opencrab_search_documents`/`opencrab_query`
 - 스코프 확정·확인 게이트 → [06 스코프](./06-scope-context.md) · [07 확인 게이트](./07-confirmation-gate.md)
 - 라우팅 도착지인 14개 팩 → [03 팩 카탈로그](../spec/03-pack-catalog.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> 이 스킬의 발화 조건. 전체 2계층 모델·호스트(훅) 매핑·게이트 보존은
+> [../spec/09-triggers.md](../spec/09-triggers.md), 머신 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json) 참고.
+
+```yaml
+trigger:
+  trigger_id: pab.session_mining.on_session_end
+  skill: session_mining
+  signal: session_end
+  condition: "mine the full transcript when a session ends"
+  cadence: session_boundary
+  host_hook: Stop · Cron
+  produces: candidate_staged
+  requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
+  default_state: enabled
+  debounce: batch_at_session_end
+```
+
+세션이 끝나면 트랜스크립트 전체를 일괄 마이닝해 후보를 스테이징합니다.

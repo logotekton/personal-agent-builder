@@ -68,9 +68,10 @@
 
 | 폴더 | 내용 |
 |------|------|
-| [`spec/`](./spec) | 시스템 전체 사양 — 커널 스키마, 빌더 파이프라인, 팩 카탈로그, 프라이버시, 평가, **수렴 모델**, 9-space 크로스워크, 네이밍 |
-| [`schemas/`](./schemas) | 14개 user 온톨로지 팩의 JSON Schema + 통합 베이스 레코드 + 후보/평가 스키마 (기계 검증용) |
-| [`skills/`](./skills) | 13개 빌더 스킬 문서 — 암묵지를 팩으로 바꾸는 *방법* (그대로 에이전트 운영 지침으로 사용 가능) |
+| [`docs/`](./docs) | **다른 사람을 위한 설명서** — 개념·목적·전체 절차·사용자 개입 시점으로 자기 개인 에이전트를 만드는 법 ([build-your-personal-agent](./docs/build-your-personal-agent.md)) |
+| [`spec/`](./spec) | 시스템 전체 사양 — 커널 스키마, 빌더 파이프라인, 팩 카탈로그, 프라이버시, 평가, **수렴 모델**, 9-space 크로스워크, 네이밍, **트리거** |
+| [`schemas/`](./schemas) | 14개 user 온톨로지 팩의 JSON Schema + 통합 베이스 레코드 + 후보/평가/**트리거** 스키마 (기계 검증용) |
+| [`skills/`](./skills) | 13개 빌더 스킬 문서 — 암묵지를 팩으로 바꾸는 *방법* (각 스킬의 발화 **트리거** 포함) |
 | [`examples/logotekton/`](./examples/logotekton) | 처음부터 끝까지 동작하는 실제 인스턴스 예제 |
 | [`templates/`](./templates) | 새 사용자가 자기 에이전트를 시작할 수 있는 **빈 채우기 템플릿** + [QUICKSTART](./templates/QUICKSTART.md) |
 | [`tools/`](./tools) | 레코드를 스키마로 검증하고 수렴 지표를 계산하는 스크립트 |

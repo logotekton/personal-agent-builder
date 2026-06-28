@@ -404,3 +404,26 @@ OpenCrab 도구로 실행할 때는 `opencrab_search_packs`로 작업류에 관�
 - 갭·평가가 끌어올리는 수렴 지표(`coverage`·`correction_cost`·`traceability`) → [06 수렴 모델](../spec/06-convergence-model.md)
 - 각 노드의 9-space 사상 → [07 9-space 크로스워크](../spec/07-opencrab-9space-crosswalk.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> 이 스킬의 발화 조건. 전체 2계층 모델·호스트(훅) 매핑·게이트 보존은
+> [../spec/09-triggers.md](../spec/09-triggers.md), 머신 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json) 참고.
+
+```yaml
+trigger:
+  trigger_id: pab.agent_compiler.on_session_start
+  skill: agent_compiler
+  signal: session_start
+  condition: "compile confirmed, scoped slices into the runtime adapter"
+  cadence: session_boundary
+  host_hook: SessionStart
+  produces: compiled
+  requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
+  default_state: enabled
+  debounce: per_session
+```
+
+세션 시작 시 확인된 슬라이스만 어댑터로 컴파일합니다 — 작업별 활성화, 전체 메모리 덤프 아님.

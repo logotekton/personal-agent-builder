@@ -408,3 +408,26 @@ OpenCrab 도구로 실행할 때는 `opencrab_run_workflow`/`opencrab_project_ru
 - 평가할 런타임 프로필을 만드는 상류 → [10 agent_compiler](./10-agent-compiler.md)
 - 실패가 되돌아가는 하류 → [07 confirmation_gate](./07-confirmation-gate.md) · [09 privacy_boundary](./09-privacy-boundary.md) · [06 scope_context](./06-scope-context.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> 이 스킬의 발화 조건. 전체 2계층 모델·호스트(훅) 매핑·게이트 보존은
+> [../spec/09-triggers.md](../spec/09-triggers.md), 머신 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json) 참고.
+
+```yaml
+trigger:
+  trigger_id: pab.evaluation_drift.on_pack_updated
+  skill: evaluation_drift
+  signal: pack_updated
+  condition: "after a pack changes, or on a schedule"
+  cadence: schedule
+  host_hook: Cron · chained
+  produces: evaluated
+  requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
+  default_state: suggested
+  debounce: 1/day
+```
+
+팩 변경 후/주기적으로 충실도·교정비용·드리프트를 측정합니다(produces: evaluated + drift_recorded).

@@ -91,3 +91,7 @@ S11은 평가→드리프트의 두 상태로 루프를 닫으며, S12는 전 �
 > 규칙: 스킬 문서는 [Canonical Design Contract(v0.3)]를 따릅니다. 정식 이름(13개 스킬,
 > 14개 `user.*` 팩, 14개 후보 타입)만 사용하며, 구 코드명(`pa.t03`, `t06`, `x12`, `.ba` 등)은
 > [`../spec/08-naming-and-ids.md`](../spec/08-naming-and-ids.md)의 이전표에서만 언급됩니다.
+
+> 각 스킬은 **발화 트리거**(언제 켜지는가)를 가집니다 — 문서 하단의 `## 트리거` 절. 전체 2계층
+> 모델·훅 매핑은 [../spec/09-triggers.md](../spec/09-triggers.md), 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json).

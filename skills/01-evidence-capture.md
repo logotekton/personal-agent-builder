@@ -196,3 +196,26 @@
 - 민감 항목이 받는 경계 규칙 → [04 프라이버시·경계](../spec/04-privacy-boundary.md) ·
   [09 privacy_boundary](../skills/09-privacy-boundary.md)
 - 역할·핸드오프 운영 모델 → [12 crab 오케스트레이션](../skills/12-crab-orchestration.md)
+
+
+## 트리거 (Trigger)
+
+> 이 스킬의 발화 조건. 전체 2계층 모델·호스트(훅) 매핑·게이트 보존은
+> [../spec/09-triggers.md](../spec/09-triggers.md), 머신 스키마는
+> [../schemas/trigger.schema.json](../schemas/trigger.schema.json) 참고.
+
+```yaml
+trigger:
+  trigger_id: pab.evidence_capture.on_turn
+  skill: evidence_capture
+  signal: turn
+  condition: "every user turn and tool result is a potential EvidenceItem"
+  cadence: continuous
+  host_hook: UserPromptSubmit · PostToolUse
+  produces: evidence_staged
+  requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
+  default_state: enabled
+  debounce: per_turn
+```
+
+매 턴·도구결과를 증거로 적재합니다 — 스테이징만 하므로 라이브 규칙이 되지 않습니다(G1).

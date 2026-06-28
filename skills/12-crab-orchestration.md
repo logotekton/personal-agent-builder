@@ -295,3 +295,46 @@ OpenCrab 도구로 실행할 때는 `opencrab_list_workflows`로 정의된 워�
 - Evaluator가 채점하는 지표·드리프트(H8·H9) → [05 평가·드리프트](../spec/05-evaluation-drift.md)
 - 되돌림·보류가 들어가는 수렴 지표(추적성=1.0) → [06 수렴 모델](../spec/06-convergence-model.md)
 - 상태 전이의 9-space 사상(`lever`·`policy`·`outcome`) → [07 9-space 크로스워크](../spec/07-opencrab-9space-crosswalk.md)
+
+
+## 트리거 라우팅표 (Trigger routing — 진입 조건)
+
+> crab_orchestration의 9개 워크플로 상태는 각각 **진입 트리거**를 가집니다. 핸드오프 규칙의
+> 입력 쪽이 곧 트리거입니다. 전체 모델은 [../spec/09-triggers.md](../spec/09-triggers.md),
+> 머신 스키마는 [../schemas/trigger.schema.json](../schemas/trigger.schema.json).
+
+| 워크플로 상태 | 진입 트리거(signal · host_hook) | 담당 Crab | 산출(stage) |
+|---------------|--------------------------------|-----------|-------------|
+| collect_evidence | turn / tool_result · UserPromptSubmit·PostToolUse | Evidence | evidence_staged |
+| mine_or_ask | session_end · Stop  /  user_correction · event  /  coverage_gap · command | Session Miner · Diff Miner · Questioning | candidate_staged |
+| extract_candidates | review_queue_threshold · threshold | Candidate Extractor | candidate_staged |
+| scope_candidates | candidate_created · chained | Scope | scoped |
+| review_candidates | session_end / queue≥K / command · Stop | Confirmation | review_requested |
+| route_confirmed | candidate_confirmed · chained | Pack Router | routed |
+| compile_runtime | session_start · SessionStart | Agent Compiler | compiled |
+| evaluate_output | pack_updated / schedule · Cron | Evaluator | evaluated |
+| record_drift_or_update | supersession detected · chained | Evaluator · Pack Architect | drift_recorded |
+
+**경계 가드(privacy_boundary)** 는 상태가 아니라 `PreToolUse`에 상시 걸려, 모든 외부·비가역
+행동 앞과 모든 민감 후보의 승격 전에 개입합니다(G5).
+
+### auto-confirm 정책 (review_candidates 우회 — 좁은 예외)
+
+`review_candidates` 상태는 기본적으로 사람을 거칩니다. 단 아래 정책이 *모두* 참인 후보에 한해
+자동 확정으로 우회할 수 있습니다(없으면 항상 사람 검토):
+
+```yaml
+auto_confirm_policy:
+  min_confidence: 0.9
+  allowed_sensitivity: [public, internal]     # restricted 불가, sensitive는 경계규칙 선결
+  require_any: [explicit_user_statement, repetition_ge_3, correction_backed]
+  never_auto_confirm_types: [BoundaryRuleCandidate, DecisionPolicyCandidate]
+```
+
+이 정책은 신뢰 노브이지 프라이버시 우회로가 아닙니다 — 고위험 타입과 민감 등급은 언제나
+사람을 거칩니다(G3·G5 보존).
+
+### 핸드오프 = 트리거 (한 줄 요약)
+계층 A(collect→…→scope)는 전부 `requires_confirmation: false`로 **스테이징만** 합니다.
+`review_candidates`(계층 B)만 pending→confirmed 승격을 수행하고, 그 뒤 route→compile→evaluate가
+체이닝됩니다. 그래서 앞단을 전부 `enabled`로 두어도 안전합니다.
