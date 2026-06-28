@@ -193,8 +193,17 @@
 - `extraction_method`/프로비넌스는 보존하며 변경하지 않습니다([candidate.schema.json](../schemas/candidate.schema.json)).
 
 > 이 출력은 [S07 확인 게이트](./07-confirmation-gate.md)의 입력 계약을 만족합니다. 거기서 사람이
-> confirm / edit / reject / **narrow** / sensitive / defer를 정하며, `narrow`는 스코프 크랩이
-> 준비한 범위를 사람이 *더* 좁히는 동작입니다.
+> confirm / edit / reject / **narrow** / sensitive / defer(여섯 기본)에 더해, 확정 후보가 기존
+> 레코드와 겹칠 때 dedup judge가 추천하는 **merge / supersede**를 정합니다. `narrow`는 스코프
+> 크랩이 준비한 범위를 사람이 *더* 좁히는 동작입니다.
+>
+> **여기서 정한 `scope`는 병합 층의 load-bearing 입력이다.** dedup judge의 `canonical_key`
+> (= pack·record_type·normalize(statement)·**scope**)가 `scope`를 포함하므로, 스코프를 제대로
+> 좁히는 일이 곧 `duplicate→merge`(같은 스코프, 증거 누적)와 `refinement→supersede`(더 좁은 스코프,
+> 대체)를 가른다. 단, *후보 단계의* 맥락 분리(§4 규칙 3)는 **다른 스코프** 충돌만 해소한다 —
+> **같은 스코프의 근접중복**은 병합 층이 `conflict`로 **사람에게 노출**(자동 적용 금지)하는 별도
+> 안전 케이스다(revolution-02 의 `style.301` 예시). → [10 중복 억제·병합](../spec/10-dedup-and-merge.md),
+> 액추에이터 [`tools/pab_merge.py`](../tools/pab_merge.py).
 
 ### 최소 예시 (스코프 지정된 후보 — S07로 넘김)
 
@@ -207,6 +216,8 @@
   "proposed_target_pack": "user.communication_style",
   "confidence": 0.55,
   "scope": "코드 리뷰 보고서 초안 (내부 청중)",
+  "sensitivity": "internal",
+  "validation_status": "pending",
   "applies_in": ["context.task.code_review", "context.audience.internal"],
   "exception_rules": [
     "법적 고지·계약 문구에서는 정해진 서식을 따른다",
@@ -284,6 +295,8 @@ OpenCrab 도구로 실행할 때는 `opencrab_get_node_context`/`opencrab_query`
 - 후보/필드의 기계 스키마 → [`candidate.schema.json`](../schemas/candidate.schema.json) ·
   [`record.base.schema.json`](../schemas/record.base.schema.json)
 - 시간 감쇠·폐기의 측정·이력 → [11 평가·드리프트](./11-evaluation-drift.md) (`user.drift_history`)
+- 이 스코프가 떠받치는 dedup/merge 판정(duplicate→merge·refinement→supersede·conflict→surface) →
+  [10 중복 억제·병합](../spec/10-dedup-and-merge.md) · 액추에이터 [`tools/pab_merge.py`](../tools/pab_merge.py)
 - 라우팅 도착지인 14개 팩 → [03 팩 카탈로그](../spec/03-pack-catalog.md)
 - 민감·경계 후보의 권한·경계 처리 → [04 프라이버시·경계](../spec/04-privacy-boundary.md) ·
   [09 privacy_boundary](./09-privacy-boundary.md)
