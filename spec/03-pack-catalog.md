@@ -346,6 +346,13 @@ exception_rules:
 `linked_projects`로 이 팩을 참조하고, 이 팩은 프로젝트/목표 자체와 레코드 간 링크를 기록합니다.
 대응 노드: `ProjectMemory`.
 
+> **이 팩이 *프로젝트 사실*의 유일한 귀착지다(전이성 테스트, [S02 §1.1](../skills/02-session-mining.md#11-전이성-테스트--주체를-캐고-주제를-캐지-마라-mine-the-decider-not-the-topic)).**
+> "프로젝트 X는 ~한 아키텍처다 / X는 Y와 연결된다" 같은 *프로젝트를 바꾸면 거짓이 되는* 사실은 여기(또는
+> 여러 프로젝트에 걸친 지속 도메인 지식이면 [`user.domain_overlays`](#9-userdomain_overlays))에만 들어옵니다.
+> 페르소나·결정·암묵지 등 *암묵지 팩*은 그런 프로젝트 사실을 받지 않습니다 — 그건 *당신이 무엇을
+> 만드는가*이지 *당신이 어떻게 생각하는가*가 아니기 때문입니다. 이 팩의 레코드는 런타임에서 "현재
+> 프로젝트 맥락"으로 쓰이지 "당신이 누구인가"로 쓰이지 않습니다.
+
 **레코드 타입** (`record_type`): `ProjectRecord` · `GoalRecord` · `MemoryLinkRecord`.
 
 ```yaml
