@@ -398,6 +398,12 @@ traceability 를 오히려 강화합니다.
 4. **스코프·dedup 판정** — `novel`/`duplicate(merge)`만. **`conflict`는 항상 사람에게 노출**
    (조용한 덮어쓰기 금지), `refinement`는 검토 권장.
 
+> **추가 절대 바 — `reliability: self_reported`.** 자기서술 후보는 **티어·신뢰도와 무관하게 영구
+> auto-confirm 불가**입니다 — 저신뢰 InterpretationClaim 이라 사람 확인 없이 승격될 수 없습니다
+> ([01 §7.1](../spec/01-kernel-schema.md); [`validate_packs.py`](../tools/validate_packs.py)가 강제,
+> `auto_confirmed=true`이면 FAIL). 자기서술은 *행동으로 확증*돼 별도 `behavioral` 후보로 올라올 때
+> 비로소 자동 승격·신뢰·깊이의 대상이 됩니다(설계자 결정 C).
+
 **경계를 정하는 법(4계층).** ① 보수적 기본(default-deny) → ② 사용자 다이얼(설정 자체가
 `decision_policy`/`boundary_authority` 레코드) → ③ `target_error_rate`로의 **섀도 모드**
 캘리브레이션(정책이 예측만 하고 행동 안 함 → 사람 결정과의 불일치율이 목표 이하로 안정될 때만

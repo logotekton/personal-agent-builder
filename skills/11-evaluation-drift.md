@@ -295,6 +295,13 @@ regression_for: [logotekton.drift.0012]
 | `drift_score` (대체·반전 가중) | `drift_stability` = 1 − (기간 대체수 / 확인 레코드수) | drift_score↑ ⇒ drift_stability↓ |
 | `evidence_traceability` | `traceability` (=1.0 필수) | 동일 불변식. 위반은 무결성 차단 |
 
+> **reliability 채널 주의 — 평가·드리프트도 *behavioral* 만 센다.** 평가 케이스·드리프트 레코드도
+> 베이스 레코드라 `reliability`를 가질 수 있는데, `self_reported`(자기서술 기반)로 표시된 평가 케이스는
+> `decision_fidelity`에, self_reported 드리프트 레코드는 `drift_stability`에 **들어가지 않는다**(draft-only).
+> 성숙도는 관찰된 행동 위에서만 측정되므로, 평가/드리프트도 행동에 근거한 것만 지표가 된다 — 자기서술
+> 케이스를 무더기로 pass 시켜 충실도를 부풀리는 경로를 [`convergence_report.py`](../tools/convergence_report.py)가
+> 닫는다([01 §7.1](../spec/01-kernel-schema.md), 설계자 결정 C). 평가 케이스는 거의 항상 behavioral 이다.
+
 - **성숙도 게이트** — L1은 `traceability`=1.0과 **≥3개 평가 케이스**를 요구한다(즉 이 스킬의
   케이스가 없으면 사다리를 오를 수 없다). L2는 `coverage`≥0.5·`decision_fidelity`≥0.6·
   `confirmation_ratio`≥0.6; L3는 `coverage`≥0.8·`decision_fidelity`≥0.8·`correction_cost`≤0.3·

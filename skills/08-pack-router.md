@@ -164,6 +164,7 @@ G5), `deferred`(보류)는 모두 팩 진입이 차단됩니다(§6 표). 이것
 | `sensitivity` | `sensitivity` | 그대로 이월. `sensitive`/`restricted`는 `exception_rules` 필수 |
 | `validation_status` | `review_status` | 동일 enum. `confirmed`/`narrowed`로 승격 |
 | `extraction_method` | (프로비넌스로 보존) | 출처 스킬 기록 유지(추적성) |
+| `reliability` | `reliability` | 그대로 이월(기본 `behavioral`). `self_reported`면 승격돼도 **draft-only** — auto-confirm 불가·여섯 수렴 지표 미산입([01 §7.1](../spec/01-kernel-schema.md), C) |
 | (도착지 팩이 부여) | `record_type` | 도착지 팩 스키마의 `record_type` enum 값 |
 | (승격 시각) | `created_at`, `updated_at` | 승격 타임스탬프 부여 |
 | (선택 보강) | `applies_in`/`exception_rules`/`temporal_status` 등 | S06이 단 맥락·예외·시간 상태 이월 |
