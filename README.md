@@ -86,7 +86,7 @@
 | [`skills/`](./skills) | 13개 빌더 스킬 문서 — 암묵지를 팩으로 바꾸는 *방법* (각 스킬의 발화 **트리거** 포함) + 트리거를 실제 호스트(Claude/Codex/Agents SDK/API)에 배선하는 **호스트 배선 어댑터** |
 | [`examples/logotekton/`](./examples/logotekton) | 처음부터 끝까지 동작하는 실제 인스턴스 예제 |
 | [`templates/`](./templates) | 새 사용자가 자기 에이전트를 시작할 수 있는 **빈 채우기 템플릿** + [QUICKSTART](./templates/QUICKSTART.md) |
-| [`tools/`](./tools) | 결정론적 스크립트 — 스키마 검증(`validate_packs`), 수렴 지표(`convergence_report`), 중복 신호(`dedup_check`), dedup/병합 actuator(`pab_merge`), 컨텍스트 선택 참조 술어(`context_select`), 문서 링크·커맨드 무결성 가드(`check_anchors`·`check_commands`). 모두 테스트로 잠김 |
+| [`tools/`](./tools) | 결정론적 스크립트 — 스키마 검증(`validate_packs`), 수렴 지표(`convergence_report`), 중복 신호(`dedup_check`), dedup/병합 actuator(`pab_merge`), 컨텍스트 선택 참조 술어(`context_select`), 런타임 어댑터 참조 컴파일러(`compile_adapter`), 문서 링크·커맨드 무결성 가드(`check_anchors`·`check_commands`). 모두 테스트로 잠김 |
 
 ## 핵심 설계 원칙 (왜 믿을 수 있는가)
 
@@ -128,8 +128,8 @@
 
 - 사양 버전: **v0.3** (v0.1/v0.2의 불일치를 정합화한 첫 공개 릴리스; Unreleased 에서 지속 강화).
 - 성숙도: 빌더 스킬 + 14 팩 스키마 + 수렴 모델(**깊이 게이트**) + **reliability 클레임-계층** +
-  9-space 크로스워크 정의 완료. 결정론적 검증·수렴·병합·컨텍스트-선택 도구는 테스트(73개)·CI 로
-  잠겨 있고, 모든 예제 숫자는 도구로 재현됩니다.
+  9-space 크로스워크 정의 완료. 결정론적 검증·수렴·병합·컨텍스트-선택·**어댑터 컴파일** 도구는
+  테스트(81개)·CI 로 잠겨 있고, 모든 예제 숫자·어댑터 멤버십은 도구로 재현됩니다.
 - **정직한 한계**: 라이브 자동 포착/컴파일러([`tools/pab`](./tools/pab))는 아직 STUB 입니다 — 검증된 것은
   스키마·지표·선택 수학(참조 술어)이고, 호스트 런타임 배선이 남은 *몸-작업*입니다.
 - 다음: 라이브 컴파일러 배선, 더 많은 평가 케이스, 다중 사용자 예제, 자동 채굴 도구.

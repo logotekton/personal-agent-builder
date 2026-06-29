@@ -21,6 +21,16 @@
 
 ## [Unreleased]
 
+### 참조 컴파일러 — 8섹션 런타임 어댑터 조립을 코드로 (compile 단계 실재화)
+- **[`tools/compile_adapter.py`](./tools/compile_adapter.py) 추가.** skill 10의 "읽기 전용 8섹션 조립"을
+  *산문*에서 **결정론적·테스트된 참조 컴파일러**로 옮겼습니다 — `pab_merge`(병합)·`context_select`(선택)에
+  이은 세 번째 참조 술어. G3 활성 필터(`confirmed`/`narrowed`) + `reliability` draft-only 제외(C) +
+  supersession(drift_history) 제외 + 팩→8섹션 라우팅(§4) + 경계 레이어(인스턴스/기본정책) + 갭 로깅(G1).
+  손-작성 [`runtime-adapter.md`](./examples/logotekton/runtime-adapter.md)의 **T0(5팩·기본정책)→T1(6팩·
+  인스턴스)→T2(8팩)** 섹션 멤버십을 *그대로 재현* — 어댑터가 이제 기계 재현 가능(단언이 아님). 테스트
+  +8(73→81), skill 10·tools/README·runtime-adapter 에 배선. *정직한 한계:* 라이브 호스트 런타임
+  (`pab.py`)은 STUB이며 검증된 것은 섹션 멤버십·갭·경계 수학(섹션 8·응답 정책은 파생 뷰).
+
 ### 설계자 결정 반영 — claim-layer 분리 + '일하는 자아' 스코프 (philosophy 팩 대조 후속)
 > philosophy_for_ai_ontology 팩(OpenCrab)과의 정밀대조에서 드러난 간극 — PAB가 *증거 계층*(G4)은
 > 지키지만 *적용/해석 계층*('이 에이전트가 당신이다')을 표시·검토하는 장치가 없다는 점 — 을 설계자

@@ -62,6 +62,19 @@
 > ("빌더 팩/문서를 작성·검토한다")에 맞춰 컴파일한 **한 작업류 스냅샷**입니다. 다른 작업류
 > (예: 외부 이메일 초안)는 *다른 섹션 내용*으로 다시 컴파일됩니다(작업별 활성화, 전체 메모리 덤프 아님).
 
+> ⚙️ **재현 (reproduce — 이 멤버십은 손으로 단언한 게 아니라 도구가 재현한다).**
+> 이 T0 스냅샷(5팩·기본 안전 정책)은 동결 픽스처에서, 라이브 T2(8팩·인스턴스 경계)는 디렉터리에서
+> [`tools/compile_adapter.py`](../../tools/compile_adapter.py)로 그대로 나옵니다(섹션 멤버십·경계 출처가
+> 본문과 일치, 테스트로 잠김 — `tests/test_tools.py::TestCompileAdapter`):
+
+```bash
+python tools/compile_adapter.py examples/logotekton/revolution-01/instance-records.pre.yaml  # T0: 5팩, default_safe_policy
+python tools/compile_adapter.py examples/logotekton                                          # T2(라이브): 8팩, instance
+```
+
+> 갭 *수*는 도구가 **컴파일 대상 12팩**(14팩 − `evaluation_cases` − `drift_history`, 둘 다 본문이
+> "컴파일 입력 아님"이라 명시) 기준으로 세므로 본문의 14팩 기준 서술과 *세는 분모*만 다릅니다.
+
 ---
 
 ## 섹션 1 — identity/role (정체성·역할)

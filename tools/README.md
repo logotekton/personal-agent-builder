@@ -23,6 +23,7 @@
 | [`check_anchors.py`](./check_anchors.py) | **문서 링크 무결성** — 모든 교차문서 링크·`#앵커`가 실재 헤딩(GitHub 슬러그)으로 해소되는지. *게이트* | "끊긴 참조가 있는가?" | spec/skills/docs 전체 (GitHub 앵커 규약) |
 | [`check_commands.py`](./check_commands.py) | **문서 명령 무결성** — 문서에 적힌 안전·읽기전용 명령이 실제로 실행되는지. *게이트* | "적힌 명령이 진짜 도는가?" | "모든 figure는 명령으로 재현"([06](../spec/06-convergence-model.md)) |
 | [`context_select.py`](./context_select.py) | **결정론적 컨텍스트 조립**(참조 술어) — scope-overlap + salience(confidence×recency×repetition) + 토큰 예산 + 탈락분 갭 로깅 | "이 작업에 어떤 슬라이스를 예산 안에서 켤까?" | [10 에이전트 컴파일러](../skills/10-agent-compiler.md) (#9; *라이브 컴파일러는 스텁 — 참조 구현*) |
+| [`compile_adapter.py`](./compile_adapter.py) | **결정론적 런타임 어댑터 컴파일**(참조 컴파일러) — G3 활성 필터 + reliability draft-only 제외 + supersession 제외 + 팩→8섹션 라우팅 + 경계 레이어 + 갭 로깅 | "확정 슬라이스를 어떤 어댑터로 조립할까?" | [10 에이전트 컴파일러 §3·§4](../skills/10-agent-compiler.md) (*라이브 컴파일러는 스텁 — 참조 구현*; T0→T1→T2 멤버십 재현) |
 
 > 같은 산출은 OpenCrab에서 `opencrab_pack_qa`(검증)와 `opencrab_project_run`(수렴 지표)으로도
 > 재현할 수 있습니다. 이 스크립트들은 그 산출의 **의존성 없는 로컬 참조 구현**입니다.
