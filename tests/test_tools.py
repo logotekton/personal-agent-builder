@@ -532,6 +532,19 @@ class TestReliabilityTier(unittest.TestCase):
                                     [{"supersedes": ["x"], "reliability": "self_reported"}])
         self.assertEqual(base["drift_stability"], withsr["drift_stability"])
 
+    def test_self_reported_only_pack_does_not_count_as_seeded(self):
+        # N2 (adversarial re-verify): a pack seeded with ONLY self_reports has no behavioral
+        # evidence, so it must not satisfy the L1 breadth gate (seeded>=7). Breadth is behavioral
+        # breadth — otherwise "maturity is measured only on observed behavior" would be false.
+        recs = {"user.persona_core": [
+                    {"review_status": "confirmed", "evidence_refs": ["e"]} for _ in range(3)]}
+        for p in ["user.identity_roles", "user.communication_style", "user.artifact_policy",
+                  "user.decision_policy", "user.tacit_heuristics", "user.red_flags"]:
+            recs[p] = [{"review_status": "confirmed", "reliability": "self_reported",
+                        "evidence_refs": ["e"]}]
+        ix = cr.compute_indices(recs, [], [])
+        self.assertEqual(ix["_seeded_packs"], 1)   # only the behavioral pack counts as seeded
+
     def test_example_has_no_self_reported(self):
         # locks that the worked example is all-behavioral, so the C change preserves every number
         pack_records, eval_cases, drift_records, _ = cr.collect(EXAMPLE)

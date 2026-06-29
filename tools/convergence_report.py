@@ -569,7 +569,10 @@ def compute_indices(pack_records, eval_cases, drift_records):
                  if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r))
         confirmed_by_pack[pack] = c
         behavioral_confirmed_by_pack[pack] = bc
-        if recs:
+        # 폭(seeded)도 *behavioral* 존재를 요구한다 — self_reported 만 든 팩은 행동 증거가 없어
+        # off-frontier 이므로 L1 폭 게이트(seeded≥7)를 채우지 못한다(적대적 재검증 N2: 자기서술-only
+        # 팩으로 폭 게이트를 따 "관찰된 행동 위에서만 측정"을 깨는 잔여 경로 차단).
+        if any(not _is_self_reported(r) for r in recs):
             seeded_packs += 1
         for r in recs:
             st = _status_of(r)
