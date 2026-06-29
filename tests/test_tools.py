@@ -447,6 +447,19 @@ class TestReliabilityTier(unittest.TestCase):
         r = _good(); r["reliability"] = "behavioral"; r["auto_confirmed"] = True
         self.assertTrue(vp.validate_record(r, "t").ok)
 
+    def test_auto_confirmed_must_be_boolean(self):
+        # M2: a string "true" must NOT pass validation — else it bypasses the self_reported ban
+        # while convergence still reads it as auto-confirmed (validator/convergence drift).
+        r = _good(); r["auto_confirmed"] = "true"
+        self.assertFalse(vp.validate_record(r, "t").ok)
+
+    def test_self_reported_string_auto_confirm_is_caught(self):
+        # the headline ban must not be evadable via a truthy string
+        r = _good(); r["reliability"] = "self_reported"; r["auto_confirmed"] = "auto"
+        res = vp.validate_record(r, "t")
+        self.assertFalse(res.ok)
+        self.assertTrue(any("self_reported" in e for e in res.errors), res.errors)
+
     # --- convergence: maturity DEPTH counts behavioral confirmed only ---
     def test_self_reported_does_not_count_toward_depth(self):
         # 3 confirmed but all self_reported → NOT a vertical; depth must stay 0 (draft-only)
@@ -456,7 +469,31 @@ class TestReliabilityTier(unittest.TestCase):
         ix = cr.compute_indices(recs, [], [])
         self.assertEqual(ix["_n_self_reported"], 3)
         self.assertEqual(ix["_packs_with_3"], 0)       # no behavioral depth
-        self.assertEqual(ix["_n_confirmed"], 3)        # still counted for confirmation_ratio
+        # C1: self_reported is excluded from ALL maturity aggregates, not just depth — so the
+        # behavioral confirmed count is 0 here (it must NOT feed confirmation_ratio/hcr/drift).
+        self.assertEqual(ix["_n_confirmed"], 0)
+
+    def test_self_reported_excluded_from_all_maturity_indices(self):
+        # C1 back door (adversarial finding): self_reported must move NONE of the gate-driving
+        # indices — not hcr, not confirmation_ratio, not drift_stability, not traceability, not
+        # coverage. Build a behavioral baseline, flood it with 20 confirmed self_reports, assert
+        # every index is byte-identical.
+        behavioral = (
+            [{"review_status": "confirmed", "evidence_refs": ["e"]} for _ in range(5)]
+            + [{"review_status": "pending"} for _ in range(5)]
+        )
+        drift = [{"supersedes": ["a"]}]
+        base_ix = cr.compute_indices({"user.persona_core": list(behavioral)}, [], drift)
+        flooded = behavioral + [
+            {"review_status": "confirmed", "reliability": "self_reported", "evidence_refs": ["e"]}
+            for _ in range(20)
+        ]
+        flood_ix = cr.compute_indices({"user.persona_core": flooded}, [], drift)
+        for k in ("confirmation_ratio", "human_confirmation_ratio", "drift_stability",
+                  "traceability", "coverage", "_n_confirmed"):
+            self.assertEqual(flood_ix[k], base_ix[k], f"{k} moved when self_reported was added")
+        self.assertEqual(flood_ix["_n_self_reported"], 20)
+        self.assertEqual(flood_ix["_n_confirmed"], 5)   # behavioral only
 
     def test_behavioral_confirmed_counts_toward_depth(self):
         recs = {"user.persona_core": [

@@ -88,6 +88,19 @@ SENSITIVITY_ENUM = {"public", "internal", "sensitive", "restricted"}
 # behavioral = 관찰된 행동/산출물/교정 (G4, 신뢰 기본값). self_reported = 자기서술 (저신뢰).
 RELIABILITY_ENUM = {"behavioral", "self_reported"}
 
+
+def _truthy_auto_confirm(v) -> bool:
+    """auto_confirmed 의 truthy 해석 — convergence_report._is_auto_confirmed 와 *동일* 규칙.
+
+    두 도구가 같은 판정을 쓰게 해, 문자열 "true"/"auto" 로 self_reported auto-confirm 금지 규칙을
+    우회하는 검증기/수렴기 드리프트를 없앤다 (적대적 검증 M2).
+    """
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v.strip().lower() in ("true", "auto", "yes", "1")
+    return False
+
 # 런타임 활성 상태: 이 상태의 레코드는 증거가 비면 안 됩니다 (G1 + G3).
 RUNTIME_ACTIVE_STATUS = {"confirmed", "narrowed"}
 
@@ -286,7 +299,15 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
             f"reliability 가 enum 에 없습니다: {rel!r} "
             f"(허용: {sorted(RELIABILITY_ENUM)})"
         )
-    if rel == "self_reported" and record.get("auto_confirmed") is True:
+    # auto_confirmed 는 boolean 이어야 한다 (스키마 일치). 문자열 "true"/"auto" 등으로 아래 self_reported
+    # auto-confirm 금지 규칙을 우회하는 검증기/수렴기 드리프트를 막는다 (적대적 검증 M2).
+    ac = record.get("auto_confirmed")
+    if "auto_confirmed" in record and not isinstance(ac, bool):
+        res.errors.append(
+            f"auto_confirmed 는 boolean 이어야 합니다: {ac!r} "
+            "(문자열/숫자로 self_reported auto-confirm 금지 규칙 우회 금지)"
+        )
+    if rel == "self_reported" and _truthy_auto_confirm(ac):
         res.errors.append(
             "[C] reliability=self_reported 레코드는 auto_confirmed 될 수 없습니다 "
             "— 자기서술은 저신뢰 채널이라 사람 확인 없이 승격 금지 (draft-only)"

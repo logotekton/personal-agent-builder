@@ -574,7 +574,12 @@ def compute_indices(pack_records, eval_cases, drift_records):
         for r in recs:
             st = _status_of(r)
             if _is_self_reported(r):
+                # self_reported 는 draft-only 라 *모든* 성숙도 지표 집계에서 제외한다 — 깊이뿐 아니라
+                # confirmation_ratio·human_confirmation_ratio·drift_stability·traceability 까지. 그러지
+                # 않으면 자기서술 레코드를 무더기로 confirmed 시켜 깊이 외 지표로 성숙도를 부풀리는
+                # 백도어가 열린다(적대적 검증 C1). 별도 카운트로만 가시화한다.
                 n_self_reported += 1
+                continue
             if st in CONFIRMED_STATES:
                 n_confirmed += 1
                 if _is_auto_confirmed(r):
@@ -660,8 +665,9 @@ def compute_indices(pack_records, eval_cases, drift_records):
         drift_stability = 1.0  # 확인 레코드가 없으면 흔들릴 대상 자체가 없음
 
     # traceability = 증거 보유 활성(confirmed) 규칙 / 활성 규칙. 활성 규칙 0이면 1.0.
+    # self_reported 는 draft-only(런타임 활성 규칙이 아님)라 활성 집합에서 제외 (C1 백도어 차단).
     active = [r for recs in pack_records.values() for r in recs
-              if _status_of(r) in CONFIRMED_STATES]
+              if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r)]
     if active:
         with_ev = sum(1 for r in active if _has_evidence(r))
         traceability = with_ev / len(active)
@@ -817,8 +823,8 @@ def render_table(ix, tier_id, tier_name, directory, n_files):
     )
     if ix.get("_n_self_reported"):
         lines.append(
-            f"  self_reported        : {ix['_n_self_reported']}건 (draft-only) "
-            f"— 저신뢰 채널이라 깊이(엄격 coverage)에 미산입 (C/#1, spec/00 클레임-계층)"
+            f"  self_reported        : {ix['_n_self_reported']}건 (draft-only) — 저신뢰 채널이라 "
+            f"모든 성숙도 지표(깊이·confirmation·drift·traceability)에서 제외 (C/#1, spec/00 클레임-계층)"
         )
     lines.append(
         f"  평가 케이스          : {ix['_n_eval']}개 "
