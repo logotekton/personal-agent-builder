@@ -21,6 +21,26 @@
 
 ## [Unreleased]
 
+### 전이성 테스트 — 주체를 캐고 주제를 캐지 마라 (실데이터 피드백)
+> 첫 실세션 추출에서 드러난 갭: 세션이 *프로젝트*에 관한 것일 때, 추출이 프로젝트 사실("X는 ~한
+> 아키텍처다")과 암묵지(당신이 *어떻게* 결정·판단하는가)를 섞었다. 개인 에이전트는 *당신이 무엇을
+> 만드는가*가 아니라 *당신이 어떻게 생각하는가*여야 한다.
+- **전이성 테스트를 제1 추출 필터로 정식화.** 한 신호가 암묵지 팩(페르소나·결정·암묵·스타일·산출물·
+  위험·워크플로 + 역할 페르소나)으로 가려면 *"프로젝트를 바꿔도 참인가"*를 통과해야 한다. 프로젝트
+  사실은 `memory_project_graph`(단일 프로젝트)나 `domain_overlays`(지속 도메인 지식)로만. 가장 날카로운
+  리트머스: "같은 프로젝트를 *다른 사람*이 해도 똑같이 말할 내용이면 → 프로젝트 사실". 박은 곳:
+  [S02 §1.1](./skills/02-session-mining.md)(원칙)·[S04](./skills/04-diff-mining.md)·[S05](./skills/05-candidate-extraction.md)
+  체크리스트·[S07 확인 게이트](./skills/07-confirmation-gate.md)(사람 최종 방어선)·[03 카탈로그](./spec/03-pack-catalog.md)·
+  [00 de-averaging 입구](./spec/00-overview.md). 사람 판단 필터(G4 처럼 코드가 아닌)임을 명시.
+- **적대적 평가 후속 — 갭 봉합.** 평가가 잡은: 확인 게이트(S07)·diff마이닝(S04)·7개 암묵지 팩 항목에
+  규칙 부재, domain_overlays↔memory_project_graph 회색지대, 그리고 *프로젝트 사실이 어댑터 섹션1
+  (정체성)에 재주입되는 모순*(skills/10) — 전부 봉합. memory_project_graph 는 섹션1·6에 *맥락 피연산자*로
+  (persona 와 섞이지 않는 별도 하위블록) 합류하도록 reconcile.
+- **worked example** [`examples/logotekton/ecwm-session/`](./examples/logotekton/ecwm-session/) — 실제 ECWM
+  세션 추출을 이 테스트로 정규화(프로젝트 사실 2개 강등·패턴 2개 재스코프·6개 유지). 후보 8개가
+  candidate.schema.json 정합. **validate_packs 가 후보 파일을 SKIP**(베이스 아님)하도록 수정 — 예제는
+  42 PASS 불변. 테스트 88(84→88).
+
 ### 참조 컴파일러 — 8섹션 런타임 어댑터 조립을 코드로 (compile 단계 실재화)
 - **[`tools/compile_adapter.py`](./tools/compile_adapter.py) 추가.** skill 10의 "읽기 전용 8섹션 조립"을
   *산문*에서 **결정론적·테스트된 참조 컴파일러**로 옮겼습니다 — `pab_merge`(병합)·`context_select`(선택)에
