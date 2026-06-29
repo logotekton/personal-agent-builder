@@ -1,18 +1,21 @@
 # Personal Agent Builder
 
-> **EN summary** — A method and an open schema for turning *what you tacitly know* and
-> *how you consistently act* into evidence-bound ontology packs, captured from real sessions
-> with an AI agent. As the packs accumulate, they **converge** into a *Personal Agent*: a
-> controlled, **delegable working-self** that decides, writes, and acts the way **you** would
-> approve *in the domains where it has your evidence* — and **abstains** (rather than faking
-> you with population averages) everywhere else — and can prove why, from evidence. It is built
-> from *observed behavior*, not guessed psychology: a verbal self-description is carried as a
-> low-trust, draft-only signal, never mistaken for behavioral evidence, and "the agent is
-> becoming you" is treated as a reviewed application claim, not an inherited fact. This is a
-> working-self, **not a whole-person digital twin**. This repo is the open specification:
-> the builder skills, the 14 user ontology packs, the privacy model, the evaluation loop, and a
-> measurable convergence model. Built on the [OpenCrab](https://opencrab.ai) ontology platform.
-> Contributions welcome — see [CONTRIBUTING](./CONTRIBUTING.md).
+> **EN summary** — A method and an open schema for making explicit *what you tacitly know* and
+> *how you consistently think, decide, and work* — **including the parts of yourself you can't
+> consciously articulate** — captured from real sessions with an AI agent as evidence-bound
+> ontology packs. The first deliverable is the **map itself**: an inspectable, evidence-bound
+> model of your tacit self that you can read, question, and watch fill in — *seeing the you that
+> even you don't fully know*. That map can then be **compiled into a Personal Agent** — a
+> controlled working-self that acts the way **you** would approve *where it has your evidence*,
+> and **abstains** (rather than faking you with population averages) everywhere else — but the
+> agent is the *materialized* self-map, downstream of the point, not the point. It is built from
+> *observed behavior*, not guessed psychology: a verbal self-description is carried as a low-trust,
+> draft-only signal, never mistaken for behavioral evidence, and "the agent is becoming you" is a
+> reviewed application claim, not an inherited fact. This maps a **working-self**, **not a
+> whole-person digital twin**. This repo is the open specification: the builder skills, the 14
+> user ontology packs, the privacy model, the evaluation loop, and a measurable convergence model.
+> Built on the [OpenCrab](https://opencrab.ai) ontology platform. Contributions welcome — see
+> [CONTRIBUTING](./CONTRIBUTING.md).
 
 ---
 
@@ -21,18 +24,24 @@
 당신은 이미 매일 AI 에이전트와 일합니다. 무언가를 부탁하고, 결과를 고치고, "이건 이렇게
 해줘"라고 말하고, 어떤 출력은 받아들이고 어떤 출력은 버립니다. 그 한 번의 교정, 한 번의
 "아니 그거 말고", 한 번의 포맷 선호 — 거기에는 **당신만의 암묵지**가 들어 있습니다. 그런데
-세션이 끝나면 그 지식은 흩어져 사라집니다. 다음 세션의 에이전트는 당신을 다시 모릅니다.
+세션이 끝나면 그 지식은 흩어져 사라집니다. 그리고 더 큰 문제: **그중 많은 부분을 당신
+스스로도 명시적으로 알지 못합니다.** 당신이 *어떻게* 결정하는지, 무엇을 일관되게 우선하는지,
+어떤 패턴으로 일하는지는 대개 *말로 꺼낼 수 없는* 채로 행동에만 남습니다.
 
-**Personal Agent Builder는 그 흩어지는 암묵지를 붙잡습니다.**
+**Personal Agent Builder의 가장 큰 목적은 그 "나도 모르는 나"를 명시화하는 것입니다** — 흩어진
+암묵지를 *읽고·따져보고·차오르는 걸 지켜볼 수 있는* **증거 기반 자기지도(self-map)**로 만드는 것.
 
 핵심 명제는 단순합니다:
 
 > 개인의 페르소나와 암묵지를, AI 에이전트와의 실제 세션에서 **증거 기반 온톨로지 팩**으로
-> 포착하면, 그것이 쌓여 **개인 에이전트(Personal Agent)**로 **수렴**한다.
+> 포착하면, 그것이 쌓여 *당신 자신의 명시적 지도*가 되고 — 그 지도는 **개인 에이전트(Personal
+> Agent)로 컴파일**될 수 있다. 단, **첫 산출물은 에이전트가 아니라 지도 자체**다.
 
 추측으로 만든 "AI 페르소나"가 아닙니다. 매 항목이 **실제 증거**(세션, 교정, 파일, 결정
-기록)에 묶이고, **당신의 승인**을 거친 뒤에야 에이전트의 규칙이 됩니다. 그래서 이 에이전트는
-"왜 그렇게 했어?"라는 질문에 항상 답할 수 있습니다 — 근거를 가리키며.
+기록)에 묶이고, **당신의 승인**을 거친 뒤에야 지도에 올라갑니다. 그래서 이 지도(와 그것으로
+컴파일된 에이전트)는 "왜 그렇게 했어?"라는 질문에 항상 답할 수 있습니다 — 근거를 가리키며.
+그리고 이 지도가 *행동하는 대리인*으로 배포되는 순간은 별개의, **사람 검토를 요하는 한 걸음**
+입니다(거울 → 대리인; 아래 [경계](#거울이냐-대리인이냐--자기명시화가-먼저다) 참조).
 
 ## 한 장 그림
 
@@ -66,14 +75,35 @@
                     └──────► 다시 증거로 (루프)
 ```
 
-14개의 팩이 채워질수록 그림 가운데의 에이전트는 점점 더 **당신**이 됩니다. 그 "점점 더"를
-우리는 추측이 아니라 [**수렴 지표**](./spec/06-convergence-model.md)로 측정합니다.
+14개의 팩이 채워질수록 그림 가운데의 지도는 점점 더 명시적인 **당신**이 됩니다 — *당신도 몰랐던
+당신*까지. 그 "점점 더"를 우리는 추측이 아니라 [**수렴 지표**](./spec/06-convergence-model.md)로
+측정합니다(얼마나 더 많은 암묵지가 *명시·증거화*됐는가).
 
-단, 에이전트는 *당신의 증거가 있는 곳에서만* 당신처럼 행동하고, 없는 곳에서는 평균값으로
-둘러대지 않고 **기권하거나 묻습니다**(de-averaging). 그래서 이것은 *위임 가능한 '일하는 자아'*이지
+단, 지도는 *당신의 증거가 있는 곳에서만* 당신을 그리고, 없는 곳에서는 평균값으로 둘러대지 않고
+**비워 두거나 묻습니다**(de-averaging). 그래서 이것은 *위임 가능한 '일하는 자아'의 지도*이지
 전인격 복제가 아닙니다 — 증거가 주로 AI 작업 세션에서 오므로 관계·정서·미적 자아는 채널의
-구조적 한계로 [off-ontology](./spec/00-overview.md)이며, 거기서 에이전트는 권위 있게 행동하지
-않습니다([스코프·입장](./spec/00-overview.md)).
+구조적 한계로 [off-ontology](./spec/00-overview.md)이며, 거기서는 권위 있게 그리지 않습니다.
+
+## 거울이냐 대리인이냐 — 자기명시화가 먼저다
+
+이 프로젝트의 **일차 산출물은 *당신의 명시적 자기지도*(거울)**입니다 — "내가 어떻게 결정하는가"를
+증거에 묶어 *읽을 수 있게* 만든 것. 그 지도를 **컴파일해 *행동하는* 개인 에이전트(대리인)**로 쓰는
+것은 *가능하지만 별개의, 더 무거운 한 걸음*입니다.
+
+| | **거울 (자기명시화, 일차 목적)** | **대리인 (배포·행위 위임, 별개 단계)** |
+|---|---|---|
+| 무엇 | 당신의 암묵 패턴을 증거 기반으로 *명시화* | 그 지도가 *당신 이름으로 판단·작성·행동* |
+| 가치 | *나도 모르던 나*를 보고·따져봄 | 일·판단의 위임 |
+| 편향을 만나면 | **드러냄** — 검토의 *전제* (기능) | **충실히 재생산** — 검토 안 하면 *위험* |
+| 검토 | 사람이 지도를 읽고 판단 | "becoming you"는 사람 검토 요하는 적용주장(G·[01 §7.1](./spec/01-kernel-schema.md)) |
+
+> **정직한 경계.** 거울로 쓰는 한, "충실도만 재고 *질*은 안 잰다"는 것은 결함이 아니라 설계입니다 —
+> 거울은 *있는 그대로* 비추고, 좋은가/나쁜가의 규범 판단은 (이제 자기를 명시적으로 본) **당신** 몫입니다.
+> 그러나 지도를 *대리인으로 배포*하는 순간, 시스템은 당신의 패턴·편향을 traceability=1.0 인용과 함께
+> **자신감 있게 재생산**하고 *당신 이름으로 행동*합니다 — 그때 의존·책임 귀속·편향 증폭 같은 *인간적
+> 결과*가 들어옵니다. 이 저장소의 게이트·경계·기권·draft-only 는 *기술적* 정합(에이전트가 당신을
+> **틀리게** 아는 것)을 막지, *충실히 당신이라서* 생기는 결과를 판단해 주지 않습니다. 그래서 대리인
+> 배포는 의도적·검토된 한 걸음으로 남겨 둡니다. 자기명시화에는 이 부담이 따라오지 않습니다.
 
 ## 이 저장소에 있는 것
 
