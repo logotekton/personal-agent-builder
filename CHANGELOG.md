@@ -21,6 +21,30 @@
 
 ## [Unreleased]
 
+### 설계자 결정 반영 — claim-layer 분리 + '일하는 자아' 스코프 (philosophy 팩 대조 후속)
+> philosophy_for_ai_ontology 팩(OpenCrab)과의 정밀대조에서 드러난 간극 — PAB가 *증거 계층*(G4)은
+> 지키지만 *적용/해석 계층*('이 에이전트가 당신이다')을 표시·검토하는 장치가 없다는 점 — 을 설계자
+> 결정 4개(A/B/C/D)로 보완. 모든 변경은 무가공·증거결속이며 기존 예제 숫자는 전부 보존(logotekton
+> 여전히 L1, 엄격 0.07, confirmed 19, validate 42 PASS).
+- **C · `reliability` 채널 티어 추가 (claim-layer 분리, #1).** 베이스/후보 스키마에 `reliability`
+  ∈ {`behavioral`(기본), `self_reported`}. self_reported(자기서술 = InterpretationClaim)는 ① auto-confirm
+  **금지**(allOf 규칙 + [`validate_packs.py`](./tools/validate_packs.py) 에러), ② draft-only, ③ 성숙도
+  **깊이 미산입** — 깊이(엄격 coverage)는 [`convergence_report.py`](./tools/convergence_report.py)에서
+  *behavioral confirmed* 만 ≥3 으로 센다. 자기서술이 행동 증거로 둔갑하는 것을 구조로 차단. 스펙:
+  [01 §7.1](./spec/01-kernel-schema.md). 테스트 +9(58→67), 예제 숫자 불변(예제는 전부 behavioral).
+- **A · '위임가능한 일하는 자아' 스코프 명시 + #4 행동주의 입장 선언.** [spec/00](./spec/00-overview.md)에
+  "무엇이 *아닌가*" 절 추가: PAB는 **전인격 트윈이 아니라** 행동 증거가 있는 일·판단 영역의 위임가능한
+  자아다. 내면 배제는 *암묵 기본값*이 아니라 **선언된 방법론적 입장**(G4)임을 명문화.
+- **D · 채널 한계 + off-ontology 기권 선언.** 증거가 주로 AI 작업 세션에서 오므로 관계·정서·미적·서사적
+  자아는 *채널의 구조적 한계*로 off-ontology — 에이전트는 그곳에서 평균값으로 흉내내지 않고 기권한다
+  (de-averaging 의 채널 차원 확장). 채널 확대는 별도 로드맵.
+- **B · 'persona' = 행동 페르소나(mask) 고정.** persona_core 의 'persona'는 *연기된 관찰 패턴*이지 내면
+  자아가 아님 — value/priority 조차 행동으로 드러난 안정 패턴만 적재. 카탈로그·스키마·템플릿(×2)에 명시.
+- **#2 · "becoming you" = 적용주장(AIApplicationClaim) 명시.** 프로젝트 표어는 증거가 아니라 *증거를
+  에이전트에 적용한, 사람 검토를 요하는* 주장으로 읽혀야 하며 행동 레코드의 신뢰도를 자동 상속하지
+  않음을 [01 §7.1](./spec/01-kernel-schema.md)에 명문화. de-averaging·off-frontier·reliability 가 그 검토를
+  기계적으로 떠받친다.
+
 ### Karpathy review 후속 — 자기기만 방지 (실행 게이트 강화)
 - **L2 게이트 결함 수정 — 성숙도를 폭이 아니라 깊이로 게이팅.** 적대적 검토에서 드러난 내부 모순:
   spec/06 §2가 `coverage`를 *엄격(≥3 확인 = 깊이)*으로 **정의**하는데, [`convergence_report.py`](./tools/convergence_report.py)의
