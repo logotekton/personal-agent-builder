@@ -39,6 +39,59 @@
 > 출력은 **타입 미지정 후보 신호 + 그 근거 `EvidenceItem` 참조**다. 타입 지정·필드 정규화는
 > 하류(S05)에서 일어난다([파이프라인 §3 S02](../spec/02-builder-pipeline.md#s02--s03--s04--상태-mine_or_ask-채굴-트리오)).
 
+### 1.1 전이성 테스트 — 주체를 캐고, 주제를 캐지 마라 (mine the decider, not the topic)
+
+> **EN:** A session is mined for the *person revealed through the work*, not the *work itself*.
+> The single most important filter: a signal becomes a tacit-knowledge candidate only if it would
+> still be true of you on a **completely different project**. Project facts ("X connects to Y",
+> "X is a branching model") are NOT persona — they are at most project memory. The personal agent
+> is a distillation of *how you think and decide*, never a log of *what you built*.
+
+세션 마이닝의 **제1 필터**다. 세션은 그 세션이 다룬 *프로젝트*가 아니라, 그 세션을 통해 드러난
+*당신*을 캐기 위해 분석된다. 한 신호가 **암묵지 후보**(페르소나·결정·암묵 휴리스틱·스타일·산출물·
+위험·워크플로 팩)가 되려면 다음을 통과해야 한다:
+
+> **전이성 테스트:** "프로젝트를 X에서 *전혀 다른* Y로 바꿔도, 이 레코드가 여전히 *당신*에 대해
+> 참인가?"
+> - **참(전이 가능)** → *암묵지*. 프로젝트 고유 디테일을 벗겨내고 **패턴만** 적재한다. `scope`는
+>   프로젝트명이 아니라 *그 패턴이 도는 조건*으로 단다.
+> - **거짓(프로젝트 종속)** → *프로젝트 사실*. 페르소나·결정·암묵지 팩에 **넣지 않는다.** 오직
+>   [`user.memory_project_graph`](../spec/03-pack-catalog.md#12-usermemory_project_graph)(프로젝트 맥락)나
+>   [`user.domain_overlays`](../spec/03-pack-catalog.md#9-userdomain_overlays)(여러 프로젝트에 걸친
+>   *지속* 도메인 지식)에만, 명시적 *사실/맥락*으로 적재한다 — 페르소나로 둔갑 금지.
+
+보조 리트머스(하나라도 "주제" 쪽이면 암묵지 아님):
+
+1. 이게 *당신이 어떻게 생각/결정하는가*인가, *당신이 무엇을 만드는가*인가? (앞만 페르소나)
+2. 다음 프로젝트에서도 이 패턴이 다시 나타날까? (아니면 일회성 프로젝트 사실)
+3. **같은 프로젝트를 *다른 사람*이 해도 똑같이 말할 내용인가?** 그렇다면 그건 *프로젝트 사실*이지
+   당신의 암묵지가 아니다. (가장 날카로운 판별: 암묵지는 *당신 고유*여야 한다.)
+
+> 예 — 같은 세션, 다른 운명:
+> - ❌ "ECWM은 OpenCrab·MCP·모듈러 BIM과 연결된 차세대 지식 아키텍처다" → *프로젝트 사실*(누구나
+>   같은 말). → `memory_project_graph`에 맥락으로만.
+> - ✅ "복잡한 시스템에서 *구현 전에 관심사를 명시적으로 계층 분리*하기를 선호한다" → *전이 가능한
+>   결정 패턴*. → `decision_policy`. (프로젝트가 ECWM이든 아니든 참.)
+> - ✅ "AI가 추출한 주장을 *확정 사실로 다루지 않고* 증거-후보-확인 게이트를 거친다" → *전이 가능한
+>   인식론적 휴리스틱*. → `tacit_heuristics`.
+
+de-averaging 의 *실행 형태*다([00 개요](../spec/00-overview.md)): 에이전트가 *당신*이 되는 것은
+당신의 *프로젝트 데이터베이스*가 아니라 당신의 *판단 방식*을 증류했을 때뿐이다.
+
+> **이건 사람 판단 필터다 — 코드가 아니라([G4](../spec/01-kernel-schema.md#2-품질-게이트-quality-gates)와 같은 부류).**
+> 전이성은 의미 판단이라 스키마/도구로 기계 검증되지 않는다(프로젝트 사실과 페르소나 레코드는 *같은
+> 베이스 스키마*라 구조로 구별 불가). 그래서 두 곳에서 *사람이* 강제한다: **S05 후보 추출 체크리스트**
+> (타입 지정 시)와 **S07 확인 게이트**(승격 전 최종 판정). `reliability` 처럼 도구가 막아주는 게 아니다.
+
+**두 성질이 섞이면 — 쪼개라.** 한 신호가 *프로젝트 사실이면서 동시에 패턴을 드러내면*, S05 의 분할
+규칙([05 §6](./05-candidate-extraction.md))으로 **둘로 나눈다**: 전이 가능한 패턴 → 암묵지 팩, 프로젝트
+사실 → `memory_project_graph`. 예: "이 결제서비스 리뷰에서 입력검증 누락을 먼저 봤다" → 패턴
+"보안 민감 코드 리뷰에서 입력검증을 먼저 본다"(`tacit_heuristics`) + 사실 "결제서비스를 리뷰 중"(`memory_project_graph`).
+
+**역할(`identity_roles`)은 어떻게 되나.** 역할 *자체*("리뷰어로서 어떻게 판단·행동하는가")는 *연기된
+페르소나*라 전이 가능 → `identity_roles`. 그 역할이 *어느 프로젝트에 묶였는가*("X 프로젝트의 리뷰어")는
+프로젝트 사실 → `memory_project_graph`. 같은 분할이 역할에도 적용된다.
+
 ## 2. 작동 방식 (How it works)
 
 세션 마이너는 다음 6단계를 순서대로 실행한다. 각 단계는 다음 단계의 입력 계약을 만족시킨다.

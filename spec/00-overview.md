@@ -19,6 +19,13 @@
 [06 수렴 모델 §8](./06-convergence-model.md#8-깊이de-averaging--모르는-곳을-아는-것이-수렴이다),
 부정 증거(무엇이 *당신이 아닌가*)는 [`user.red_flags`](./03-pack-catalog.md)가 담습니다.
 
+> **주체를 캐고, 주제를 캐지 마라.** 에이전트가 *당신*이 되는 것은 당신의 *프로젝트 데이터베이스*가
+> 아니라 당신의 *판단 방식*을 증류했을 때뿐입니다. 그래서 추출의 제1 필터는 **전이성 테스트**입니다 —
+> "프로젝트를 바꿔도 참인" 결정·추론·선호·휴리스틱만 암묵지 팩으로 가고, 프로젝트 고유 사실은
+> `memory_project_graph`(맥락)로만 갑니다([S02 §1.1](../skills/02-session-mining.md#11-전이성-테스트--주체를-캐고-주제를-캐지-마라-mine-the-decider-not-the-topic)).
+> 이것이 de-averaging 의 *입구* 형태입니다: 들어올 때부터 *당신이 무엇을 만드는가*가 아니라 *당신이
+> 어떻게 생각하는가*만 들인다.
+
 ## 무엇이 *아닌가* — 위임가능한 '일하는 자아' (scope & stance)
 
 > **EN:** What PAB builds is a *delegable working-self* — an agent that reproduces your

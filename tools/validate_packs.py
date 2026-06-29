@@ -368,6 +368,18 @@ def iter_records(payload: Any) -> Iterable[Tuple[str, Any]]:
         return
 
 
+def _is_candidate(rec: Any) -> bool:
+    """이 레코드가 *후보*(CandidateAssertion)인가 — 베이스 레코드가 아니라 candidate.schema.json 대상.
+
+    후보는 `candidate_type`(또는 `candidate_id`+`validation_status`)를 쓰고, 베이스 레코드는
+    `record_type`/`id`/`statement`/`review_status` 를 쓴다(겹치지 않음). 확인 게이트(S07) 전의 후보
+    파일은 베이스 코어 계약을 만족하지 않으므로 베이스 검증에서 *건너뛴다*(SKIP) — FAIL 이 아니다.
+    """
+    if not isinstance(rec, dict):
+        return False
+    return ("candidate_type" in rec) or ("candidate_id" in rec and "validation_status" in rec)
+
+
 def load_file(path: str) -> Tuple[Optional[Any], Optional[str]]:
     """파일을 파싱해 (payload, error) 를 돌려줍니다. error 가 None 이면 성공."""
     ext = os.path.splitext(path)[1].lower()
@@ -428,20 +440,28 @@ def validate_file(path: str, require_audit: bool = False) -> Tuple[List[RecordRe
         return results, [err]
 
     found = False
+    n_candidates = 0
     for suffix, rec in iter_records(payload):
+        if _is_candidate(rec):
+            n_candidates += 1   # 후보 파일 — 베이스 검증 대상 아님 (candidate.schema.json), 건너뜀
+            continue
         found = True
         results.append(validate_record(rec, f"{path}::{suffix}", require_audit))
 
-    if not found:
-        return results, ["검증할 레코드를 찾지 못했습니다 (지원되는 모양이 아님)"]
-
-    return results, []
+    msgs: List[str] = []
+    if n_candidates:
+        msgs.append(
+            f"후보 레코드 {n_candidates}건 건너뜀 (candidate.schema.json 대상 — 베이스 레코드 아님)"
+        )
+    if not found and not n_candidates:
+        msgs.append("검증할 레코드를 찾지 못했습니다 (지원되는 모양이 아님)")
+    return results, msgs
 
 
 # ── 출력 / 실행 ─────────────────────────────────────────────────────────────────
 def _is_skip_message(msg: str) -> bool:
     """파일레벨 메시지가 '건너뜀'(에러 아님)인지 판별합니다."""
-    return "PyYAML 이 설치되지 않았습니다" in msg
+    return ("PyYAML 이 설치되지 않았습니다" in msg) or ("후보 레코드" in msg and "건너뜀" in msg)
 
 
 def run(paths: List[str]) -> int:
