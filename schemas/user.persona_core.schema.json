@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/logotekton/personal-agent-builder/main/schemas/user.persona_core.schema.json",
   "title": "Personal Agent — user.persona_core Record",
-  "description": "Schema for the user.persona_core pack (#2 of 14): stable preferences, avoidances, priorities, values, and durable work patterns of the subject (PersonaTrait node). Each record extends the unified base record via allOf and is fed by PersonaTraitCandidate (see spec/01-kernel-schema.md §6 routing). Pack definition: ../spec/03-pack-catalog.md. Gate G4 applies: state observed behavior, not guessed psychology.",
+  "description": "Schema for the user.persona_core pack (#2 of 14): stable preferences, avoidances, priorities, values, and durable work patterns of the subject (PersonaTrait node). Each record extends the unified base record via allOf and is fed by PersonaTraitCandidate (see spec/01-kernel-schema.md §6 routing). Pack definition: ../spec/03-pack-catalog.md. Gate G4 applies: state observed behavior, not guessed psychology. 'Persona' here means a BEHAVIORAL persona (an enacted, observed pattern) — NOT an interior self (designer decision B): even ValueRecord/PriorityRecord capture a value as it shows up in consistent behavior, not an inner attribution. An interior self-description ('my real value is X') is a self-report and belongs to the low-trust reliability=self_reported channel (draft-only), not here. See spec/01-kernel-schema.md §7.1.",
   "type": "object",
   "allOf": [
     { "$ref": "./record.base.schema.json" },
