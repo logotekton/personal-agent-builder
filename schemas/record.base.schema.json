@@ -68,6 +68,13 @@
       "description": "True if this record reached review_status=confirmed via an auto_confirm_policy (spec/12) rather than a human gate. Default false = human-confirmed. The maturity gate counts a human-only human_confirmation_ratio that EXCLUDES auto_confirmed records, so auto-confirm cannot inflate the confirmed numerator and let the system self-certify its own maturity (spec/12 §4.4 circularity break)."
     },
 
+    "reliability": {
+      "type": "string",
+      "enum": ["behavioral", "self_reported"],
+      "default": "behavioral",
+      "description": "Evidence CHANNEL of this record — which claim layer it belongs to (spec/01 §7.1, spec/00 claim-layer note). behavioral = derived from observed behavior, artifacts, or corrections (Gate G4) — the trusted default that earns runtime authority and counts toward maturity DEPTH. self_reported = the subject described themselves in words ('I'm a careful reviewer'); it is a LOW-TRUST tier kept so an interior/motivational signal can be CARRIED without being mistaken for behavioral evidence. A self_reported record (1) MUST NOT be auto_confirmed (allOf below), (2) stays draft-only — it does NOT count toward strict-coverage depth and the compiler must not give it standalone runtime authority, and (3) is an InterpretationClaim about the self, not an OriginalClaim of behavior. Absent = behavioral. This is the structural break between the evidence layer and the application/interpretation layer."
+    },
+
     "review_audit": {
       "type": "object",
       "description": "Provenance of the human review that promoted this record (Karpathy #8): makes a real review mechanically distinguishable from a rubber-stamp and lets edit_rate be computed. validate_packs --require-audit makes it mandatory on runtime-active records.",
@@ -120,6 +127,10 @@
     {
       "if": { "properties": { "sensitivity": { "enum": ["sensitive", "restricted"] } } },
       "then": { "required": ["exception_rules"] }
+    },
+    {
+      "if": { "properties": { "reliability": { "const": "self_reported" } }, "required": ["reliability"] },
+      "then": { "properties": { "auto_confirmed": { "not": { "const": true } } } }
     }
   ],
   "$comment": "confirmed required before strong runtime use; broad records require repeated support or explicit confirmation (enforced by tools/validate_packs.py with context)."
