@@ -169,9 +169,20 @@
 | `proposed_target_pack` | 단일 목적지 팩 | 1:1 라우터로 고정(타입과 불일치 금지) |
 | `validation_status` | 확인 게이트 상태 | 초기 `pending`; 정함은 [S07](./07-confirmation-gate.md) |
 | `extraction_method` | 출처 스킬 프로비넌스 | session_mining/elicitation_questioning/diff_mining/… |
+| `reliability` | `behavioral`(기본) \| `self_reported` | 증거 채널 — §3.2 |
 
 선택 필드 `confidence_inputs`(§4의 7개 신호)는 강력히 권장된다 — 신뢰도를 감사 가능하게 만들고
 도구가 `confidence`를 재계산할 수 있게 한다.
+
+### 3.2 reliability 채널 — 행동 vs 자기서술 (claim-layer)
+
+대부분의 후보는 *행동에서* 추출되므로 `behavioral`(기본)이다. 그러나 elicitation([S03](./03-elicitation-questioning.md))
+에서 주체가 **말로 자기를 서술**했는데 *아직 행동이 확증하지 않은* 경우(예: "나는 꼼꼼한 리뷰어다"),
+그 후보는 `reliability: self_reported`로 표시한다. self_reported 는 *자기에 대한 해석(InterpretationClaim)*
+이지 행동 증거가 아니므로 — ① 승격 시 auto-confirm 금지(사람만 확인), ② draft-only(단독 런타임 권위
+없음), ③ 성숙도 깊이에 미산입. 같은 패턴이 나중에 행동으로 확증되면 별도 `behavioral` 후보로 올라와
+병합되며, 그때 비로소 신뢰·깊이를 얻는다([01 §7.1](../spec/01-kernel-schema.md), 설계자 결정 C). 이렇게 해서
+*자기서술이 행동 증거로 둔갑하는 것*을 막는다.
 
 ## 4. 신뢰도 입력 (Confidence inputs)
 

@@ -23,14 +23,16 @@
 
 | 지표 | 정의 | 방향 | 좋은 값 |
 |------|------|------|---------|
-| `coverage` | 확인 레코드 ≥3개인 팩 수 / 14 | ↑ | → 1.0 |
+| `coverage` | **behavioral** 확인 레코드 ≥3개인 팩 수 / 14 | ↑ | → 1.0 |
 | `confirmation_ratio` | confirmed / (confirmed + pending + rejected) | ↑ | ≥ 0.6 |
 | `decision_fidelity` | 통과한 평가 케이스 / 전체 평가 케이스 | ↑ | ≥ 0.8 |
 | `correction_cost` | 작업당 사용자 편집 비율(평균) | **↓** | ≤ 0.2 |
 | `drift_stability` | 1 − (최근 기간 대체수 / 확인 레코드수) | ↑ | ≥ 0.8 |
 | `traceability` | 증거를 가진 활성 규칙 / 활성 규칙 | = | **1.0 필수** |
 
-- `coverage`는 **폭** — 자기표현이 14개 영역에 고루 퍼졌는가.
+- `coverage`는 **깊이** — *behavioral* 확인 레코드 ≥3개인 팩 비율(엄격). 자기서술
+  (`reliability: self_reported`)은 draft-only 라 깊이에 산입하지 않는다 — 깊이=신뢰는 관찰된
+  행동에서만 온다([01 §7.1](./01-kernel-schema.md), 설계자 결정 C). 시드*폭*은 보조 신호(§8).
 - `confirmation_ratio`는 **포착 품질** — 추출이 실제로 승인되는가, 잡음만 많은가. **단, 성숙도 게이트는
   이 값이 아니라 `human_confirmation_ratio`(auto-confirm 승격을 분자·분모에서 제외한 *사람 게이트* 흐름만)를
   쓴다** — auto-confirm 이 `confirmed` 분자를 스스로 밀어올려 *떨어졌어야 할* 성숙도를 가리는 자기인증 루프를
@@ -135,8 +137,10 @@
 이를 측정·강제하는 세 가지:
 
 1. **깊이 우선 사다리(overfit-tiny-set-first).** 성숙도 L1 은 폭(≥7팩)만이 아니라 **깊이 한 칸**도
-   요구합니다 — *≥1 팩이 ≥3 확인 레코드*(=`vertical`). 1레코드씩 14팩에 흩뿌려 성숙도를 따는
-   breadth-first 게이밍을 막습니다. 권장 경로는 한 영역을 먼저 깊게(overfit) 다진 뒤 넓히는 것입니다.
+   요구합니다 — *≥1 팩이 ≥3 **behavioral** 확인 레코드*(=`vertical`). 자기서술(self_reported)은
+   깊이를 못 만든다(draft-only, [01 §7.1](./01-kernel-schema.md)). 1레코드씩 14팩에 흩뿌리거나
+   자기서술로 채워 성숙도를 따는 게이밍을 막습니다. 권장 경로는 한 영역을 먼저 깊게(overfit) 다진 뒤
+   넓히는 것입니다.
    `coverage`는 두 값으로 봅니다: **시드폭**(팩에 값이 하나라도) vs **엄격(≥3)**(깊이). 둘의 간극이
    크면 *폭은 넓어도 신뢰는 얕다*는 신호입니다.
 2. **off-frontier 경고.** [`convergence_report.py`](../tools/convergence_report.py)는 확인 레코드 0개인
