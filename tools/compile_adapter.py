@@ -10,7 +10,8 @@
 > decision C) and superseded (drift_history) records, (3) optionally scope-filters to a task,
 > (4) routes each record into its canonical section(s) via the S10 §4 pack→section map,
 > (5) lays the boundary_authority layer on top (or the default-safe-policy floor when empty),
-> and (6) logs every empty section as a coverage gap — never inventing a rule for a gap (G1).
+> and (6) logs every pack with no active record as a coverage gap (naming the section(s) that
+> pack would feed) — never inventing a rule for a gap (G1).
 > It assembles records; it does not create or edit them (read-only, like the hand-authored
 > examples/logotekton/runtime-adapter.md it reproduces).
 
@@ -159,16 +160,18 @@ def compile_adapter(pack_records, drift_records, task_tags=None):
     if boundary_source == "default_safe_policy":
         section8_inputs = section8_inputs + ["default_safe_policy"]
 
-    # 갭 로그: 컴파일 대상 12팩 중 활성 레코드 0개인 팩.
+    # 갭 로그: 컴파일 대상 12팩 중 활성 레코드 0개인 팩. `feeds_sections` 는 그 팩이 *기여하는*
+    # 섹션 번호다 — 그 섹션이 통째로 비었다는 뜻이 아니라(다른 팩이 채울 수 있다), 이 팩의 몫이
+    # 비었다는 뜻이다(팩 단위 커버리지 갭).
     gap_log = [
-        {"pack": pack, "empty_sections": list(secs)}
+        {"pack": pack, "feeds_sections": list(secs)}
         for pack, secs in PACK_SECTIONS.items()
         if not active_by_pack[pack]
     ]
 
     active_packs = [p for p in PACK_SECTIONS if active_by_pack[p]]
     provenance = {
-        SECTION_NAMES[s]: sorted({ref["id"] for ref in sections[s]})
+        SECTION_NAMES[s]: sorted({str(ref["id"]) for ref in sections[s]})
         for s in range(1, 9) if sections[s]
     }
 
@@ -243,8 +246,8 @@ def render_summary(adapter, directory):
     lines.append("[갭 로그] 빈/저커버리지 슬롯 — 다음 채굴 라운드 신호 (추측으로 메우지 않음, G1)")
     if adapter["gap_log"]:
         for g in adapter["gap_log"]:
-            secs = "·".join(str(x) for x in g["empty_sections"])
-            lines.append(f"  - {g['pack']:<28} → 섹션 {secs}")
+            secs = "·".join(str(x) for x in g["feeds_sections"])
+            lines.append(f"  - {g['pack']:<28} → 섹션 {secs} 기여 없음")
     else:
         lines.append("  (갭 없음)")
     lines.append("=" * 72)

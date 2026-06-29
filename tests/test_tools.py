@@ -763,6 +763,41 @@ class TestCompileAdapter(unittest.TestCase):
         self.assertEqual(ids, {"x.t.2"})
         self.assertIn("x.t.1", a["superseded_excluded"])
 
+    def test_narrowed_is_included_other_statuses_excluded(self):
+        # confirmed + narrowed compile in (G3 §8 table); rejected/sensitive/deferred never do
+        recs = {"user.decision_policy": [
+            {"id": "x.d.conf", "review_status": "confirmed", "statement": "a", "scope": "s"},
+            {"id": "x.d.narr", "review_status": "narrowed", "statement": "b", "scope": "s"},
+            {"id": "x.d.rej", "review_status": "rejected", "statement": "c", "scope": "s"},
+            {"id": "x.d.sens", "review_status": "sensitive", "statement": "d", "scope": "s"},
+            {"id": "x.d.def", "review_status": "deferred", "statement": "e", "scope": "s"},
+        ]}
+        a = comp.compile_adapter(recs, [])
+        ids = {r["id"] for r in a["sections"]["decision_policy"]}
+        self.assertEqual(ids, {"x.d.conf", "x.d.narr"})
+
+    def test_own_supersedes_field_excludes_old_version(self):
+        # the retired old version can be named in a record's OWN supersedes (no drift record present)
+        recs = {"user.persona_core": [
+            {"id": "x.t.old", "review_status": "confirmed", "statement": "old", "scope": "s"},
+            {"id": "x.t.new", "review_status": "confirmed", "statement": "new", "scope": "s",
+             "supersedes": ["x.t.old"]},
+        ]}
+        a = comp.compile_adapter(recs, [])   # NO drift records — exclusion must come from own field
+        ids = {r["id"] for r in a["sections"]["identity_role"]}
+        self.assertEqual(ids, {"x.t.new"})
+        self.assertIn("x.t.old", a["superseded_excluded"])
+
+    def test_task_scope_filter_selects_matching_only(self):
+        # --task tag routes through scope_overlap: only review-scoped (or no-scope) records survive
+        recs = {"user.communication_style": [
+            {"id": "x.s.rev", "review_status": "confirmed", "statement": "r", "scope": "review"},
+            {"id": "x.s.ext", "review_status": "confirmed", "statement": "e", "scope": "external_email"},
+        ]}
+        a = comp.compile_adapter(recs, [], task_tags="review")
+        ids = {r["id"] for r in a["sections"]["active_patterns"]}
+        self.assertEqual(ids, {"x.s.rev"})   # external-scoped record dropped for a review task
+
     def test_deterministic_same_input_same_adapter(self):
         pack_records, drift = comp.load(EXAMPLE)
         self.assertEqual(comp.compile_adapter(pack_records, drift),
