@@ -418,6 +418,71 @@ class TestHumanConfirmationRatio(unittest.TestCase):
         self.assertEqual(tier2, "L2")
 
 
+class TestReliabilityTier(unittest.TestCase):
+    """Designer decision C / claim-layer #1: self_reported is a low-trust, draft-only channel
+    that must not be auto-confirmed and must not earn maturity DEPTH (only behavioral does)."""
+
+    # --- validate_packs enforcement ---
+    def test_behavioral_default_passes(self):
+        r = _good(); r["reliability"] = "behavioral"
+        self.assertTrue(vp.validate_record(r, "t").ok)
+
+    def test_self_reported_alone_passes(self):
+        # a human-confirmed self-report is allowed to EXIST (carried signal) — just low-trust
+        r = _good(); r["reliability"] = "self_reported"
+        self.assertTrue(vp.validate_record(r, "t").ok)
+
+    def test_bad_reliability_enum_fails(self):
+        r = _good(); r["reliability"] = "hearsay"
+        self.assertFalse(vp.validate_record(r, "t").ok)
+
+    def test_self_reported_cannot_be_auto_confirmed(self):
+        # the headline rule: a self-description can't be machine-promoted past the human gate
+        r = _good(); r["reliability"] = "self_reported"; r["auto_confirmed"] = True
+        res = vp.validate_record(r, "t")
+        self.assertFalse(res.ok)
+        self.assertTrue(any("self_reported" in e for e in res.errors), res.errors)
+
+    def test_behavioral_can_be_auto_confirmed(self):
+        r = _good(); r["reliability"] = "behavioral"; r["auto_confirmed"] = True
+        self.assertTrue(vp.validate_record(r, "t").ok)
+
+    # --- convergence: maturity DEPTH counts behavioral confirmed only ---
+    def test_self_reported_does_not_count_toward_depth(self):
+        # 3 confirmed but all self_reported → NOT a vertical; depth must stay 0 (draft-only)
+        recs = {"user.persona_core": [
+            {"review_status": "confirmed", "reliability": "self_reported"} for _ in range(3)
+        ]}
+        ix = cr.compute_indices(recs, [], [])
+        self.assertEqual(ix["_n_self_reported"], 3)
+        self.assertEqual(ix["_packs_with_3"], 0)       # no behavioral depth
+        self.assertEqual(ix["_n_confirmed"], 3)        # still counted for confirmation_ratio
+
+    def test_behavioral_confirmed_counts_toward_depth(self):
+        recs = {"user.persona_core": [
+            {"review_status": "confirmed"} for _ in range(3)   # behavioral by default
+        ]}
+        ix = cr.compute_indices(recs, [], [])
+        self.assertEqual(ix["_packs_with_3"], 1)
+        self.assertEqual(ix["_n_self_reported"], 0)
+
+    def test_mixed_pack_counts_only_behavioral_for_depth(self):
+        # 2 behavioral + 2 self_reported confirmed → behavioral depth = 2 < 3 → not a vertical
+        recs = {"user.persona_core":
+            [{"review_status": "confirmed"} for _ in range(2)]
+            + [{"review_status": "confirmed", "reliability": "self_reported"} for _ in range(2)]
+        }
+        ix = cr.compute_indices(recs, [], [])
+        self.assertEqual(ix["_packs_with_3"], 0)
+        self.assertEqual(ix["_behavioral_confirmed_by_pack"]["user.persona_core"], 2)
+
+    def test_example_has_no_self_reported(self):
+        # locks that the worked example is all-behavioral, so the C change preserves every number
+        pack_records, eval_cases, drift_records, _ = cr.collect(EXAMPLE)
+        ix = cr.compute_indices(pack_records, eval_cases, drift_records)
+        self.assertEqual(ix["_n_self_reported"], 0)
+
+
 # ───────────────────────── end-to-end CLI (subprocess) ─────────────────────
 def _run(*args):
     return subprocess.run([sys.executable, *args], cwd=REPO, capture_output=True, text=True)

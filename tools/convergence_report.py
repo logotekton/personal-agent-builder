@@ -504,6 +504,17 @@ def _is_auto_confirmed(rec) -> bool:
     return False
 
 
+def _is_self_reported(rec) -> bool:
+    """이 레코드가 self_reported 채널인가 (자기서술, 저신뢰 — record.base §7.1).
+
+    self_reported 는 draft-only 라 깊이(엄격 coverage)에 안 들어간다 — 깊이=신뢰는 관찰된
+    행동(behavioral)에서만 나온다는 de-averaging·claim-layer 원칙(설계자 결정 C/#1). 기본값은
+    behavioral = False (reliability 필드 부재 시).
+    """
+    v = rec.get("reliability")
+    return isinstance(v, str) and v.strip().lower() == "self_reported"
+
+
 def _eval_result_status(rec) -> str | None:
     """평가 케이스의 result.status (pass/partial/fail) 를 소문자로."""
     result = rec.get("result")
@@ -546,17 +557,24 @@ def compute_indices(pack_records, eval_cases, drift_records):
     """6개 지표 + 보조 카운트를 dict 로 반환."""
     # 팩별 확인 레코드 수
     confirmed_by_pack = {}
+    behavioral_confirmed_by_pack = {}   # 깊이는 behavioral confirmed 만 (self_reported 는 draft-only)
     seeded_packs = 0
     n_confirmed = n_pending = n_rejected = 0
     n_auto_confirmed = 0
+    n_self_reported = 0
     for pack in CANONICAL_PACKS:
         recs = pack_records.get(pack, [])
         c = sum(1 for r in recs if _status_of(r) in CONFIRMED_STATES)
+        bc = sum(1 for r in recs
+                 if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r))
         confirmed_by_pack[pack] = c
+        behavioral_confirmed_by_pack[pack] = bc
         if recs:
             seeded_packs += 1
         for r in recs:
             st = _status_of(r)
+            if _is_self_reported(r):
+                n_self_reported += 1
             if st in CONFIRMED_STATES:
                 n_confirmed += 1
                 if _is_auto_confirmed(r):
@@ -566,8 +584,10 @@ def compute_indices(pack_records, eval_cases, drift_records):
             elif st in REJECTED_STATES:
                 n_rejected += 1
 
+    # 깊이(엄격 coverage)는 behavioral confirmed 만 ≥3 으로 센다 — self_reported(자기서술)는
+    # draft-only 라 신뢰 깊이를 만들지 못한다(설계자 결정 C/#1, spec/00 클레임-계층).
     packs_with_3 = sum(1 for p in CANONICAL_PACKS
-                       if confirmed_by_pack[p] >= COVERAGE_MIN_CONFIRMED)
+                       if behavioral_confirmed_by_pack[p] >= COVERAGE_MIN_CONFIRMED)
 
     coverage_strict = packs_with_3 / TOTAL_PACKS          # spec §2 정의: 확인 ≥3 팩 / 14 (깊이)
     coverage_seeded = seeded_packs / TOTAL_PACKS          # 시드 폭 (보조 신호 — 게이트엔 안 씀)
@@ -664,6 +684,7 @@ def compute_indices(pack_records, eval_cases, drift_records):
         "_n_confirmed": n_confirmed,
         "_n_auto_confirmed": n_auto_confirmed,
         "_n_human_confirmed": n_human_confirmed,
+        "_n_self_reported": n_self_reported,
         "_n_pending": n_pending,
         "_n_rejected": n_rejected,
         "_n_eval": n_eval,
@@ -673,6 +694,7 @@ def compute_indices(pack_records, eval_cases, drift_records):
         "_supersessions": supersessions,
         "_n_active": len(active),
         "_confirmed_by_pack": confirmed_by_pack,
+        "_behavioral_confirmed_by_pack": behavioral_confirmed_by_pack,
     }
 
 
@@ -793,6 +815,11 @@ def render_table(ix, tier_id, tier_name, directory, n_files):
         f"  레코드 상태          : confirmed {ix['_n_confirmed']} · "
         f"pending {ix['_n_pending']} · rejected {ix['_n_rejected']}"
     )
+    if ix.get("_n_self_reported"):
+        lines.append(
+            f"  self_reported        : {ix['_n_self_reported']}건 (draft-only) "
+            f"— 저신뢰 채널이라 깊이(엄격 coverage)에 미산입 (C/#1, spec/00 클레임-계층)"
+        )
     lines.append(
         f"  평가 케이스          : {ix['_n_eval']}개 "
         f"(pass {ix['_eval_pass']} · partial {ix['_eval_partial']} · fail {ix['_eval_fail']})"
@@ -816,21 +843,27 @@ def render_table(ix, tier_id, tier_name, directory, n_files):
     )
     lines.append("")
     lines.append("[3] 팩별 확인 레코드 수")
+    bc_by_pack = ix.get("_behavioral_confirmed_by_pack", ix["_confirmed_by_pack"])
     for i, pack in enumerate(CANONICAL_PACKS, start=1):
         c = ix["_confirmed_by_pack"][pack]
-        mark = " (≥3 ✓)" if c >= COVERAGE_MIN_CONFIRMED else (" (-)" if c == 0 else "")
-        lines.append(f"  {i:>2}. {pack:<28} {c:>2}{mark}")
-    # off-frontier 경고: 데이터가 없거나 얕은 영역 — 에이전트가 *당신처럼* 행동할 근거가 없는 곳.
+        bc = bc_by_pack[pack]
+        sr = c - bc  # 이 팩의 self_reported confirmed (draft-only)
+        # ≥3 깊이 표시는 behavioral confirmed 기준 (self_reported 는 깊이를 못 만든다).
+        mark = " (≥3 ✓)" if bc >= COVERAGE_MIN_CONFIRMED else (" (-)" if c == 0 else "")
+        sr_note = f"  [self_reported {sr}, draft-only]" if sr else ""
+        lines.append(f"  {i:>2}. {pack:<28} {c:>2}{mark}{sr_note}")
+    # off-frontier 경고: behavioral 데이터가 없는 영역 — 에이전트가 *당신처럼* 행동할 근거가 없는 곳.
     # 성숙도가 폭으로 열려도, 여기서 권위 있게 행동하면 평균/일반값으로 둘러대는 가짜 자신이 된다 (#7·#6).
-    empty = [p for p in CANONICAL_PACKS if ix["_confirmed_by_pack"][p] == 0]
+    # self_reported 만 있는 팩도 off-frontier — 자기서술은 행동 근거가 아니다 (C/#1).
+    empty = [p for p in CANONICAL_PACKS if bc_by_pack[p] == 0]
     lines.append("")
     lines.append("[!] off-frontier (권위 있게 행동 금지 — draft-only)")
     if empty:
-        lines.append(f"  확인 레코드 0개 팩 {len(empty)}/{TOTAL_PACKS}: {', '.join(empty)}")
-        lines.append("    → 이 영역엔 당신의 데이터가 없다. 에이전트는 평균/일반값으로 답하지 말고")
-        lines.append("      기권하거나 물어야 한다 (de-averaging, spec/06 §8 · spec/00).")
+        lines.append(f"  behavioral 확인 0개 팩 {len(empty)}/{TOTAL_PACKS}: {', '.join(empty)}")
+        lines.append("    → 이 영역엔 당신의 행동 데이터가 없다(자기서술만 있어도 여기 포함). 에이전트는")
+        lines.append("      평균/일반값으로 답하지 말고 기권하거나 물어야 한다 (de-averaging, spec/06 §8 · spec/00).")
     else:
-        lines.append("  확인 레코드 0개 팩 없음 — off-frontier 공백 없음.")
+        lines.append("  behavioral 확인 0개 팩 없음 — off-frontier 공백 없음.")
     lines.append(
         f"  깊이(≥3 확인) 팩 {ix['_packs_with_3']}/{TOTAL_PACKS}  ·  "
         f"폭(시드) {ix['coverage_seeded']:0.2f} vs 깊이(엄격) {ix['coverage_strict']:0.2f}"
@@ -880,6 +913,7 @@ def render_json(ix, tier_id, tier_name, directory, n_files):
             "confirmed": ix["_n_confirmed"],
             "auto_confirmed": ix["_n_auto_confirmed"],
             "human_confirmed": ix["_n_human_confirmed"],
+            "self_reported": ix["_n_self_reported"],
             "pending": ix["_n_pending"],
             "rejected": ix["_n_rejected"],
             "eval_total": ix["_n_eval"],

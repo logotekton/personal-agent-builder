@@ -84,6 +84,10 @@ REVIEW_STATUS_ENUM = {
 
 SENSITIVITY_ENUM = {"public", "internal", "sensitive", "restricted"}
 
+# reliability 채널 — 증거 계층 (record.base.schema.json §7.1, spec/00 클레임-계층).
+# behavioral = 관찰된 행동/산출물/교정 (G4, 신뢰 기본값). self_reported = 자기서술 (저신뢰).
+RELIABILITY_ENUM = {"behavioral", "self_reported"}
+
 # 런타임 활성 상태: 이 상태의 레코드는 증거가 비면 안 됩니다 (G1 + G3).
 RUNTIME_ACTIVE_STATUS = {"confirmed", "narrowed"}
 
@@ -272,6 +276,20 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
         res.errors.append(
             f"sensitivity 가 enum 에 없습니다: {sens!r} "
             f"(허용: {sorted(SENSITIVITY_ENUM)})"
+        )
+
+    # 6b) reliability 채널 enum + self_reported 는 auto_confirm 금지 (claim-layer 분리, C/#1).
+    #     self_reported = 자기서술(저신뢰 InterpretationClaim) → 사람 게이트 없이 승격 불가.
+    rel = record.get("reliability")
+    if "reliability" in record and rel not in RELIABILITY_ENUM:
+        res.errors.append(
+            f"reliability 가 enum 에 없습니다: {rel!r} "
+            f"(허용: {sorted(RELIABILITY_ENUM)})"
+        )
+    if rel == "self_reported" and record.get("auto_confirmed") is True:
+        res.errors.append(
+            "[C] reliability=self_reported 레코드는 auto_confirmed 될 수 없습니다 "
+            "— 자기서술은 저신뢰 채널이라 사람 확인 없이 승격 금지 (draft-only)"
         )
 
     # 7) confidence < 0.7 이면 counterexamples 필수.
