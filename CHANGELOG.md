@@ -21,6 +21,164 @@
 
 ## [Unreleased]
 
+### 참조 컴파일러 — 8섹션 런타임 어댑터 조립을 코드로 (compile 단계 실재화)
+- **[`tools/compile_adapter.py`](./tools/compile_adapter.py) 추가.** skill 10의 "읽기 전용 8섹션 조립"을
+  *산문*에서 **결정론적·테스트된 참조 컴파일러**로 옮겼습니다 — `pab_merge`(병합)·`context_select`(선택)에
+  이은 세 번째 참조 술어. G3 활성 필터(`confirmed`/`narrowed`) + `reliability` draft-only 제외(C) +
+  supersession(drift_history) 제외 + 팩→8섹션 라우팅(§4) + 경계 레이어(인스턴스/기본정책) + 갭 로깅(G1).
+  손-작성 [`runtime-adapter.md`](./examples/logotekton/runtime-adapter.md)의 **T0(5팩·기본정책)→T1(6팩·
+  인스턴스)→T2(8팩)** 섹션 멤버십을 *그대로 재현* — 어댑터가 이제 기계 재현 가능(단언이 아님). 테스트
+  +8(73→81), skill 10·tools/README·runtime-adapter 에 배선. *정직한 한계:* 라이브 호스트 런타임
+  (`pab.py`)은 STUB이며 검증된 것은 섹션 멤버십·갭·경계 수학(섹션 8·응답 정책은 파생 뷰).
+
+### 설계자 결정 반영 — claim-layer 분리 + '일하는 자아' 스코프 (philosophy 팩 대조 후속)
+> philosophy_for_ai_ontology 팩(OpenCrab)과의 정밀대조에서 드러난 간극 — PAB가 *증거 계층*(G4)은
+> 지키지만 *적용/해석 계층*('이 에이전트가 당신이다')을 표시·검토하는 장치가 없다는 점 — 을 설계자
+> 결정 4개(A/B/C/D)로 보완. 모든 변경은 무가공·증거결속이며 기존 예제 숫자는 전부 보존(logotekton
+> 여전히 L1, 엄격 0.07, confirmed 19, validate 42 PASS).
+- **C · `reliability` 채널 티어 추가 (claim-layer 분리, #1).** 베이스/후보 스키마에 `reliability`
+  ∈ {`behavioral`(기본), `self_reported`}. self_reported(자기서술 = InterpretationClaim)는 ① auto-confirm
+  **금지**(allOf 규칙 + [`validate_packs.py`](./tools/validate_packs.py) 에러, auto_confirmed 는 boolean
+  강제), ② draft-only — [`context_select.py`](./tools/context_select.py)가 권위 컨텍스트에서 제외하고
+  draft 로만 노출, ③ **모든 성숙도 지표에서 제외**([`convergence_report.py`](./tools/convergence_report.py):
+  여섯 지표(coverage·confirmation_ratio·decision_fidelity·correction_cost·drift_stability·traceability)+게이트
+  변형 human_confirmation_ratio+폭(seeded) 전부 *behavioral* 만 집계).
+  자기서술이 행동 증거로 둔갑하는 것을 구조로 차단. 스펙: [01 §7.1](./spec/01-kernel-schema.md).
+  예제 숫자 불변(예제는 전부 behavioral).
+  - *적대적 검증(Opus) 2라운드 후 경화:* 최초 구현은 깊이축에서만 제외해, self_reported 를 무더기
+    confirmed 시키면 hcr/drift 로 L1→L2 를 딸 수 있는 백도어(C1)가 있었다 — 6개 지표 *전부* 제외로 차단.
+    문자열 `auto_confirmed:"true"` 로 금지 규칙을 우회하던 검증기/수렴기 드리프트(M2), draft-only 런타임
+    권위 차단이 미강제이던 점(M1), 재검증이 잡은 *self_reported 평가 케이스가 `decision_fidelity`
+    (하드 게이트)를 부풀리는 잔여 경로*(N1), 그리고 3라운드가 잡은 *self_reported-only 팩이 L1 폭
+    게이트(seeded≥7)를 따는 경로*(N2)까지 닫음 — 이제 self_reported 는 여섯 지표 전부·드리프트·폭(seeded)
+    에서 빠져 "성숙도는 관찰된 행동 위에서만 측정"이 글자 그대로 참이다. 테스트 +15(58→73).
+- **A · '위임가능한 일하는 자아' 스코프 명시 + #4 행동주의 입장 선언.** [spec/00](./spec/00-overview.md)에
+  "무엇이 *아닌가*" 절 추가: PAB는 **전인격 트윈이 아니라** 행동 증거가 있는 일·판단 영역의 위임가능한
+  자아다. 내면 배제는 *암묵 기본값*이 아니라 **선언된 방법론적 입장**(G4)임을 명문화.
+- **D · 채널 한계 + off-ontology 기권 선언.** 증거가 주로 AI 작업 세션에서 오므로 관계·정서·미적·서사적
+  자아는 *채널의 구조적 한계*로 off-ontology — 에이전트는 그곳에서 평균값으로 흉내내지 않고 기권한다
+  (de-averaging 의 채널 차원 확장). 채널 확대는 별도 로드맵.
+- **B · 'persona' = 행동 페르소나(mask) 고정.** persona_core 의 'persona'는 *연기된 관찰 패턴*이지 내면
+  자아가 아님 — value/priority 조차 행동으로 드러난 안정 패턴만 적재. 카탈로그·스키마·템플릿(×2)에 명시.
+- **#2 · "becoming you" = 적용주장(AIApplicationClaim) 명시.** 프로젝트 표어는 증거가 아니라 *증거를
+  에이전트에 적용한, 사람 검토를 요하는* 주장으로 읽혀야 하며 행동 레코드의 신뢰도를 자동 상속하지
+  않음을 [01 §7.1](./spec/01-kernel-schema.md)에 명문화. de-averaging·off-frontier·reliability 가 그 검토를
+  기계적으로 떠받친다.
+
+### Karpathy review 후속 — 자기기만 방지 (실행 게이트 강화)
+- **L2 게이트 결함 수정 — 성숙도를 폭이 아니라 깊이로 게이팅.** 적대적 검토에서 드러난 내부 모순:
+  spec/06 §2가 `coverage`를 *엄격(≥3 확인 = 깊이)*으로 **정의**하는데, [`convergence_report.py`](./tools/convergence_report.py)의
+  성숙도 게이트는 *시드폭*(0.71)으로 판정해 logotekton을 **L2 Working**으로 인증했습니다 — 정작
+  de-averaging 명제가 사는 깊이값은 0.07인데. 즉 "Working"을 *폭으로* 따는, 이 프로젝트가 막으려는
+  바로 그 자기기만. 게이트가 spec §2 정의(엄격 깊이)를 쓰도록 수정하고 `--strict` 토글을 제거(이제
+  항상 엄격). **logotekton은 정직하게 `L1 Sketch`로 내려갑니다**(깊은 팩 1개뿐 — 남은 L2 빗장은
+  coverage 0.07→0.5). df·merge_rate·시드폭 등 다른 숫자는 불변. spec/06 §3에 "폭=Sketch vs 깊이=Working+"
+  명문화, 회귀 테스트·tools/README·tests/README·예제/revolution 문서의 라이브 티어 표기를 L1로 정정
+  (revolution 문서는 시드폭 게이트 당시 측정이라 상단 노트로 보존+정정). 테스트 58개 그대로 그린.
+- **#9 결정론적 컨텍스트 조립(참조 술어).** 컴파일러 계약이 "메모리 덤프 아닌 작업별 활성화"라면서도
+  토큰 예산·overlap 알고리즘·task_type 분류가 없어 *산문으로만* 시연되던 문제에, **실행 가능한 참조
+  술어** [`tools/context_select.py`](./tools/context_select.py)를 추가했습니다: 통제 `task_type` 어휘 +
+  결정론적 scope-overlap 술어 + `salience`(confidence×recency×repetition_count) 내림차순 + **토큰 예산**
+  채움 + *탈락분을 갭으로 반환*(조용한 절단 금지). skills/10 §3 [2]가 이 술어를 가리킵니다. 테스트
+  +5(58개). *정직한 한계: 라이브 컴파일러(`pab.py` compile 분기)는 스텁이라 아직 아무도 이 술어를 호출
+  하지 않습니다 — 실런타임 배선이 남은 몸-작업. 여기 있는 건 검증된 **선택 수학**입니다.*
+- **#8 검토 감사 흔적 — 고무도장 vs 실제 검토 구별.** reviewer·결정·diff 가 스키마에 없어 *편집된
+  레코드*가 *고무도장 confirmed*와 기계적으로 구별 불능(→`edit_rate` 계산 불가)이던 문제에,
+  베이스 레코드에 **`review_audit`**(`reviewer_id`·`decided_at`·`decision`(enum, `edit` 포함)·
+  `decision_reason`·`diff`·`board_id`)을 추가했습니다([`record.base.schema.json`](./schemas/record.base.schema.json)).
+  [`validate_packs.py`](./tools/validate_packs.py)는 audit 가 있으면 항상 형태를 검증하고,
+  **`--require-audit`** 옵트인으로 런타임 활성 레코드에 강제합니다. *기본 비강제*는 — 19개 확정
+  레코드에 *없던 검토 메타를 날조하지 않기* 위해서이며, 그래서 예제 기본 검증은 **42 PASS 불변**
+  (`--require-audit`면 정직하게 42 FAIL = "감사 흔적 없음"). skills/07 [D]가 산문 대신 이 구조화
+  필드를 가리킵니다. 테스트 +5(53개).
+- **#5 런타임 shadow-activation 한 칸 (설계).** 평가가 *루프의 끝*이라 컴파일된 어댑터가 이미 라이브가
+  된 *뒤*에 검증되던 문제에 대해, 라이프사이클에 `shadow_validated` 상태를 추가했습니다
+  ([`spec/01 §1`](./spec/01-kernel-schema.md)·[`spec/02 S10½`](./spec/02-builder-pipeline.md)·
+  [`skills/10`](./skills/10-agent-compiler.md)): 새 프로필을 활성 *전* `regression_for` 케이스·과거
+  세션에 **NO-ACT(예측만)** 로 재생해 회귀가 없을 때만 `runtime_activated`로 승격. Tesla shadow mode
+  차용([spec/12 §4.3]). *정직한 한계: 라이브 런타임/컴파일러가 스텁이라 **설계 전용** — 실행되는 건
+  없습니다.*
+- **#7 + #6 깊이·de-averaging — "모르는 곳을 아는 것이 수렴" (off-frontier 정직성).** 리뷰가 *프로젝트의
+  진짜 핵심 명제*라 한 de-averaging을 명문화·게이트화했습니다. (a) [`spec/00`](./spec/00-overview.md)에
+  **핵심 명제**로, [`spec/06 §8`](./spec/06-convergence-model.md)에 측정 모델로 추가 — "증거 있는 곳에서만
+  당신처럼, 없는 곳에선 평균으로 둘러대지 말고 기권". (b) **성숙도 L1이 폭(≥7팩)뿐 아니라 깊이 한 칸
+  (≥1 팩이 ≥3 확인 = `vertical`)도 요구** → 1레코드씩 흩뿌려 성숙도를 따는 breadth-first 게이밍 차단
+  (overfit-tiny-set-first). (c) [`convergence_report.py`](./tools/convergence_report.py)가 **off-frontier
+  경고**(확인 0개 팩 + 폭≫깊이 간극 → draft-only)를 실데이터 위에 출력 — logotekton은 4/14 팩이 비어
+  있음을 정직하게 표시(에이전트가 그 영역에서 권위 있게 행동 금지). logotekton은 깊은 팩 1개
+  (evaluation_cases)가 있어 **티어 L2 불변**. 테스트 +2(48개). *데이터 시드(RedFlag/Avoidance 실레코드)는
+  실데이터가 필요해 제외* — 게이트·신호·스펙만.
+- **#3 채점 무결성 게이트 — "보상이 검증이 아니라 기록"의 부분 해소.** `decision_fidelity`가 읽는
+  `result.status`가 *사람이 친 자유 문자열*이라 아무도 루브릭과 대조하지 않던 문제에 대해,
+  [`validate_packs.py`](./tools/validate_packs.py)가 평가 케이스의 **기록 내부 정합성**을 강제하도록
+  했습니다: 가중치 합=1 · `status=pass`면 `score≥pass_threshold` · `unacceptable_fired`면 status=`fail`
+  (하드페일) · `judge=llm_judge`면 `judge_config`(model·temperature) 필수. 스키마에 `judge_config`·
+  `result.unacceptable_fired` 추가. logotekton 예제는 모두 정합이라 **42 PASS 불변**. 테스트 +6(46개).
+  *정직한 한계:* 프로필을 실제 실행해 status를 도출하는 **라이브 채점기**는 컴파일된 런타임(현 스텁)이
+  필요해 별개이며, 이 게이트는 그 전제인 "기록이 자기 루브릭과 모순되지 않음"만 보장합니다.
+  → [`spec/05`](./spec/05-evaluation-drift.md), [`schemas/user.evaluation_cases.schema.json`](./schemas/user.evaluation_cases.schema.json).
+- **#4 자율성 자기인증 차단 — `human_confirmation_ratio`.** spec/12 §4.4가 정의만 해 둔 *사람 게이트 흐름만
+  세는* 비율을 [`convergence_report.py`](./tools/convergence_report.py)에 구현하고, **성숙도 L2 게이트가
+  `confirmation_ratio` 대신 이 값을 쓰도록** 바꿨습니다(베이스 레코드 `auto_confirmed` 플래그 → 자동확정
+  승격은 분자·분모에서 제외). auto-confirm을 켜도 시스템이 *제 성숙도를 자기인증*(목줄이 스스로 풀림)하지
+  못합니다. auto-confirm 0건인 logotekton 예제는 값·티어 불변(L2). 회귀 테스트가 "confirmation_ratio 0.75는
+  통과하나 human_confirmation_ratio 0.30은 L2를 막음"을 잠금. → [`spec/06`](./spec/06-convergence-model.md)·
+  [`spec/12 §4.4`](./spec/12-confirmation-policy.md), [`schemas/record.base.schema.json`](./schemas/record.base.schema.json).
+
+### Added
+- **`result.edit_fraction`(0..1) — `correction_cost` 계측.** `user.evaluation_cases`의 `result`에
+  작업별 사용자 편집 비율 필드를 형식화해, `correction_cost` 지표가 NA에서 *측정값*으로 전환됩니다
+  (미측정 NA는 L3/L4 게이트를 통과하지 못함). → [`spec/05-evaluation-drift.md`](./spec/05-evaluation-drift.md),
+  [`schemas/user.evaluation_cases.schema.json`](./schemas/user.evaluation_cases.schema.json).
+- **dedup/merge actuator + 데이터-엔진 플라이휠.** 결정론적 dedup judge + upsert/supersede/surface
+  액추에이터([`tools/pab_merge.py`](./tools/pab_merge.py))와, 실제 레코드 위에서 바퀴를 두 번 돌린
+  worked example([`examples/logotekton/revolution-01`](./examples/logotekton/revolution-01/) ·
+  [`revolution-02`](./examples/logotekton/revolution-02/), `.pre` 재현 픽스처 포함).
+- **`spec/01` §9 프라이버시·권한 모델 요약** — 다른 문서들이 가리키던 "커널 §9"에 실재하는 섹션을
+  부여(정식 정의는 spec/04). §7 베이스 레코드에 병합 필드 `canonical_key`·`repetition_count`·
+  `merge_history`(선택) 명시.
+- **회귀 테스트 스위트** [`tests/`](./tests/README.md) — 도구가 산출하는 *모든 숫자*(canonical_key·
+  네 판정·6 수렴 지표·`merge_rate`·게이트·예제 42 PASS)를 잠그는 stdlib 36 테스트. **CI**
+  ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml))가 push·PR마다 게이트+테스트 실행.
+- **문서 링크 무결성 게이트** [`tools/check_anchors.py`](./tools/check_anchors.py) — 저장소 전체
+  교차문서 Markdown 링크·`#앵커`가 실재 헤딩(GitHub 슬러그)으로 해소되는지 검사하는 stdlib 도구.
+  CI 게이트로 편입(broken≠0이면 빌드 실패)되어, 헤딩 rename이 참조를 조용히 끊는 것을 막습니다.
+  (이 도구가 skills/08의 깨진 자기 앵커 3건을 발견 — 아래 Fixed.)
+- **문서 명령 무결성 게이트** [`tools/check_commands.py`](./tools/check_commands.py) — 문서에 적힌
+  이 저장소 도구의 안전·읽기전용 명령(validate/convergence/dedup/check_anchors)을 실제로 실행해
+  하나라도 실패하면 빌드를 깨는 stdlib 도구. "**모든 figure는 명령으로 재현된다**"는 명제를 *실행 가능한
+  게이트*로 만들어, CLI 시그니처가 바뀌어 문서의 명령이 조용히 깨지는 것을 막습니다(아래 it.13 회귀
+  클래스). 플레이스홀더·부수효과(`--apply`/`--out`)·테스트 스위트·버전 의존 `python -c` 점검(예:
+  3.11+ `tomllib`)은 범위 밖으로 건너뜁니다. 테스트는 38개로 늘어 두 가드(앵커·명령)와 디렉터리-형
+  CLI까지 잠급니다.
+
+### Reconciled (정합화)
+- **14개 빌더 스킬을 병합 층(spec/10)과 정합화.** 확인 게이트의 검토 액션은 *여섯 기본 + dedup judge의
+  merge/supersede*이고, `conflict`는 사람에게 노출(자동 적용 금지, G3/G5 2차 게이트)임을 skills
+  `02·04·05·06·07·08·09·10·11·12·13`에 일관 반영. skill 09는 빌드타임(dedup conflict→surface)과
+  런타임(더 엄격한 규칙 합성)을 분리. skill 01은 교차세션 재유도가 *중복이 아니라 병합 연료*임을 명확화.
+- **빌더 파이프라인 문서(spec/02)를 병합 층과 정합화.** S07 확인 게이트 기술에 dedup judge의 추천 액션
+  (`duplicate→merge`·`refinement→supersede`)과 `conflict→surface`(자동 적용 금지, 2차 관문)를 명시하고,
+  다이어그램 각주·"관련 문서"에 [spec/10] 링크를 추가. `review_status` enum은 그대로 둠(merge/supersede는
+  *상태*가 아니라 *게이트 액션* — 어드버서리얼 검증으로 확인). → [`spec/02-builder-pipeline.md`](./spec/02-builder-pipeline.md).
+
+### Fixed
+- **systemic "커널 §9" dangling 참조.** spec/01엔 §8까지뿐이었는데 schema·spec/03·skills가 권한
+  모델을 "kernel §9"로 가리켰음 → spec/01 §9 추가로 일괄 해소.
+- skills 곳곳의 잘못된 교차참조(예: 후보 필드의 "커널 §8"→`candidate.schema.json`, 컴파일러 갭
+  로그의 metric `correction_cost`→`coverage`, `§3 [B]`→`§3 [3]`)와 깨진 라벨 정정.
+- **깨진 자기 앵커 링크 정정(skills/08).** `§3 라우팅 표`를 가리키는 세 개의 자기 링크가
+  `#3-라우팅-표-1-1-전수`로 잘못 작성되어 실제 헤딩 슬러그(`#3-라우팅-표-11-전수`, `(1:1, 전수)`의
+  `1:1`이 `11`로 정규화)와 어긋났음 → 다른 모든 링크가 쓰는 `11` 규약으로 통일. 저장소 전체 앵커
+  링크를 GitHub 슬러그 알고리즘으로 일괄 점검(현재 167개, broken=0; CI가 매번 재확인).
+- **실행되지 않던 문서 명령·낡은 라이브 출력 정정("모든 figure는 명령으로 재현"의 위반).**
+  `convergence_report.py`는 *디렉터리 하나*를 받는데 문서 세 곳이 깨진 형태였음 — `tools/README.md`
+  §2의 두-파일 형태, `CONTRIBUTING.md`의 인자 없는 형태, `templates/QUICKSTART.md`의 존재하지 않는
+  `--subject` 플래그(모두 exit 2). 디렉터리 형태로 통일. 더불어 `tools/README.md` §2의 "기대 출력"이
+  플라이휠 이전(T0: L1·coverage 0.43·df 0.75·correction_cost 0.21)을 *라이브*인 양 제시 → 실제 라이브
+  **T2(L2·0.71·1.00·0.08·drift 0.89)** 로 교정하고 T0 베이스라인은 `convergence-report.md`,
+  델타는 revolution-01/02가 보존함을 명시. 회귀 테스트로 디렉터리-형 CLI를 잠금(36 tests).
+
 ### Added (예정)
 - 더 많은 평가 케이스(EvaluationCase) 시드 및 다중 사용자 예제.
 - 자동 채굴 도구(session_mining / diff_mining)의 참조 구현.

@@ -129,7 +129,7 @@ diff 마이너는 다음 다섯 동작을 순서대로 실행합니다 — **수
 | `repetition_count` | 후보를 떠받치는 서로 다른 `EvidenceItem` 수 | 단일 교정 쌍은 보통 낮음 → §5 단일-교정 규칙 적용 |
 | `explicit_statement` | 사용자가 교정과 함께 *이유를 명시*했는가 | 명시 = true → ↑ ("결론부터 줘, 그게 읽기 편해") |
 | `recency` | 교정의 최근성(1 = 가장 최근) | 최근 교정 ↑ (옛 패턴과 충돌하면 드리프트 후보) |
-| `contradiction_count` | 후보와 충돌하는 `EvidenceItem` 수 | ↑ → 신뢰도 ↓ (게이트에서 narrowed/deferred 유발) |
+| `contradiction_count` | 후보와 충돌하는 `EvidenceItem` 수 | ↑ → 신뢰도 ↓. 교정이 기존 *확정* 레코드와 모순하면 하류 dedup judge가 `conflict`로 분류해 **사람에게 노출**(자동 적용 금지) — [10 dedup·병합](../spec/10-dedup-and-merge.md) |
 | `domain_specificity` | 교정이 도메인에 얼마나 묶였는가(0..1) | 스코프 좁힘·`user.domain_overlays` 라우팅 판단에 사용 |
 
 **가중 원칙 (운영 규칙):**

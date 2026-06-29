@@ -1,5 +1,11 @@
 # revolution-01 — 데이터-엔진을 한 바퀴 돌리다 (one turn of the wheel)
 
+> ⚙️ **성숙도 게이트 결함 수정 노트(사후).** 본문의 **L0 → L2 Working** 도약은 `coverage`를 *시드폭*으로
+> 게이팅하던 시점 기준입니다. 이후 게이트가 spec §2 정의(*엄격 ≥3 깊이*)를 쓰도록 수정되어, 이 회전의
+> 정직한 티어 전이는 **L0 → L1 Sketch**입니다(깊은 팩이 1개뿐). 이는 사실 본문 §2의 정직성 노트가
+> 카파시 #7로 지목했던 "폭-우선 문턱이 관대하다"를 게이트로 *해소*한 결과입니다 —
+> `decision_fidelity`(0.75→0.92)·`merge_rate`·시드폭 등 다른 숫자는 모두 불변.
+
 > **EN:** This is the first *actual revolution* of the Personal Agent data-engine flywheel on real
 > records — not asserted by construction, but performed and measured. Before this, the loop had
 > never turned once: there was no merge/upsert actuator, `drift_history` was empty, and convergence
@@ -76,23 +82,32 @@
 
 ## 4. 재현 (reproduce — 모든 숫자는 결정론적)
 
+> ⚠️ **왜 `.pre` 스냅샷을 쓰나.** 라이브 `../instance-records.yaml`는 이 바퀴(그리고 그 뒤 rev-02)가
+> *이미 적용된* 상태라, 거기에 대고 plan 을 돌리면 `already_merged`만 나옵니다. 그래서 *이 바퀴
+> 적용 전(T0)* 상태를 동결한 [`instance-records.pre.yaml`](./instance-records.pre.yaml)(픽스처)에 대고
+> plan→apply 를 돌려 두 판정(merge/insert)을 글자 그대로 재현합니다. 그 apply 결과는 **T1 상태**
+> (= [`../revolution-02/instance-records.pre.yaml`](../revolution-02/instance-records.pre.yaml))와 레코드
+> 단위로 일치 — 즉 T0 →(rev-01)→ T1 →(rev-02)→ T2 의 사슬이 결정론적으로 이어집니다.
+
 ```bash
-# (1) dedup judge 계획 — duplicate→merge, novel→insert
-python tools/pab_merge.py examples/logotekton/instance-records.yaml \
+# (1) dedup judge 계획 — T0 스냅샷(.pre) 대비: duplicate→merge, novel→insert
+python tools/pab_merge.py examples/logotekton/revolution-01/instance-records.pre.yaml \
        examples/logotekton/revolution-01/session-02-candidates.yaml
 #   → [duplicate] merge logotekton.heuristic.201 -> logotekton.heuristic.001
 #   → [    novel] insert logotekton.boundary.001
 
-# (2) 멱등성 — 적용 후 재투입은 noop
-python tools/pab_merge.py examples/logotekton/instance-records.yaml \
-       examples/logotekton/revolution-01/session-02-candidates.yaml --apply --out /tmp/merged.yaml
-python tools/pab_merge.py /tmp/merged.yaml \
-       examples/logotekton/revolution-01/session-02-candidates.yaml   # → already_merged x2
+# (2) 적용 → 멱등성. 적용본(/tmp/t1.yaml)은 T1 상태(= ../revolution-02/instance-records.pre.yaml)와 일치.
+python tools/pab_merge.py examples/logotekton/revolution-01/instance-records.pre.yaml \
+       examples/logotekton/revolution-01/session-02-candidates.yaml \
+       --apply --out /tmp/t1.yaml --stamp 2026-06-28T12:30:00Z
+python tools/pab_merge.py /tmp/t1.yaml \
+       examples/logotekton/revolution-01/session-02-candidates.yaml   # → already_merged ×2
 
-# (3) T1 측정 — L2 Working
-python tools/convergence_report.py examples/logotekton
-python tools/dedup_check.py        examples/logotekton     # merge_rate 0.059
-python tools/validate_packs.py     examples/logotekton     # 18 records PASS
+# (3) 측정 — 주의: 라이브 디렉터리는 그 뒤 rev-02 로 한 바퀴 더 돌아 지금은 T2.
+#     게이트 결함 수정 후 라이브 티어 = L1 Sketch(coverage 엄격 0.07 / 시드폭 0.71, df 1.00).
+#     이 문서의 T0→T1 숫자(시드폭 게이트 당시 L0→L2; 수정 후 L0→L1)는 §2 표에 보존, 상단 노트 참조.
+python tools/convergence_report.py examples/logotekton    # 현재 라이브 = T2 → L1 Sketch (rev-01 당시엔 T1)
+python tools/validate_packs.py     examples/logotekton     # 42 PASS (재귀: 라이브 25 + .pre 픽스처 17)
 ```
 
 > T0 베이스라인 리포트(이 한 수를 *예측*했던 문서)는 [`../convergence-report.md`](../convergence-report.md).

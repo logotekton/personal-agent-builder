@@ -27,6 +27,7 @@ JSON과 YAML의 안전한 부분집합을 읽습니다.
 여섯 지표 (spec/06 §2):
   coverage            = 확인 레코드 ≥3개인 팩 수 / 14         (↑, 목표 1.0)
   confirmation_ratio  = confirmed / (confirmed+pending+rejected)  (↑, ≥0.6)
+                        성숙도 게이트는 auto-confirm 을 제외한 human_confirmation_ratio 를 쓴다(§4.4)
   decision_fidelity   = 통과 평가 케이스 / 전체 평가 케이스    (↑, ≥0.8; partial=0.5)
   correction_cost     = 작업당 사용자 편집 비율 평균          (↓, ≤0.2; 없으면 NA)
   drift_stability     = 1 − (최근 대체수 / 확인 레코드수)     (↑, ≥0.8; 드리프트 없으면 1.0)
@@ -34,8 +35,8 @@ JSON과 YAML의 안전한 부분집합을 읽습니다.
 
 성숙도 단계 (spec/06 §3):
   L0 Seed       : 시드 팩 < 3, 평가 케이스 없음
-  L1 Sketch     : 시드 팩 ≥ 7, 평가 케이스 ≥ 3, traceability == 1.0
-  L2 Working    : coverage ≥ 0.5, decision_fidelity ≥ 0.6, confirmation_ratio ≥ 0.6
+  L1 Sketch     : 시드 팩 ≥ 7, 평가 케이스 ≥ 3, traceability == 1.0, ≥1 팩이 ≥3 확인(깊이)
+  L2 Working    : coverage ≥ 0.5, decision_fidelity ≥ 0.6, human_confirmation_ratio ≥ 0.6
   L3 Reliable   : coverage ≥ 0.8, decision_fidelity ≥ 0.8, correction_cost ≤ 0.3,
                   drift_stability ≥ 0.7
   L4 Convergent : coverage == 1.0, decision_fidelity ≥ 0.9, correction_cost ≤ 0.15,
@@ -48,7 +49,9 @@ CLI:
 
   옵션:
       --json     사람이 읽는 표 대신 기계용 JSON 한 덩이로 출력
-      --strict   coverage 의 표면값(시드 폭) 대신 엄격값(≥3)을 게이트 판정에 사용
+
+  coverage 는 spec §2 정의(확인 ≥3 팩 / 14, 깊이)를 그대로 게이트에 쓴다. 시드폭(보조)은 참고로만
+  출력한다 — "Working"을 폭으로 따는 자기기만을 막기 위해(L2 게이트 결함 수정).
 
 종료 코드: 0 = 정상 산출. 입력 디렉터리가 없거나 읽을 파일이 0개면 2.
 """
@@ -487,6 +490,31 @@ def _status_of(rec) -> str:
     return str(rec.get("review_status", "")).strip().lower()
 
 
+def _is_auto_confirmed(rec) -> bool:
+    """이 confirmed 레코드가 auto_confirm_policy 로 승격됐는가 (사람 게이트를 거치지 않음).
+
+    기본값은 False = 사람이 직접 확인. spec/12 §4.4 의 순환 차단을 위해, 성숙도 게이트가 세는
+    'human_confirmation_ratio' 에서 auto-confirm 승격을 제외하는 데 쓰인다.
+    """
+    v = rec.get("auto_confirmed")
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v.strip().lower() in ("true", "auto", "yes", "1")
+    return False
+
+
+def _is_self_reported(rec) -> bool:
+    """이 레코드가 self_reported 채널인가 (자기서술, 저신뢰 — record.base §7.1).
+
+    self_reported 는 draft-only 라 깊이(엄격 coverage)에 안 들어간다 — 깊이=신뢰는 관찰된
+    행동(behavioral)에서만 나온다는 de-averaging·claim-layer 원칙(설계자 결정 C/#1). 기본값은
+    behavioral = False (reliability 필드 부재 시).
+    """
+    v = rec.get("reliability")
+    return isinstance(v, str) and v.strip().lower() == "self_reported"
+
+
 def _eval_result_status(rec) -> str | None:
     """평가 케이스의 result.status (pass/partial/fail) 를 소문자로."""
     result = rec.get("result")
@@ -525,43 +553,78 @@ def _has_evidence(rec) -> bool:
     )
 
 
-def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=False):
+def compute_indices(pack_records, eval_cases, drift_records):
     """6개 지표 + 보조 카운트를 dict 로 반환."""
     # 팩별 확인 레코드 수
     confirmed_by_pack = {}
+    behavioral_confirmed_by_pack = {}   # 깊이는 behavioral confirmed 만 (self_reported 는 draft-only)
     seeded_packs = 0
     n_confirmed = n_pending = n_rejected = 0
+    n_auto_confirmed = 0
+    n_self_reported = 0
     for pack in CANONICAL_PACKS:
         recs = pack_records.get(pack, [])
         c = sum(1 for r in recs if _status_of(r) in CONFIRMED_STATES)
+        bc = sum(1 for r in recs
+                 if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r))
         confirmed_by_pack[pack] = c
-        if recs:
+        behavioral_confirmed_by_pack[pack] = bc
+        # 폭(seeded)도 *behavioral* 존재를 요구한다 — self_reported 만 든 팩은 행동 증거가 없어
+        # off-frontier 이므로 L1 폭 게이트(seeded≥7)를 채우지 못한다(적대적 재검증 N2: 자기서술-only
+        # 팩으로 폭 게이트를 따 "관찰된 행동 위에서만 측정"을 깨는 잔여 경로 차단).
+        if any(not _is_self_reported(r) for r in recs):
             seeded_packs += 1
         for r in recs:
             st = _status_of(r)
+            if _is_self_reported(r):
+                # self_reported 는 draft-only 라 *모든* 성숙도 지표 집계에서 제외한다 — 깊이뿐 아니라
+                # confirmation_ratio·human_confirmation_ratio·drift_stability·traceability 까지. 그러지
+                # 않으면 자기서술 레코드를 무더기로 confirmed 시켜 깊이 외 지표로 성숙도를 부풀리는
+                # 백도어가 열린다(적대적 검증 C1). 별도 카운트로만 가시화한다.
+                n_self_reported += 1
+                continue
             if st in CONFIRMED_STATES:
                 n_confirmed += 1
+                if _is_auto_confirmed(r):
+                    n_auto_confirmed += 1
             elif st in PENDING_STATES:
                 n_pending += 1
             elif st in REJECTED_STATES:
                 n_rejected += 1
 
+    # 깊이(엄격 coverage)는 behavioral confirmed 만 ≥3 으로 센다 — self_reported(자기서술)는
+    # draft-only 라 신뢰 깊이를 만들지 못한다(설계자 결정 C/#1, spec/00 클레임-계층).
     packs_with_3 = sum(1 for p in CANONICAL_PACKS
-                       if confirmed_by_pack[p] >= COVERAGE_MIN_CONFIRMED)
+                       if behavioral_confirmed_by_pack[p] >= COVERAGE_MIN_CONFIRMED)
 
-    coverage_strict = packs_with_3 / TOTAL_PACKS          # spec §2 엄격 정의
-    coverage_seeded = seeded_packs / TOTAL_PACKS          # 시드 폭 (표면값)
-    coverage_gate = coverage_strict if strict_coverage else coverage_seeded
+    coverage_strict = packs_with_3 / TOTAL_PACKS          # spec §2 정의: 확인 ≥3 팩 / 14 (깊이)
+    coverage_seeded = seeded_packs / TOTAL_PACKS          # 시드 폭 (보조 신호 — 게이트엔 안 씀)
+    # 성숙도 게이트가 쓰는 coverage 는 spec §2 정의(엄격 ≥3)다. 시드폭으로 게이팅하면 "Working"
+    # 인증을 폭으로 따게 돼 de-averaging 명제(깊이=신뢰, §8)와 모순된다 — L2 게이트 결함 수정.
+    coverage_gate = coverage_strict
 
     denom_cr = n_confirmed + n_pending + n_rejected
     confirmation_ratio = (n_confirmed / denom_cr) if denom_cr else None
 
-    # decision_fidelity: pass=1, partial=0.5, fail/그외=0
-    n_eval = len(eval_cases)
+    # human_confirmation_ratio: auto-confirm 으로 승격된 레코드를 분자·분모에서 제외한 '사람 게이트'
+    # 흐름만 (spec/12 §4.4 순환 차단). 성숙도 게이트는 confirmation_ratio 가 아니라 이 값을 써야,
+    # auto-confirm 이 confirmed 분자를 스스로 밀어올려 '떨어졌어야 할' 성숙도를 가리는 루프를 막는다.
+    # auto-confirm 이 0건이면 human_confirmation_ratio == confirmation_ratio.
+    n_human_confirmed = n_confirmed - n_auto_confirmed
+    denom_hcr = n_human_confirmed + n_pending + n_rejected
+    human_confirmation_ratio = (n_human_confirmed / denom_hcr) if denom_hcr else None
+
+    # self_reported 평가/드리프트 레코드는 draft-only 라 성숙도 지표 집계에서 전부 제외한다 — 그래야
+    # "모든 6개 지표 제외"가 글자 그대로 참이 된다(적대적 재검증 N1: self_reported 평가 케이스로
+    # decision_fidelity 를 부풀리는 잔여 경로 차단). 별도 카운트는 위 n_self_reported 에 이미 반영됨.
+    behavioral_evals = [ec for ec in eval_cases if not _is_self_reported(ec)]
+
+    # decision_fidelity: pass=1, partial=0.5, fail/그외=0 (behavioral 평가 케이스만)
+    n_eval = len(behavioral_evals)
     if n_eval:
         passed = 0.0
         n_pass = n_partial = n_fail = 0
-        for ec in eval_cases:
+        for ec in behavioral_evals:
             st = _eval_result_status(ec)
             if st == "pass":
                 passed += 1.0
@@ -576,24 +639,28 @@ def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=Fal
         decision_fidelity = None
         n_pass = n_partial = n_fail = 0
 
-    # correction_cost: 편집 비율 필드가 있는 레코드들의 평균. 없으면 NA.
+    # correction_cost: 편집 비율 필드가 있는 레코드들의 평균. 없으면 NA. (self_reported 제외)
     corr_vals = []
-    for ec in eval_cases:
+    for ec in behavioral_evals:
         v = _correction_value(ec)
         if v is not None:
             corr_vals.append(v)
-    # eval 외 레코드에서도 correction 필드를 허용
+    # eval 외 레코드에서도 correction 필드를 허용 (self_reported 는 건너뜀)
     if not corr_vals:
         for recs in pack_records.values():
             for r in recs:
+                if _is_self_reported(r):
+                    continue
                 v = _correction_value(r)
                 if v is not None:
                     corr_vals.append(v)
     correction_cost = (sum(corr_vals) / len(corr_vals)) if corr_vals else None
 
-    # drift_stability = 1 − (최근 대체수 / 확인 레코드수). 드리프트 없으면 1.0.
+    # drift_stability = 1 − (최근 대체수 / 확인 레코드수). 드리프트 없으면 1.0. (self_reported 드리프트 제외)
     supersessions = 0
     for d in drift_records:
+        if _is_self_reported(d):
+            continue
         sup = d.get("supersedes")
         if isinstance(sup, list):
             supersessions += len([s for s in sup if s])
@@ -610,8 +677,9 @@ def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=Fal
         drift_stability = 1.0  # 확인 레코드가 없으면 흔들릴 대상 자체가 없음
 
     # traceability = 증거 보유 활성(confirmed) 규칙 / 활성 규칙. 활성 규칙 0이면 1.0.
+    # self_reported 는 draft-only(런타임 활성 규칙이 아님)라 활성 집합에서 제외 (C1 백도어 차단).
     active = [r for recs in pack_records.values() for r in recs
-              if _status_of(r) in CONFIRMED_STATES]
+              if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r)]
     if active:
         with_ev = sum(1 for r in active if _has_evidence(r))
         traceability = with_ev / len(active)
@@ -623,6 +691,7 @@ def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=Fal
         "coverage_seeded": coverage_seeded,
         "coverage_strict": coverage_strict,
         "confirmation_ratio": confirmation_ratio,
+        "human_confirmation_ratio": human_confirmation_ratio,
         "decision_fidelity": decision_fidelity,
         "correction_cost": correction_cost,
         "drift_stability": drift_stability,
@@ -631,6 +700,9 @@ def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=Fal
         "_seeded_packs": seeded_packs,
         "_packs_with_3": packs_with_3,
         "_n_confirmed": n_confirmed,
+        "_n_auto_confirmed": n_auto_confirmed,
+        "_n_human_confirmed": n_human_confirmed,
+        "_n_self_reported": n_self_reported,
         "_n_pending": n_pending,
         "_n_rejected": n_rejected,
         "_n_eval": n_eval,
@@ -640,6 +712,7 @@ def compute_indices(pack_records, eval_cases, drift_records, strict_coverage=Fal
         "_supersessions": supersessions,
         "_n_active": len(active),
         "_confirmed_by_pack": confirmed_by_pack,
+        "_behavioral_confirmed_by_pack": behavioral_confirmed_by_pack,
     }
 
 
@@ -652,11 +725,15 @@ def maturity_tier(ix):
     """
     coverage = ix["coverage"]
     cr = ix["confirmation_ratio"]
+    # 성숙도 게이트는 auto-confirm 에 오염되지 않는 human_confirmation_ratio 를 쓴다 (spec/12 §4.4).
+    # 값이 없으면(사람 게이트 흐름이 0건) None → 게이트 미충족: 사람 신호 없이는 성숙을 인증하지 않는다.
+    hcr = ix.get("human_confirmation_ratio")
     df = ix["decision_fidelity"]
     cost = ix["correction_cost"]
     drift = ix["drift_stability"]
     trace = ix["traceability"]
     seeded = ix["_seeded_packs"]
+    verticals = ix.get("_packs_with_3", 0)   # ≥3 확인 레코드를 가진 팩 수 (깊이)
     n_eval = ix["_n_eval"]
 
     def ge(a, b):  # None-안전 ≥
@@ -666,8 +743,10 @@ def maturity_tier(ix):
         return a is not None and a <= b
 
     # 각 단계 진입 조건 (spec/06 §3)
-    l1 = (seeded >= 7) and (n_eval >= 3) and (trace == 1.0)
-    l2 = ge(coverage, 0.5) and ge(df, 0.6) and ge(cr, 0.6)
+    # L1 은 '폭'(≥7팩)뿐 아니라 '깊이' 한 칸(≥1 팩이 ≥3 확인 = vertical)도 요구한다 — 1레코드씩
+    # 14팩에 흩뿌려 성숙도를 따는 breadth-first 게이밍을 막기 위해(#7, overfit-tiny-set-first).
+    l1 = (seeded >= 7) and (n_eval >= 3) and (trace == 1.0) and (verticals >= 1)
+    l2 = ge(coverage, 0.5) and ge(df, 0.6) and ge(hcr, 0.6)
     l3 = ge(coverage, 0.8) and ge(df, 0.8) and le(cost, 0.3) and ge(drift, 0.7)
     l4 = (
         coverage == 1.0
@@ -699,9 +778,10 @@ def maturity_tier(ix):
         "L1_seeded>=7": seeded >= 7,
         "L1_eval>=3": n_eval >= 3,
         "L1_traceability==1.0": trace == 1.0,
+        "L1_vertical>=1 (한 팩 ≥3 확인)": verticals >= 1,
         "L2_coverage>=0.5": ge(coverage, 0.5),
         "L2_decision_fidelity>=0.6": ge(df, 0.6),
-        "L2_confirmation_ratio>=0.6": ge(cr, 0.6),
+        "L2_human_confirmation_ratio>=0.6": ge(hcr, 0.6),
         "L3_coverage>=0.8": ge(coverage, 0.8),
         "L3_decision_fidelity>=0.8": ge(df, 0.8),
         "L3_correction_cost<=0.3": le(cost, 0.3),
@@ -738,7 +818,7 @@ INDEX_META = [
 ]
 
 
-def render_table(ix, tier_id, tier_name, directory, n_files, strict_coverage):
+def render_table(ix, tier_id, tier_name, directory, n_files):
     lines = []
     lines.append("=" * 72)
     lines.append("Personal Agent — 수렴 리포트 (Convergence Report)")
@@ -753,6 +833,11 @@ def render_table(ix, tier_id, tier_name, directory, n_files, strict_coverage):
         f"  레코드 상태          : confirmed {ix['_n_confirmed']} · "
         f"pending {ix['_n_pending']} · rejected {ix['_n_rejected']}"
     )
+    if ix.get("_n_self_reported"):
+        lines.append(
+            f"  self_reported        : {ix['_n_self_reported']}건 (draft-only) — 저신뢰 채널이라 "
+            f"모든 성숙도 지표(깊이·confirmation·drift·traceability)에서 제외 (C/#1, spec/00 클레임-계층)"
+        )
     lines.append(
         f"  평가 케이스          : {ix['_n_eval']}개 "
         f"(pass {ix['_eval_pass']} · partial {ix['_eval_partial']} · fail {ix['_eval_fail']})"
@@ -765,17 +850,44 @@ def render_table(ix, tier_id, tier_name, directory, n_files, strict_coverage):
     for key, name, direction, good in INDEX_META:
         lines.append(f"  {name} {_fmt(ix[key]):>6}   {direction:<5} {good}")
     # coverage 보조값 (표면/엄격 둘 다)
-    used = "엄격(≥3)" if strict_coverage else "시드폭"
     lines.append(
-        f"    └ coverage 상세: 시드폭 {ix['coverage_seeded']:0.2f} · "
-        f"엄격(≥3) {ix['coverage_strict']:0.2f}  (게이트 사용값: {used})"
+        f"    └ coverage 상세: 엄격(≥3) {ix['coverage_strict']:0.2f} ← 게이트 사용값(spec §2 정의) · "
+        f"시드폭 {ix['coverage_seeded']:0.2f}(보조)"
+    )
+    lines.append(
+        f"    └ confirmation: 전체 {_fmt(ix['confirmation_ratio'])} · "
+        f"사람게이트 {_fmt(ix['human_confirmation_ratio'])}  "
+        f"(성숙도 게이트 사용값: 사람게이트 — auto-confirm {ix['_n_auto_confirmed']}건 제외, spec/12 §4.4)"
     )
     lines.append("")
     lines.append("[3] 팩별 확인 레코드 수")
+    bc_by_pack = ix.get("_behavioral_confirmed_by_pack", ix["_confirmed_by_pack"])
     for i, pack in enumerate(CANONICAL_PACKS, start=1):
         c = ix["_confirmed_by_pack"][pack]
-        mark = " (≥3 ✓)" if c >= COVERAGE_MIN_CONFIRMED else (" (-)" if c == 0 else "")
-        lines.append(f"  {i:>2}. {pack:<28} {c:>2}{mark}")
+        bc = bc_by_pack[pack]
+        sr = c - bc  # 이 팩의 self_reported confirmed (draft-only)
+        # ≥3 깊이 표시는 behavioral confirmed 기준 (self_reported 는 깊이를 못 만든다).
+        mark = " (≥3 ✓)" if bc >= COVERAGE_MIN_CONFIRMED else (" (-)" if c == 0 else "")
+        sr_note = f"  [self_reported {sr}, draft-only]" if sr else ""
+        lines.append(f"  {i:>2}. {pack:<28} {c:>2}{mark}{sr_note}")
+    # off-frontier 경고: behavioral 데이터가 없는 영역 — 에이전트가 *당신처럼* 행동할 근거가 없는 곳.
+    # 성숙도가 폭으로 열려도, 여기서 권위 있게 행동하면 평균/일반값으로 둘러대는 가짜 자신이 된다 (#7·#6).
+    # self_reported 만 있는 팩도 off-frontier — 자기서술은 행동 근거가 아니다 (C/#1).
+    empty = [p for p in CANONICAL_PACKS if bc_by_pack[p] == 0]
+    lines.append("")
+    lines.append("[!] off-frontier (권위 있게 행동 금지 — draft-only)")
+    if empty:
+        lines.append(f"  behavioral 확인 0개 팩 {len(empty)}/{TOTAL_PACKS}: {', '.join(empty)}")
+        lines.append("    → 이 영역엔 당신의 행동 데이터가 없다(자기서술만 있어도 여기 포함). 에이전트는")
+        lines.append("      평균/일반값으로 답하지 말고 기권하거나 물어야 한다 (de-averaging, spec/06 §8 · spec/00).")
+    else:
+        lines.append("  behavioral 확인 0개 팩 없음 — off-frontier 공백 없음.")
+    lines.append(
+        f"  깊이(≥3 확인) 팩 {ix['_packs_with_3']}/{TOTAL_PACKS}  ·  "
+        f"폭(시드) {ix['coverage_seeded']:0.2f} vs 깊이(엄격) {ix['coverage_strict']:0.2f}"
+    )
+    if ix["coverage_seeded"] - ix["coverage_strict"] >= 0.3:
+        lines.append("    → 폭 ≫ 깊이: 성숙도는 폭으로도 열리지만 *신뢰는 깊이에서* 온다. 얕은 팩은 draft-only.")
     lines.append("")
     lines.append("[4] 성숙도 단계")
     lines.append(f"  >>> {tier_id} {tier_name} <<<")
@@ -807,6 +919,7 @@ def render_json(ix, tier_id, tier_name, directory, n_files):
             "coverage_seeded": ix["coverage_seeded"],
             "coverage_strict": ix["coverage_strict"],
             "confirmation_ratio": ix["confirmation_ratio"],
+            "human_confirmation_ratio": ix["human_confirmation_ratio"],
             "decision_fidelity": ix["decision_fidelity"],
             "correction_cost": ix["correction_cost"],
             "drift_stability": ix["drift_stability"],
@@ -816,6 +929,9 @@ def render_json(ix, tier_id, tier_name, directory, n_files):
             "seeded_packs": ix["_seeded_packs"],
             "packs_with_3_confirmed": ix["_packs_with_3"],
             "confirmed": ix["_n_confirmed"],
+            "auto_confirmed": ix["_n_auto_confirmed"],
+            "human_confirmed": ix["_n_human_confirmed"],
+            "self_reported": ix["_n_self_reported"],
             "pending": ix["_n_pending"],
             "rejected": ix["_n_rejected"],
             "eval_total": ix["_n_eval"],
@@ -843,8 +959,6 @@ def build_arg_parser():
     p.add_argument("directory", help="인스턴스 레코드/평가 케이스 파일이 든 디렉터리")
     p.add_argument("--json", action="store_true", dest="as_json",
                    help="사람용 표 대신 기계용 JSON 출력")
-    p.add_argument("--strict", action="store_true", dest="strict",
-                   help="coverage 의 엄격값(≥3 확인 레코드 팩)을 게이트 판정에 사용")
     return p
 
 
@@ -863,15 +977,13 @@ def main(argv=None):
         )
         return 2
 
-    ix = compute_indices(
-        pack_records, eval_cases, drift_records, strict_coverage=args.strict
-    )
+    ix = compute_indices(pack_records, eval_cases, drift_records)
     tier_id, tier_name, _ = maturity_tier(ix)
 
     if args.as_json:
         print(render_json(ix, tier_id, tier_name, directory, n_files))
     else:
-        print(render_table(ix, tier_id, tier_name, directory, n_files, args.strict))
+        print(render_table(ix, tier_id, tier_name, directory, n_files))
     return 0
 
 

@@ -17,9 +17,11 @@
 에이전트 컴파일러는 [08 팩 라우팅](./08-pack-router.md)이 14개 `user.*` 팩에 적재한 **확정 레코드**를,
 *지금 이 작업에 필요한 슬라이스만* 골라 런타임 명령 **어댑터**로 컴파일하는 단계입니다. 빌더
 파이프라인의 `compile_runtime` 상태에 속하며([파이프라인 §3 S10](../spec/02-builder-pipeline.md#s10--agent_compiler--상태-compile_runtime)),
-라이프사이클의 `target_pack_ingested → runtime_activated` 전이를 강제합니다([커널 §1](../spec/01-kernel-schema.md#1-라이프사이클-the-spine)).
+라이프사이클의 `target_pack_ingested → shadow_validated → runtime_activated` 전이를 강제합니다([커널 §1](../spec/01-kernel-schema.md#1-라이프사이클-the-spine)).
 산출물은 `*.runtime_adapter`로 컴파일된 `AssistantProfile`이고(`compiled_into` 엣지), 그것이 작업을
-실행하는 **Personal Agent**입니다.
+실행하는 **Personal Agent**입니다. 단, 컴파일된 프로필은 곧장 라이브가 되지 않고 **활성 전
+`regression_for` 케이스·과거 세션에 NO-ACT(예측만)로 재생**해 회귀가 없을 때만 활성화됩니다
+(shadow-activation 한 칸 → [02 S10½](../spec/02-builder-pipeline.md)·[12 §4.3](../spec/12-confirmation-policy.md); *설계 단계 — 라이브 런타임이 생기면 실행*).
 
 이 문서는 마케팅이 아니라 **그대로 실행하는 빌드 사양**입니다. 어휘는 [커널 스키마](../spec/01-kernel-schema.md),
 팩 이름은 [§2 14개 팩](#2-컴파일러-입력--14개-user-팩-모두-identity_roles-포함), 경계·권한은
@@ -78,7 +80,7 @@ v0.3에서 **수정**됩니다. 정체성·역할이 빠지면 어댑터의 [§4
 
 > 13·14는 *직접 어댑터 섹션을 만들지 않습니다.* `user.evaluation_cases`는 컴파일된 프로필을
 > *채점*하는 [11 평가](./11-evaluation-drift.md)의 입력이고, `user.drift_history`는 어떤 레코드가
-> *현재 유효한지*(폐기되지 않았는지)를 가리는 데 쓰입니다(§3 [B], `supersedes` 엣지). 11번
+> *현재 유효한지*(폐기되지 않았는지)를 가리는 데 쓰입니다(§3 [3], `supersedes` 엣지). 11번
 > `user.boundary_authority`는 섹션을 만들 뿐 아니라 **다른 모든 섹션 위에 강제 레이어로 얹힙니다**(§5).
 
 ## 3. 작동 방식 — 7단계 런타임 조립 흐름 (How it works)
@@ -87,13 +89,25 @@ v0.3에서 **수정**됩니다. 정체성·역할이 빠지면 어댑터의 [§4
 팩·슬라이스 선택 → 확정·스코프 검색 → 경계·권한 적용 → 어댑터 생성 → 응답 정책 설정 → 갭 로깅**.
 어느 동작에서도 레코드를 *만들거나 편집*하지 않습니다(읽기 전용 조립).
 
+> **참조 구현 (executable).** 이 7단계 조립 — G3 활성 필터 + `reliability` draft-only 제외(C) +
+> supersession 제외 + 팩→섹션 라우팅(§4) + 경계 레이어 + 갭 로깅 — 은
+> [`tools/compile_adapter.py`](../tools/compile_adapter.py)에 **결정론적·테스트된 참조 컴파일러**로
+> 구현돼 있습니다. `pab_merge`(병합 액추에이터)·`context_select`(선택 술어)에 이은 *compile 단계의
+> 실재화*입니다. 이 술어는 손-작성 [`runtime-adapter.md`](../examples/logotekton/runtime-adapter.md)의
+> **T0(5팩)→T1(6팩)→T2(8팩)** 섹션 멤버십과 경계 출처(기본정책→인스턴스)를 그대로 재현합니다.
+> *정직한 한계:* 라이브 호스트 런타임(`pab.py` compile 분기)은 아직 STUB이며, 검증된 것은 섹션
+> 멤버십·갭·경계 수학입니다(섹션 8·응답 정책은 파생 뷰).
+
 ```
    작업 요청 (지금 이 작업) + 14개 user.* 팩의 확정 레코드
         │
-   [1] 작업류 식별        ── task type 판별(예: 코드 리뷰 / 외부 메일 초안 / 의사결정 메모)
-        ▼
-   [2] 팩·슬라이스 선택   ── 작업류에 닿는 팩만 ON, 무관 팩 OFF; scope가 작업 맥락과 겹치는 레코드만
-        ▼
+   [1] 작업류 식별        ── 통제 task_type 어휘 중 하나로(code/writing/review/decision/research/
+        ▼                    communication/planning/other; context_select.TASK_TYPES)
+   [2] 팩·슬라이스 선택   ── 작업류에 닿는 팩만 ON, 무관 팩 OFF; **결정론적 scope-overlap 술어**로
+        ▼                    작업 태그와 겹치는(또는 무태그=보편) 레코드만, **salience(confidence×recency×
+                             repetition_count) 내림차순**으로 **토큰 예산**까지 채우고 *탈락분은 갭으로 로깅*
+                             ([`tools/context_select.py`](../tools/context_select.py) — 참조 구현·결정론적·테스트됨;
+                             `reliability=self_reported`(자기서술)는 draft-only 라 권위 선택에서 제외 — draft 로만 노출)
    [3] 확정·스코프 검색   ── review_status ∈ {confirmed, narrowed}만; pending/rejected/deferred 제외(G3)
         ▼                    ── drift_history로 supersedes된(폐기) 레코드 제외
    [4] 경계·권한 적용     ── user.boundary_authority 레이어를 모든 슬라이스 위에 강제(§5, G5 산물)
@@ -126,6 +140,15 @@ v0.3에서 **수정**됩니다. 정체성·역할이 빠지면 어댑터의 [§4
 레코드는 *좁혀진 스코프 안에서만* 켜지고 원래의 넓은 스코프로 일반화되지 않습니다(G2 강화). 동시에
 `user.drift_history`의 `supersedes` 엣지로 **폐기된 옛 레코드를 제외**하여 *현재 유효한* 버전만
 컴파일합니다.
+
+> **주의 — `narrowed`는 두 출처가 있다.** (a) 확인 게이트에서 스코프를 좁힌 *활성* 레코드와,
+> (b) `refinement→supersede` 시 액추에이터([`tools/pab_merge.py`](../tools/pab_merge.py))가
+> 은퇴시킨 *구* 레코드(둘 다 `review_status="narrowed"`). 따라서 `narrowed`라는 상태만으로
+> 활성 여부를 판정하면 안 되고, **`supersedes` 엣지의 *대상*인 레코드는 제외**해야 한다 — 즉
+> 컴파일러는 status 뿐 아니라 supersedes 이력을 *함께* 따라야 폐기된 옛 버전을 끌고 오지 않는다
+> ([10 중복 억제·병합](../spec/10-dedup-and-merge.md)). 또한 기존 확정과 모순되는 후보는 병합 층이
+> `conflict`로 사람에게 노출(자동 적용 금지)하므로, *충돌하는 후보는 애초에 인스턴스 팩에 들어오지
+> 않아* 컴파일 입력이 되지 않는다.
 
 **[4] 경계·권한 적용 (§5).** 검색된 슬라이스 위에 `user.boundary_authority` 레이어를 얹습니다 —
 여섯 경계 범주, 여덟 권한 레벨, 확인 트리거를 어댑터의 [섹션 7](#섹션-7--boundary-rules-경계-규칙)과
@@ -243,12 +266,14 @@ v0.3에서 **수정**됩니다. 정체성·역할이 빠지면 어댑터의 [§4
 **기록**하되 런타임은 기본 안전 정책으로 계속 동작합니다. 갭은 실패가 아니라 *다음에 무엇을
 포착할지*의 신호입니다.
 
-- **무엇을 로깅하나:** 빈 섹션(예: 이 작업류의 `red_flags` 0개), 저커버리지 팩(확정 레코드 < 3개,
-  [수렴 모델 `coverage`](../spec/06-convergence-model.md)), 충돌로 `ask_confirm`에 떨어진 슬롯(§6 규칙 4),
+- **무엇을 로깅하나:** 빈 섹션(예: 이 작업류의 `red_flags` 0개), 저커버리지 팩(**behavioral** 확정 레코드
+  < 3개, [수렴 모델 `coverage`](../spec/06-convergence-model.md)), 충돌로 `ask_confirm`에 떨어진 슬롯(§6 규칙 4),
   스코프 미스매치(작업 맥락에 닿는 확정 레코드가 없어 기본값으로 동작한 슬롯).
-- **어디로 가나:** 갭 로그는 [11 평가·드리프트](./11-evaluation-drift.md)의 `correction_cost`/
-  `coverage` 집계와 다음 채굴 라운드([02 세션 마이닝](./02-session-mining.md)·[03 질문](./03-elicitation-questioning.md))의
-  타깃이 됩니다 — "이 작업류엔 위험 신호가 없으니 다음 세션에서 캐자".
+- **어디로 가나:** 갭 로그는 [11 평가·드리프트](./11-evaluation-drift.md)의 **`coverage`**(깊이=behavioral
+  확정 ≥3; 시드 폭은 보조) 집계와 다음 채굴 라운드([02 세션 마이닝](./02-session-mining.md)·[03 질문](./03-elicitation-questioning.md))의
+  타깃이 됩니다 — "이 작업류엔 위험 신호가 없으니 다음 세션에서 캐자". (컴파일러는 `coverage` 신호만
+  낸다. `correction_cost`는 컴파일 갭이 아니라 **RUN 단계에서 케이스별 `result.edit_fraction`**으로
+  관측되는 별개 지표다 — [05 평가·드리프트 §1](../spec/05-evaluation-drift.md)·[06 수렴 모델](../spec/06-convergence-model.md).)
 - **무엇을 하지 않나:** 갭을 *추측으로 메우지 않습니다.* 빈 섹션을 그럴듯한 규칙으로 채우면 G1(증거)·
   G3(확인)을 정면 위반합니다. 컴파일러는 비면 *비운 채로 두고 로깅*합니다.
 
@@ -404,6 +429,9 @@ OpenCrab 도구로 실행할 때는 `opencrab_search_packs`로 작업류에 관�
 - 갭·평가가 끌어올리는 수렴 지표(`coverage`·`correction_cost`·`traceability`) → [06 수렴 모델](../spec/06-convergence-model.md)
 - 각 노드의 9-space 사상 → [07 9-space 크로스워크](../spec/07-opencrab-9space-crosswalk.md)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
+- **이 스킬이 실제로 만든 산출물(worked example)** → [`runtime-adapter.md`](../examples/logotekton/runtime-adapter.md)
+  (logotekton의 컴파일된 어댑터), 그리고 그 입력 레코드가 병합·대체로 진화하는 한 바퀴
+  → [`revolution-01`](../examples/logotekton/revolution-01/) · [`revolution-02`](../examples/logotekton/revolution-02/)
 
 
 ## 트리거 (Trigger)

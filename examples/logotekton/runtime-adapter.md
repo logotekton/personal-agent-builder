@@ -1,5 +1,18 @@
 # Logotekton — 컴파일된 런타임 어댑터 (Compiled Runtime Adapter = the Personal Agent)
 
+> ⚙️ **이 문서는 T0(데이터-엔진을 돌리기 *전*) 시점에 컴파일된 스냅샷입니다 — 5개 팩만 시드된
+> 상태.** 이후 바퀴가 두 번 돌며 인스턴스 레코드가 바뀌었습니다: revolution-01 이
+> `user.boundary_authority`에 `ConfirmationRuleRecord`(`logotekton.boundary.001`, 외부메일
+> ask_confirm)를 추가했고, revolution-02 가 `user.artifact_policy`(`artifact.001`, 보고 next-action
+> 필수)와 `user.tool_stack`(`tool.001`)을 시드했습니다(현재 **시드 10팩**, df 1.00, 게이트 결함 수정
+> 후 **L1 Sketch** — coverage 엄격 0.07/시드폭 0.71). 따라서 아래
+> 본문의 *"확인된 BoundaryRule 0개 → 기본 안전 정책"* 과 *"5개 팩"* 단언은 **이 T0 스냅샷에 한해
+> 참**이며, 현재 라이브 상태가 아닙니다 — 재컴파일하면 섹션 7(경계)은 `boundary.001`을, 섹션 8(출력
+> 검증)은 `artifact.001`을 끌어옵니다. 현재 지표·시드는
+> [`convergence-report.md`](./convergence-report.md) 배너와
+> [`revolution-01/`](./revolution-01/) · [`revolution-02/`](./revolution-02/)를 참고하세요. 아래는
+> *맨 처음* 컴파일 결과를 보존한 베이스라인입니다.
+
 > **EN:** This is what the [agent_compiler](../../skills/10-agent-compiler.md) (skill S10)
 > produces when it compiles Logotekton's **confirmed, scoped** instance records
 > ([`instance-records.yaml`](./instance-records.yaml)) into a runtime adapter — the actual
@@ -48,6 +61,19 @@
 > 이 어댑터는 [`instance-records.yaml`](./instance-records.yaml)에 보이는 작업류
 > ("빌더 팩/문서를 작성·검토한다")에 맞춰 컴파일한 **한 작업류 스냅샷**입니다. 다른 작업류
 > (예: 외부 이메일 초안)는 *다른 섹션 내용*으로 다시 컴파일됩니다(작업별 활성화, 전체 메모리 덤프 아님).
+
+> ⚙️ **재현 (reproduce — 이 멤버십은 손으로 단언한 게 아니라 도구가 재현한다).**
+> 이 T0 스냅샷(5팩·기본 안전 정책)은 동결 픽스처에서, 라이브 T2(8팩·인스턴스 경계)는 디렉터리에서
+> [`tools/compile_adapter.py`](../../tools/compile_adapter.py)로 그대로 나옵니다(섹션 멤버십·경계 출처가
+> 본문과 일치, 테스트로 잠김 — `tests/test_tools.py::TestCompileAdapter`):
+
+```bash
+python tools/compile_adapter.py examples/logotekton/revolution-01/instance-records.pre.yaml  # T0: 5팩, default_safe_policy
+python tools/compile_adapter.py examples/logotekton                                          # T2(라이브): 8팩, instance
+```
+
+> 갭 *수*는 도구가 **컴파일 대상 12팩**(14팩 − `evaluation_cases` − `drift_history`, 둘 다 본문이
+> "컴파일 입력 아님"이라 명시) 기준으로 세므로 본문의 14팩 기준 서술과 *세는 분모*만 다릅니다.
 
 ---
 

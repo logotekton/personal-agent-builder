@@ -20,6 +20,10 @@
 | [`convergence_report.py`](./convergence_report.py) | **수렴 모델** (6개 지표 + L0–L4 성숙도) | "이 에이전트가 얼마나 수렴했는가?" | [06 수렴 모델](../spec/06-convergence-model.md) |
 | [`dedup_check.py`](./dedup_check.py) | **중복/증식 신호** (redundancy_ratio·pack_cardinality·merge_rate) — *측정만* | "레코드가 중복으로 불고 있는가?" | [10 중복 억제·병합 §7](../spec/10-dedup-and-merge.md) |
 | [`pab_merge.py`](./pab_merge.py) | **dedup judge + upsert actuator** — novel/duplicate/refinement/conflict → insert/**merge**/**supersede**/surface. 멱등. *측정이 아니라 수행* | "이 후보를 새로 찍을까, 기존에 흡수할까?" | [10 중복 억제·병합](../spec/10-dedup-and-merge.md) · [07 확인 게이트](../skills/07-confirmation-gate.md) |
+| [`check_anchors.py`](./check_anchors.py) | **문서 링크 무결성** — 모든 교차문서 링크·`#앵커`가 실재 헤딩(GitHub 슬러그)으로 해소되는지. *게이트* | "끊긴 참조가 있는가?" | spec/skills/docs 전체 (GitHub 앵커 규약) |
+| [`check_commands.py`](./check_commands.py) | **문서 명령 무결성** — 문서에 적힌 안전·읽기전용 명령이 실제로 실행되는지. *게이트* | "적힌 명령이 진짜 도는가?" | "모든 figure는 명령으로 재현"([06](../spec/06-convergence-model.md)) |
+| [`context_select.py`](./context_select.py) | **결정론적 컨텍스트 조립**(참조 술어) — scope-overlap + salience(confidence×recency×repetition) + 토큰 예산 + 탈락분 갭 로깅 | "이 작업에 어떤 슬라이스를 예산 안에서 켤까?" | [10 에이전트 컴파일러](../skills/10-agent-compiler.md) (#9; *라이브 컴파일러는 스텁 — 참조 구현*) |
+| [`compile_adapter.py`](./compile_adapter.py) | **결정론적 런타임 어댑터 컴파일**(참조 컴파일러) — G3 활성 필터 + reliability draft-only 제외 + supersession 제외 + 팩→8섹션 라우팅 + 경계 레이어 + 갭 로깅 | "확정 슬라이스를 어떤 어댑터로 조립할까?" | [10 에이전트 컴파일러 §3·§4](../skills/10-agent-compiler.md) (*라이브 컴파일러는 스텁 — 참조 구현*; T0→T1→T2 멤버십 재현) |
 
 > 같은 산출은 OpenCrab에서 `opencrab_pack_qa`(검증)와 `opencrab_project_run`(수렴 지표)으로도
 > 재현할 수 있습니다. 이 스크립트들은 그 산출의 **의존성 없는 로컬 참조 구현**입니다.
@@ -45,6 +49,8 @@
 | `sensitivity` ∈ {public, internal, sensitive, restricted} | — | FAIL |
 | `confidence < 0.7` 이면 `counterexamples`(≥1) 필수 | — | FAIL |
 | 런타임 활성(`confirmed`/`narrowed`)인데 `evidence_refs` 가 빔 | **G1·G3** (대기 후보의 런타임 활성 금지) | WARN |
+| (평가 케이스) 루브릭 무결성 — `criteria` 가중치 합=1 · `status=pass`면 `score≥pass_threshold` · `unacceptable_fired`면 status=`fail` · `judge=llm_judge`면 `judge_config` 필수 | **검증자 검증(#3)** | FAIL |
+| `review_audit` 형태(reviewer_id·decision enum) · `--require-audit` 시 런타임활성 레코드에 감사흔적 강제 | **감사 흔적(#8)** | FAIL |
 
 > G4(행동 언어), G5(승격 전 프라이버시 경계), G6(템플릿/인스턴스 분리)는 사람·리뷰·구조 차원의
 > 게이트라 이 스크립트만으로 완전 자동화되지 않습니다. 이 검증기는 **G1·G2·G3와 베이스 필드
@@ -82,13 +88,13 @@ python tools/validate_packs.py --help
 
 ```
 ────────────────────────────────────────────────────────────
-요약: 8 레코드  |  PASS 8  FAIL 0  WARN 0  SKIP 0  FILE-ERROR 0
+요약: 11 레코드  |  PASS 11  FAIL 0  WARN 0  SKIP 0  FILE-ERROR 0
 결과: PASS
 ```
 
 `examples/logotekton/instance-records.yaml` 의 레코드는 모두 `review_status=confirmed`,
-`evidence_refs=["current_session"]`, `confidence ≥ 0.8`(→ `counterexamples` 불필요),
-`sensitivity=internal` 이라 게이트를 전부 통과합니다. 한 레코드에서 `evidence_refs` 를 비우면
+각 레코드가 비어 있지 않은 `evidence_refs`(≥1개 → G1 통과)를 갖고, `confidence ≥ 0.8`(→
+`counterexamples` 불필요), `sensitivity=internal` 이라 게이트를 전부 통과합니다. 한 레코드에서 `evidence_refs` 를 비우면
 즉시 `[G1]` FAIL 이, `scope` 를 비우면 `[G2]` FAIL 이 떠야 합니다 — 그게 게이트가 살아 있다는
 증거입니다. PyYAML 미설치 환경에서는 YAML 파일이 `SKIP` 으로 표시되고(FAIL 아님), JSON 파일만
 검사됩니다.
@@ -124,33 +130,35 @@ python tools/validate_packs.py --help
 
 ### 사용 예 — `examples/logotekton/` 수렴 리포트
 
+스크립트는 **디렉터리 하나**를 받아 그 안의 인스턴스 레코드·평가 케이스·드리프트 이력을 모두 읽습니다
+(파일을 따로 나열하지 않습니다):
+
 ```bash
-# 한 주체의 인스턴스 + 평가 케이스를 입력으로 6개 지표와 성숙도 단계 산출
-python tools/convergence_report.py \
-    examples/logotekton/instance-records.yaml \
-    examples/logotekton/evaluation-cases.yaml
+# 한 주체의 인스턴스 + 평가 + 드리프트가 든 디렉터리 → 6개 지표와 성숙도 단계
+python tools/convergence_report.py examples/logotekton
 ```
 
-이 입력에 대한 결과는 손으로 계산한 워크드 리포트
-[`examples/logotekton/convergence-report.md`](../examples/logotekton/convergence-report.md)와
-일치해야 합니다 — 즉 스크립트는 그 문서의 **재현 가능한 출처**입니다. 기대 값(2026-06-28 스냅샷):
+현재 라이브 출력(2026-06-28 — 데이터-엔진을 두 바퀴 돌린 **T2** 상태):
 
 ```
-coverage              0.43   (폭 6/14)   |  엄격 0.07 (≥3 확인: 1/14)
-confirmation_ratio    1.00
-decision_fidelity     0.75
-correction_cost       0.21   (↓ 좋음)
-drift_stability       1.00*  (초기값 — 표본 얇음)
-traceability          1.00   (필수 충족)
+coverage             0.07   (게이트 사용값 = 엄격 ≥3, spec §2 정의 · 시드폭 0.71은 보조)
+confirmation_ratio   1.00
+decision_fidelity    1.00
+correction_cost      0.08   (↓ 좋음 — #3 계측 후 NA→측정값)
+drift_stability      0.89
+traceability         1.00   (필수 충족)
 ──────────────────────────────────────────
-maturity tier         L1 Sketch  → L2 Working 직전
+maturity tier        L1 Sketch   (L2까지 남은 빗장: coverage≥0.5 하나)
 ```
 
-해석과 다음 단계(무엇을 더해야 L2를 여는가)는
-[`convergence-report.md` §3–§4](../examples/logotekton/convergence-report.md)에 서술돼 있습니다.
-요지: `traceability=1.0`(L1 필수)은 충족, `decision_fidelity`는 L3 임계(0.8)에 0.05 부족,
-`correction_cost`/`drift_stability`는 아직 표본이 얇아 곡선이 아니라 점입니다 — 세션이 누적돼야
-[수렴 모델 §4](../spec/06-convergence-model.md)의 두 곡선이 의미를 가집니다.
+이 숫자는 [`tests/`](../tests/README.md)가 회귀로 잠그고 있어, 도구를 바꾸면 테스트가 먼저 깨집니다.
+**성숙도 게이트는 `coverage`의 *엄격(≥3 깊이)* 값(spec §2 정의)을 씁니다** — 시드폭(0.71)으로 게이팅하면
+"Working"을 폭으로 따게 돼 de-averaging 명제(깊이=신뢰)와 모순되기 때문입니다(L2 게이트 결함 수정).
+그래서 logotekton 은 폭은 넓지만 깊은 팩이 1개뿐이라 정직하게 **L1 Sketch**입니다(시드폭으로 보면
+"L2처럼" 보이지만 그건 자기기만). 남은 L2 병목은 `coverage`(엄격 0.07→0.5) 하나 — 즉 *더 많은 팩을
+≥3 확인 레코드로 깊게 채우는 것*. T0 베이스라인은
+[`convergence-report.md`](../examples/logotekton/convergence-report.md), 전이는
+[`revolution-01`](../examples/logotekton/revolution-01/README.md)·[`revolution-02`](../examples/logotekton/revolution-02/README.md)가 추적합니다(그 문서들의 티어 표기는 결함 수정 *이전* 시드폭 게이트 기준 — 각 문서 상단 노트 참조).
 
 ---
 
@@ -175,9 +183,7 @@ CI 권장 순서:
 python tools/validate_packs.py examples/logotekton/
 
 # 2. 리포트: 게이트 통과 후 현재 수렴 상태 출력 (정보성)
-python tools/convergence_report.py \
-    examples/logotekton/instance-records.yaml \
-    examples/logotekton/evaluation-cases.yaml
+python tools/convergence_report.py examples/logotekton
 ```
 
 ## 크로스링크
@@ -187,6 +193,8 @@ python tools/convergence_report.py \
 - 수렴 6지표·5단계 성숙도 정의 → [`../spec/06-convergence-model.md`](../spec/06-convergence-model.md)
 - 평가 지표·케이스 필드 → [`../spec/05-evaluation-drift.md`](../spec/05-evaluation-drift.md)
 - 끝까지 동작하는 예제(이 스크립트들의 입력/출력) → [`../examples/logotekton/`](../examples/logotekton/README.md)
+- 이 도구들의 숫자·판정을 잠그는 회귀 테스트 → [`../tests/`](../tests/README.md)
+  (`python3 -m unittest discover -s tests`)
 - 새 사용자 시작 양식 → [`../templates/QUICKSTART.md`](../templates/QUICKSTART.md)
 
 > 이름 규칙: 산출물은 **Personal Agent**, 플랫폼은 **OpenCrab**, 팩은 정식 14개 이름만 씁니다.

@@ -71,8 +71,15 @@
 
 ```
 raw_signal → evidence_bound_candidate → scoped_candidate → user_reviewed
-           → confirmed_or_rejected → target_pack_ingested → runtime_activated
+           → confirmed_or_rejected → [dedup judge] → target_pack_ingested → runtime_activated
 ```
+
+> **병합 층은 두 번째 게이트다.** `confirmed_or_rejected`와 `target_pack_ingested` 사이에서 dedup
+> judge가 확정 후보를 기존 레코드와 대조해 분류한다: `novel→insert` · `duplicate→merge`(새 레코드
+> 없이 upsert) · `refinement→supersede`(새 레코드+`supersedes`, 구 레코드 은퇴) · `conflict→surface`
+> (기존 *확정*과 모순 → 사람에게 노출, **자동 적용 절대 금지**). 즉 *이미 확정된* 후보라도 충돌하면
+> 적재되지 않는다 — G3·G5가 병합 층에서 한 번 더 강제된다([10 중복 억제·병합](../spec/10-dedup-and-merge.md),
+> 액추에이터 [`tools/pab_merge.py`](../tools/pab_merge.py)).
 
 → 정식 정의·상태별 책임: [커널 §1](../spec/01-kernel-schema.md#1-라이프사이클-the-spine),
 파이프라인 매핑: [02 빌더 파이프라인](../spec/02-builder-pipeline.md).
@@ -145,11 +152,14 @@ raw_signal → evidence_bound_candidate → scoped_candidate → user_reviewed
 **필수:** `id` · `record_type` · `label` · `statement` · `evidence_refs[]` ·
 `confidence(0..1)` · `scope` · `review_status` · `sensitivity` · `created_at` · `updated_at`
 **선택:** `aliases` · `priority_weight` · `counterexamples` · `exception_rules` ·
-`related_records` · `supersedes` · `linked_projects` · `linked_domains` · `examples` · `anti_examples`
+`related_records` · `supersedes` · `linked_projects` · `linked_domains` · `examples` · `anti_examples` ·
+`canonical_key` · `repetition_count` · `merge_history`
 
 - `review_status` ∈ {`pending`, `confirmed`, `rejected`, `narrowed`, `sensitive`, `deferred`}
 - `sensitivity` ∈ {`public`, `internal`, `sensitive`, `restricted`}
 - `confidence < 0.7`이면 `counterexamples` 필수; `sensitive`/`restricted`이면 `exception_rules` 필수.
+- **병합 필드(선택, [10 중복 억제·병합](../spec/10-dedup-and-merge.md)):** `canonical_key`(정체성 키) ·
+  `repetition_count`(재유도·병합 횟수) · `merge_history`(병합된 후보 id) — `duplicate→merge` upsert가 채운다.
 - **폐기 필드:** `score`(→`confidence`), bare `claim`/`rule_statement`/`instruction`/`output_rule`
   (→ 모두 `statement`로 통일; 팩 문서는 표시용 별칭만 기록 가능).
 
@@ -226,6 +236,10 @@ OpenCrab 도구로 실행할 때는 `opencrab_search_packs`로 거버넌스/스�
 
 - **정식 커널(단일 진실원)** → [01 커널 스키마](../spec/01-kernel-schema.md)
 - 베이스 레코드의 기계 스키마(필드·enum·검증) → [`record.base.schema.json`](../schemas/record.base.schema.json)
+- 어휘·게이트를 강제·측정하는 결정론적 도구 → [`tools/validate_packs.py`](../tools/validate_packs.py)(게이트 G1–G6) ·
+  [`tools/pab_merge.py`](../tools/pab_merge.py)(dedup/merge 액추에이터) ·
+  [`tools/dedup_check.py`](../tools/dedup_check.py)(중복·merge_rate) ·
+  [`tools/convergence_report.py`](../tools/convergence_report.py)(6 수렴 지표·성숙도)
 - 커널이 깔린 12단계 실행 파이프라인 → [02 빌더 파이프라인](../spec/02-builder-pipeline.md)
 - 14개 팩의 정의 → [03 팩 카탈로그](../spec/03-pack-catalog.md), 기계 스키마 → [`schemas/`](../schemas)
 - 게이트 G5(프라이버시)·권한 모델 → [04 프라이버시·경계](../spec/04-privacy-boundary.md) · [09 privacy_boundary](./09-privacy-boundary.md)

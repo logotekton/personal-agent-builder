@@ -80,7 +80,17 @@
               "description": "Weighted, individually checkable criteria so a partial score is explainable and reproducible."
             },
             "pass_threshold": { "type": "number", "minimum": 0, "maximum": 1, "description": "Minimum weighted score (0..1) for result = pass, assuming no unacceptable_behavior fired." },
-            "judge": { "type": "string", "enum": ["human", "automated", "llm_judge", "mixed"], "description": "Who/what applies the rubric. Records grading provenance for traceability." }
+            "judge": { "type": "string", "enum": ["human", "automated", "llm_judge", "mixed"], "description": "Who/what applies the rubric. Records grading provenance for traceability." },
+            "judge_config": {
+              "type": "object",
+              "description": "Determinism config for reproducible judging. validate_packs REQUIRES it when judge=llm_judge (else the verdict is non-reproducible) and warns when judge=mixed. Pins the judging model, sampling temperature, and prompt.",
+              "properties": {
+                "model": { "type": "string", "description": "Exact model id used to judge (e.g. claude-opus-4-8)." },
+                "temperature": { "type": "number", "minimum": 0, "maximum": 2, "description": "Sampling temperature; 0 for deterministic judging." },
+                "prompt_id": { "type": "string", "description": "Stable id or hash of the exact judging prompt." }
+              },
+              "additionalProperties": false
+            }
           },
           "additionalProperties": false
         },
@@ -94,8 +104,10 @@
               "description": "Run verdict. pass = met expected, no unacceptable fired, score ≥ pass_threshold; fail = an unacceptable_behavior fired or score below threshold; partial = mixed; not_run = defined but never executed; needs_review = human adjudication required."
             },
             "score": { "type": "number", "minimum": 0, "maximum": 1, "description": "Weighted rubric score 0..1 for this run (distinct from base `confidence`, which is evidence strength in the record itself)." },
+            "edit_fraction": { "type": "number", "minimum": 0, "maximum": 1, "description": "Observed correction cost for this run: the fraction (0..1) of the agent's output the subject had to edit/rewrite to make it acceptable. 0 = accepted as-is; 1 = fully rewritten. This is the structured per-task signal the `correction_cost` convergence index averages across the cases that report it (../spec/06-convergence-model.md §2; ../spec/05-evaluation-drift.md). Lower is better. Distinct from `score` (rubric quality of this run) and base `confidence` (evidence strength of the record). Most meaningful for artifact-producing cases (drafts, reports, reviews) where there is output to edit; pure-correctness Q&A cases may omit it. Recognized by tools/convergence_report.py as result.edit_fraction (aliases: edit_fraction / correction_cost / correction_fraction)." },
             "observed_behavior": { "type": "string", "description": "What the agent actually did, in behavioral language (Gate G4) — the basis for the verdict." },
             "failed_checks": { "type": "array", "items": { "type": "string" }, "description": "Which expected/unacceptable items or rubric criteria did not pass; drives correction_notes and any follow-up DriftRecord." },
+            "unacceptable_fired": { "type": "array", "items": { "type": "string" }, "description": "Which unacceptable_behavior (must_not / hard-fail) items fired this run. RLVR hard-fail: if non-empty, validate_packs requires result.status=fail regardless of score — a single fired hard-fail sinks the case." },
             "agent_profile_ref": { "type": "string", "description": "Id/version of the AssistantProfile that was tested (the `evaluated_by` edge target), so scores are attributable to a specific compiled runtime." },
             "run_at": { "type": "string", "format": "date-time", "description": "When this run was executed." }
           },

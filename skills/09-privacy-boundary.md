@@ -135,8 +135,8 @@ commitment·identity-sensitive statement·high-impact decision)와 대조한다.
 ## 4. 여덟 권한 레벨 (Eight authority levels)
 
 자율성은 단조 상승하는 사다리다. 스키마의 `authority_level` enum과 동일한 순서이며, 정식 정의는
-[04 프라이버시·경계 §2](../spec/04-privacy-boundary.md#2-여덟-권한-레벨-authority-ladder)·
-[커널 §9](../spec/01-kernel-schema.md)에 있다.
+[04 프라이버시·경계 §2](../spec/04-privacy-boundary.md#2-여덟-권한-레벨-authority-ladder)에 있다
+(권한·경계 모델의 단일 진실원은 spec/04; 커널 요약은 [01 §9 프라이버시·권한 모델](../spec/01-kernel-schema.md#9-프라이버시권한-모델-요약)).
 
 ```
 observe < summarize < classify < draft < compare < recommend < ask_confirm < blocked
@@ -268,9 +268,17 @@ confirmed_or_rejected  (S07 confirmation_gate)
 - **DecisionPolicy와의 충돌** — `BoundaryRule`은 `DecisionPolicy`보다 **우선**한다. 더 약한
   `default_action`이 `blocked_actions`나 `enforcement: hard` 경계를 덮을 수 없다
   ([03 팩 카탈로그](../spec/03-pack-catalog.md)).
-- **경계끼리의 충돌** — **더 엄격한 규칙이 항상 이긴다.** 같은 행동에 허용과 금지가 겹치면
-  `blocked_actions`가 이기고, 낮은 천장이 높은 천장을 이긴다. `enforcement`는 더 느슨한 형제 규칙을
-  완화하는 데 쓰지 않는다.
+- **경계끼리의 충돌 — 빌드타임과 런타임을 구분하라.**
+  - **런타임 합성(이미 *확정된* 규칙들).** 여러 확정 경계 규칙이 한 행동에 함께 적용되면 **더
+    엄격한 규칙이 항상 이긴다** — 허용과 금지가 겹치면 `blocked_actions`가 이기고, 낮은 천장이
+    높은 천장을 이기며, `enforcement`는 더 느슨한 형제 규칙을 완화하지 않는다.
+  - **빌드타임 dedup(새 후보 vs 기존 *확정* 규칙).** 새 `BoundaryRuleCandidate`는 승격 직전 dedup
+    judge를 거친다([10 중복 억제·병합](../spec/10-dedup-and-merge.md), 액추에이터
+    [`tools/pab_merge.py`](../tools/pab_merge.py)): 같은 스코프의 동일 규칙은 `merge`(새 트윈을 찍지
+    않고 `evidence_refs`·`repetition_count` 누적), 더 좁은 스코프는 `supersede`(새 레코드+`supersedes`,
+    구 규칙 은퇴), 그리고 **기존 확정 규칙과 모순되면 `conflict` → 사람에게 노출**(자동 적용 절대 금지).
+    즉 빌드타임 충돌은 "더 엄격한 쪽으로 조용히 자동 해소"하지 **않는다** — 사람이 결정한다(2차
+    게이트, G3·G5). 스코프가 정체성의 일부라 *다른 스코프*는 중복이 아니다(G2 보존).
 - **상류 게이트와의 분업** — 게이트([S07](./07-confirmation-gate.md))는 `mark_sensitive`로 *표시만*
   하고, 경계 규칙 *작성*은 이 스킬의 일이다(게이트는 규칙을 발명하지 않는다).
 - **라우팅** — `BoundaryRuleCandidate`만 `user.boundary_authority`로 라우팅된다
@@ -285,7 +293,9 @@ confirmed_or_rejected  (S07 confirmation_gate)
   갖춘 후보/레코드. 그리고 기본 정책(§5)상 자동으로 경계가 필요한 항목(외부·비가역·고영향 행동을
   함의하는 것).
 - **부 입력(선택):** [04 프라이버시·경계 사양](../spec/04-privacy-boundary.md)의 기본 정책과 enum
-  정의, 기존 `BoundaryRule` 집합(중복·충돌 비교용), `user.decision_policy`의 관련 규칙(우선순위 충돌
+  정의, 기존 `BoundaryRule` 집합(*권위 있는* dedup 판정 — duplicate→merge·refinement→supersede·
+  conflict→surface — 은 승격 직전 병합 층에서 일어난다; [10 중복 억제·병합](../spec/10-dedup-and-merge.md),
+  [`tools/pab_merge.py`](../tools/pab_merge.py)), `user.decision_policy`의 관련 규칙(우선순위 충돌
   확인용), `user.tool_stack`의 도구 행동 표면(`applies_to_actions` 채우기용).
 
 ### 출력
@@ -371,6 +381,8 @@ OpenCrab 도구로 실행할 때는 `opencrab_query`/`opencrab_search_documents`
 - 민감 항목을 이 스킬로 넘기는 상류 → [07 confirmation_gate](./07-confirmation-gate.md)
 - 규칙 부착 후 흘러가는 하류 → [08 pack_router](./08-pack-router.md) · [10 agent_compiler](./10-agent-compiler.md)
 - `boundary_compliance` 지표·드리프트 → [11 evaluation_drift](./11-evaluation-drift.md) · [05 평가·드리프트](../spec/05-evaluation-drift.md)
+- 경계 후보의 빌드타임 dedup(merge/supersede/conflict→surface) → [10 중복 억제·병합](../spec/10-dedup-and-merge.md) ·
+  [`tools/pab_merge.py`](../tools/pab_merge.py) · worked example [`revolution-01`](../examples/logotekton/revolution-01/)(boundary.001 NOVEL→INSERT)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
 
 

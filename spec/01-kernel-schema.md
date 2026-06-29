@@ -19,10 +19,14 @@ raw_signal
   → user_reviewed              (사람이 검토)
   → confirmed_or_rejected      (승인/거부)
   → target_pack_ingested       (팩에 저장)
+  → shadow_validated           (컴파일된 프로필을 활성 *전* NO-ACT 재생·무회귀 확인)
   → runtime_activated          (런타임에서 사용)
 ```
 
 원시 사용자 발언은 **최종 규칙이 아닙니다.** 이 흐름을 강제하는 것이 시스템 신뢰의 근거입니다.
+**`shadow_validated`** 는 컴파일된 슬라이스가 곧장 라이브가 되지 않도록 한 칸을 둡니다 — 새 프로필을
+`regression_for` 케이스와 과거 세션에 **행동 없이(NO-ACT)** 재생해 회귀가 없을 때만 활성화합니다
+([02 파이프라인 S10½](./02-builder-pipeline.md), shadow mode는 [12 확인 정책 §4.3](./12-confirmation-policy.md)).
 
 ## 2. 품질 게이트 (Quality Gates)
 
@@ -132,15 +136,69 @@ v0.1은 `score`, v0.2는 `confidence`; 어떤 팩은 `statement`, 어떤 팩은 
 **필수:** `id`, `record_type`, `label`, `statement`, `evidence_refs[]`, `confidence(0..1)`,
 `scope`, `review_status`, `sensitivity`, `created_at`, `updated_at`
 **선택:** `aliases`, `priority_weight`, `counterexamples`, `exception_rules`,
-`related_records`, `supersedes`, `linked_projects`, `linked_domains`, `examples`, `anti_examples`
+`related_records`, `supersedes`, `linked_projects`, `linked_domains`, `examples`, `anti_examples`,
+`canonical_key`, `repetition_count`, `merge_history`, `auto_confirmed`, `review_audit`,
+`reliability`(§7.1)
 
 - `review_status` ∈ {pending, confirmed, rejected, narrowed, sensitive, deferred}
 - `sensitivity` ∈ {public, internal, sensitive, restricted}
 - `confidence < 0.7`이면 `counterexamples` 필수
+- **병합 필드(dedup/merge, [10 중복 억제·병합](./10-dedup-and-merge.md)):** `canonical_key`(정체성 키 —
+  pack·record_type·normalize(statement)·scope), `repetition_count`(같은 패턴이 재유도·병합된 횟수),
+  `merge_history`(이 레코드에 병합된 후보·증거 id) — 모두 선택. `duplicate→merge` upsert가 채운다.
 - 폐기 필드: `score`(→`confidence`), bare `claim`/`rule_statement`/`instruction`/`output_rule`(→`statement`)
+
+### 7.1 reliability 채널 — 증거 계층 vs 적용/해석 계층 (claim-layer)
+
+> **EN:** Every record carries a `reliability` channel marking WHICH CLAIM LAYER it lives in —
+> the structural seam between *what your behavior shows* and *what is said/inferred about you*.
+> An honest personal-agent system must not blur that seam, so the seam is a field, not a vibe.
+
+`reliability` ∈ {`behavioral`(기본), `self_reported`} — 레코드가 **어느 클레임 계층**에 속하는지 표시.
+
+| 채널 | 계층 | 신뢰 | 런타임 권위 | 깊이 산입 | auto-confirm |
+|------|------|------|-------------|-----------|:---:|
+| `behavioral` | 관찰된 행동 (OriginalClaim 에 준함) | 높음 | 예(확인 시) | 예 | 가능 |
+| `self_reported` | 자기에 대한 서술 (InterpretationClaim) | 낮음 | 아니오 (draft-only) | 아니오 | **금지** |
+
+- **왜 분리하나.** "나는 ~한 사람이다"라는 자기서술은 *행동 증거가 아니라 자기에 대한 해석*입니다.
+  이를 행동 레코드와 같은 통에 넣으면 검증되지 않은 자기상이 규칙으로 굳어, 에이전트가 *실제 행동과
+  다른* 당신을 연기하게 됩니다. 그래서 self_reported 는 ① auto-confirm 금지(사람만 확인 —
+  `validate_packs.py`), ② draft-only — 런타임 선택 술어가 권위 컨텍스트에서 제외하고 *draft*로만
+  노출(`context_select.py`; 라이브 컴파일러 배선은 #9로 진행 중), ③ **여섯 수렴 지표 전부에서 제외**
+  (coverage·confirmation_ratio·decision_fidelity·correction_cost·drift_stability·traceability)와 그 게이트
+  변형 `human_confirmation_ratio`·폭(seeded)까지 제외(`convergence_report.py`; 자기서술은 운반될 뿐
+  수렴 대상이 아님).
+- **"becoming you"는 적용주장(AIApplicationClaim)이다.** 이 프로젝트의 표어("당신으로 수렴하는
+  에이전트")는 증거가 아니라 *증거를 에이전트에 적용한 주장*입니다. 그래서 그 표어는 항상 **증거
+  계층 위에 얹힌, 사람 검토를 요하는(requires human review) 적용주장**으로 읽혀야 하며, 행동 레코드의
+  신뢰도를 자동 상속하지 않습니다. de-averaging·off-frontier·reliability 가 그 검토를 *기계적으로*
+  떠받칩니다([00 일하는 자아 스코프](./00-overview.md), [06 §8](./06-convergence-model.md)).
+
+스키마: [`record.base.schema.json`](../schemas/record.base.schema.json) `reliability` · 강제:
+[`tools/validate_packs.py`](../tools/validate_packs.py)(self_reported→auto-confirm 금지) ·
+[`tools/convergence_report.py`](../tools/convergence_report.py)(깊이는 behavioral 만 산입).
 
 ## 8. Crab 에이전트 역할 (운영 모델)
 
 Orchestrator · Pack Architect · Evidence · Session Miner · Questioning · Diff Miner ·
 Candidate Extractor · Scope · Confirmation · Pack Router · Boundary · Agent Compiler ·
 Evaluator. 각 역할의 소유 작업·핸드오프 → [12-crab-orchestration](../skills/12-crab-orchestration.md).
+
+## 9. 프라이버시·권한 모델 (요약)
+
+무엇을 스스로 해도 되고 무엇을 사람에게 되돌려야 하는가의 어휘 요약입니다. **정식 정의·표·근거는
+[04 프라이버시·경계](./04-privacy-boundary.md)가 단일 진실원**이며, 이 절은 커널 어휘로서 그 이름만
+고정하고 깊이는 spec/04로 미룹니다(다른 문서가 "커널 §9"로 가리키는 대상).
+
+- **`BoundaryRule` 노드 (팩 #11 `user.boundary_authority`).** 민감 항목이 승격·런타임 사용 전 받아야
+  하는 규칙. 게이트 **G5**(승격 전 프라이버시, §2)를 만족시키는 유일한 팩.
+- **여섯 경계 범주** — memory · retrieval · output · action · authority · sensitivity. 정식 정의
+  → [04 §1 여섯 경계 범주](./04-privacy-boundary.md#1-여섯-경계-범주-boundary-categories).
+- **여덟 권한 레벨(자율성 사다리)** — `observe < summarize < classify < draft < compare <
+  recommend < ask_confirm < blocked`(단조 상승). 런타임은 확정 스코프 안에서 이 천장 *이하*로만
+  행동. 정식 정의 → [04 §2 여덟 권한 레벨](./04-privacy-boundary.md#2-여덟-권한-레벨-authority-ladder).
+- **기본 안전 정책** — 인스턴스 `BoundaryRule`이 없을 때의 보수적 하한(외부 통신·비가역 행동·계약·
+  정체성 민감 발언·고임팩트 결정 앞에서 `ask_confirm`). 정식 정의 → [04 §3 기본 안전 정책](./04-privacy-boundary.md#3-기본-안전-정책-default-safe-policy).
+- 평가 지표는 `boundary_compliance`([05](./05-evaluation-drift.md)). 승격 직전 충돌은 dedup judge가
+  `conflict`로 사람에게 노출([10](./10-dedup-and-merge.md), §2 G3·G5).

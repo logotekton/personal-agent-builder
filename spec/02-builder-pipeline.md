@@ -35,7 +35,7 @@
 | 4 | `scope_candidates` | S06 scope_context | → `scoped_candidate` |
 | 5 | `review_candidates` | S07 confirmation_gate | → `user_reviewed` → `confirmed_or_rejected` |
 | 6 | `route_confirmed` | S08 pack_router · S09 privacy_boundary | → `target_pack_ingested` |
-| 7 | `compile_runtime` | S10 agent_compiler | → `runtime_activated` |
+| 7 | `compile_runtime` | S10 agent_compiler · S10½ shadow_validate | → `shadow_validated` → `runtime_activated` |
 | 8 | `evaluate_output` | S11 evaluation_drift | 충실도·교정비용 측정 |
 | 9 | `record_drift_or_update` | S11 evaluation_drift (drift 기록) → ↺ S01 | `DriftRecord` → 루프 |
 
@@ -72,7 +72,7 @@
                            1:1 라우팅)         authority level; G5)      runtime adapter; G3)
                                 │                                              │
                                 ▼                                              ▼
-                          UserOntologypack 적재 ─────────────────────► AssistantProfile
+                          UserOntologyPack 적재 ─────────────────────► AssistantProfile
                                                                                │ (compiled_into)
                                                                                ▼
                                                                       ┌─────────────────┐
@@ -86,6 +86,7 @@
    └──────────────────────────────────────────────────────────────────────────►
 
   공유 척추(모든 단계가 먼저 읽음):  S13 kernel_schema  →  ./01-kernel-schema.md
+  확인 게이트 확장(승격 직전):        dedup judge → merge/supersede 추천·conflict 노출 → ./10-dedup-and-merge.md
 ```
 
 ## 3. 단계별 입력/출력 계약
@@ -141,7 +142,11 @@
   후보. `confirmed`/`narrowed`/편집본만 다음 단계로 통과.
 - **소유:** 스킬 [`07-confirmation-gate`](../skills/07-confirmation-gate.md) · Crab 역할 **Confirmation**.
 - **게이트:** **G3**(미확인 후보의 런타임 승격 금지)의 결정 지점. 사람이 confirm/edit/reject/
-  narrow/sensitive/defer 한다. 라이프사이클의 `user_reviewed → confirmed_or_rejected` 전이.
+  narrow/sensitive/defer 한다 — 그리고 승격 직전 **dedup judge**가 확정 후보를 대상 팩의 기존
+  레코드와 대조해 `duplicate→merge`·`refinement→supersede`를 *추천 액션*으로 더한다(여섯 기본 +
+  두 dedup 액션). 기존 *확정* 레코드와 **모순(conflict)**하는 후보는 자동 적용하지 않고 사람에게
+  노출된다(merge 층 = 확인 게이트 다음의 2차 관문 — [10 중복 억제·병합](./10-dedup-and-merge.md)).
+  라이프사이클의 `user_reviewed → confirmed_or_rejected` 전이.
 
 ### S08 / S09 — 상태 `route_confirmed`
 
@@ -163,7 +168,18 @@
   실행하는 **Personal Agent**.
 - **소유:** 스킬 [`10-agent-compiler`](../skills/10-agent-compiler.md) · Crab 역할 **Agent Compiler**.
 - **게이트:** **G3** 재확인 — `confirmed`/`narrowed` 레코드만 컴파일에 포함. pending은 제외.
-  경계/권한은 별도 레이어로 강제([04 프라이버시·경계](./04-privacy-boundary.md)). `runtime_activated`.
+  경계/권한은 별도 레이어로 강제([04 프라이버시·경계](./04-privacy-boundary.md)).
+
+### S10½ · shadow_validate — 상태 `shadow_validated` (활성 *전* 무회귀 관문)
+
+- **입력:** 갓 컴파일된 `AssistantProfile`(아직 라이브 아님) + 그 슬라이스의 `regression_for` 케이스.
+- **출력:** 무회귀 확인을 통과한 프로필만 `runtime_activated`로 승격. 회귀가 나면 보류·드리프트 기록.
+- **방법:** 새 프로필을 `regression_for` 케이스와 과거 세션에 **NO-ACT(예측만, 행동 없음)** 로 재생하고,
+  이전 프로필 대비 회귀(통과했던 케이스가 깨짐)가 없을 때에만 활성화한다 — 평가가 *루프의 끝*이라
+  어댑터가 이미 라이브가 된 *뒤에* 도는 문제를, 활성화 *앞*으로 옮긴 한 칸. Tesla shadow mode의
+  차용([12 §4.3](./12-confirmation-policy.md))이며, [05 평가·드리프트](./05-evaluation-drift.md)의
+  `regression_for`·충실도 채점을 재사용한다. **설계 단계** — 라이브 런타임이 생기면 실행된다.
+- **불변식:** shadow 단계는 *예측*만 한다(NO-ACT). 활성화 결정 외에 어떤 레코드도 바꾸지 않는다.
 
 ### S11 · evaluation_drift — 상태 `evaluate_output` → `record_drift_or_update`
 
@@ -227,4 +243,5 @@
 - S11이 채점하는 지표·평가 케이스 → [05 평가·드리프트](./05-evaluation-drift.md)
 - 파이프라인이 끌어올리는 수렴 지표 → [06 수렴 모델](./06-convergence-model.md)
 - 각 노드의 9-space 사상 → [07 9-space 크로스워크](./07-opencrab-9space-crosswalk.md)
+- S07 확인 게이트의 2차 관문(중복 억제·병합·대체) → [10 중복 억제·병합](./10-dedup-and-merge.md)
 - 스킬·역할·핸드오프 운영 모델 → [12 crab 오케스트레이션](../skills/12-crab-orchestration.md)

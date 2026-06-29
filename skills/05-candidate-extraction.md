@@ -153,8 +153,9 @@
 
 ### 3.3 필수 필드 (Required fields)
 
-모든 `CandidateAssertion`은 [`candidate.schema.json`](../schemas/candidate.schema.json)의 다음
-10개 필수 필드를 가진다(커널 §8):
+모든 `CandidateAssertion`은 [`candidate.schema.json`](../schemas/candidate.schema.json)의 `required`
+10개 필수 필드를 가진다(타입·라우팅 어휘는 [커널 §6](../spec/01-kernel-schema.md#6-후보-타입--라우팅-11-전수),
+승격 후 베이스 어휘는 [커널 §7](../spec/01-kernel-schema.md#7-통합-베이스-레코드-필드-표류-해소)):
 
 | 필드 | 의미 | 게이트/규칙 |
 |------|------|-------------|
@@ -168,14 +169,25 @@
 | `proposed_target_pack` | 단일 목적지 팩 | 1:1 라우터로 고정(타입과 불일치 금지) |
 | `validation_status` | 확인 게이트 상태 | 초기 `pending`; 정함은 [S07](./07-confirmation-gate.md) |
 | `extraction_method` | 출처 스킬 프로비넌스 | session_mining/elicitation_questioning/diff_mining/… |
+| `reliability` | `behavioral`(기본) \| `self_reported` | 증거 채널 — §3.2 |
 
 선택 필드 `confidence_inputs`(§4의 7개 신호)는 강력히 권장된다 — 신뢰도를 감사 가능하게 만들고
 도구가 `confidence`를 재계산할 수 있게 한다.
 
+### 3.2 reliability 채널 — 행동 vs 자기서술 (claim-layer)
+
+대부분의 후보는 *행동에서* 추출되므로 `behavioral`(기본)이다. 그러나 elicitation([S03](./03-elicitation-questioning.md))
+에서 주체가 **말로 자기를 서술**했는데 *아직 행동이 확증하지 않은* 경우(예: "나는 꼼꼼한 리뷰어다"),
+그 후보는 `reliability: self_reported`로 표시한다. self_reported 는 *자기에 대한 해석(InterpretationClaim)*
+이지 행동 증거가 아니므로 — ① 승격 시 auto-confirm 금지(사람만 확인), ② draft-only(단독 런타임 권위
+없음), ③ 성숙도 깊이에 미산입. 같은 패턴이 나중에 행동으로 확증되면 별도 `behavioral` 후보로 올라와
+병합되며, 그때 비로소 신뢰·깊이를 얻는다([01 §7.1](../spec/01-kernel-schema.md), 설계자 결정 C). 이렇게 해서
+*자기서술이 행동 증거로 둔갑하는 것*을 막는다.
+
 ## 4. 신뢰도 입력 (Confidence inputs)
 
 `confidence`는 손으로 찍는 숫자가 아니라 **7개 입력에서 산출**되며, 입력은 `confidence_inputs`로
-남겨 감사 가능하게 한다([candidate.schema.json](../schemas/candidate.schema.json) 동일 어휘, 커널 §8).
+남겨 감사 가능하게 한다([candidate.schema.json](../schemas/candidate.schema.json)의 `confidence_inputs` 동일 어휘).
 
 | 입력 | 의미 | 신뢰도 방향 |
 |------|------|-------------|
@@ -252,8 +264,10 @@
   [S06](./06-scope-context.md)에 넘겼는가(여기서 확정하지 않음).
 - [ ] **민감도 표시(G5 예비)** — 민감/제한 신호의 `sensitivity`가 상향됐는가. [09 프라이버시
   경계](./09-privacy-boundary.md)가 승격 전 `BoundaryRule`을 붙일 수 있게 표시했는가.
-- [ ] **중복·모순 점검** — 기존 확정 레코드와 중복이면 신규 증거로 표시(`repetition_count`↑),
-  모순이면 `DriftRecordCandidate`로 돌리고 `contradiction_count`↑.
+- [ ] **중복·모순 점검(예비)** — 기존 확정 레코드와 중복이면 신규 증거로 표시(`repetition_count`↑),
+  모순이면 `DriftRecordCandidate`로 돌리고 `contradiction_count`↑. *권위 있는 dedup judge·
+  conflict→surface는 하류 S07/병합 층*([10 중복 억제·병합](../spec/10-dedup-and-merge.md),
+  [`tools/pab_merge.py`](../tools/pab_merge.py)).
 - [ ] **상태 불변식** — `validation_status = pending`으로만 출력했는가. 확인/스코프 확정/라우팅을
   침범하지 않았는가(G3).
 

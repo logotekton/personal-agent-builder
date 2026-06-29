@@ -115,6 +115,7 @@ Questioning · Diff Miner)이 묶여 있어, 오케스트레이터가 들어온 
 | H5 | **scope assigned** (스코프·`Context`/`Condition` 연결) | `scope_candidates` / Scope | `review_candidates` / **Confirmation** | `scoped_candidate` | `review_status` 찍힌 후보 | G3(결정점) |
 | H6 | **confirmed** (`confirmed`/`narrowed`/편집 확정) | `review_candidates` / Confirmation | `route_confirmed` / **Pack Router** | confirmed/narrowed 후보 | `promoted_to` (14 `user.*` 중 1) | G6 |
 | H6b | 민감 후보(`sensitive`/`restricted`) | `review_candidates` / Confirmation | `route_confirmed` / **Boundary** *먼저* | 민감 후보 | `BoundaryRule`(범주+권한) → 그 뒤 Pack Router 재개 | G5 |
+| H6c | dedup judge 분류(승격 직전) | `review_candidates` / Confirmation | merge/supersede → **Pack Router**(upsert/대체) · **conflict → Confirmation**(사람 노출, H6 미발화) | 확정 후보 + 기존 레코드 | `merge`(기존 갱신)/`supersede`(새+`supersedes`)/`surface` | G3·G5 |
 | H7 | **routed** (도착지 팩에 베이스 레코드 적재) | `route_confirmed` / Pack Router | `compile_runtime` / **Agent Compiler** | 확정 인스턴스 슬라이스 + `BoundaryRule` | `AssistantProfile`(`compiled_into`) | G3 재확인 |
 | H8 | **runtime output** (에이전트가 작업 산출) | `compile_runtime` / Agent Compiler | `evaluate_output` / **Evaluator** | `AssistantProfile` 산출 + `EvaluationCase` | 8개 지표 채점 결과 | — |
 | H9 | 변경·실패·모순 검출 | `evaluate_output` / Evaluator | `record_drift_or_update` / Evaluator | 채점 결과 | `DriftRecord`(`supersedes`) → **↺ S01** | — |
@@ -135,6 +136,13 @@ Questioning · Diff Miner)이 묶여 있어, 오케스트레이터가 들어온 
 - **H6b (민감 → boundary 먼저).** `sensitivity`가 `sensitive`/`restricted`면 **Boundary가
   `BoundaryRule`을 *먼저* 붙인 뒤에만** Pack Router가 적재합니다(G5 — 승격 전 프라이버시). 경계가
   붙기 전 라우팅을 시도하면 오케스트레이터가 차단합니다.
+- **H6c (dedup judge → upsert / 충돌 노출).** 승격 *직전*, 확정 후보를 대상 팩의 기존 레코드와
+  대조하는 dedup judge가 한 스텝 돕니다([10 중복 억제·병합](../spec/10-dedup-and-merge.md),
+  액추에이터 [`tools/pab_merge.py`](../tools/pab_merge.py)). `duplicate→merge`(새 레코드 없이 기존
+  upsert)·`refinement→supersede`(새 레코드+`supersedes`, 구 레코드 은퇴)는 Pack Router로 전진하고,
+  `novel`은 그대로 H6. **`conflict`(기존 *확정*과 모순)는 H6를 발화하지 않고 Confirmation으로 되돌려
+  사람에게 노출**합니다 — 조용한 덮어쓰기 금지. 즉 *이미 확정된* 후보라도 충돌하면 적재되지 않습니다
+  (병합 층 = 확인 게이트 다음의 두 번째 관문, G3·G5 재확인).
 - **H7 (routed → compiler).** 팩에 적재된 것과 *런타임 활성*은 별개입니다. 컴파일러는 작업에
   닿는 *슬라이스만* 켜고, `confirmed`/`narrowed`만 포함합니다(G3 재확인).
 - **H8 (runtime output → evaluator).** 에이전트가 작업을 산출하면 `EvaluationCase`로 8개 지표
@@ -157,6 +165,7 @@ Questioning · Diff Miner)이 묶여 있어, 오케스트레이터가 들어온 
 | 스코프 없음/과도하게 넓음 | G2 | **Scope** (`scope_candidates`) | 언제/어디서로 다시 좁힘 |
 | 민감 항목이 경계 없이 라우팅 시도 | G5 | **Boundary** (`route_confirmed`) | `BoundaryRule`을 먼저 부착 후 재개 |
 | 미확정 후보가 팩/컴파일로 누출 | G3 | **Confirmation** (`review_candidates`) | 사람 검토로 되돌려 확정/거부 |
+| dedup 충돌 (확정 후보가 기존 확정과 모순) | G3·G5 | **Confirmation** (`review_candidates`) | 자동 적용 금지 — 사람에게 노출해 merge/supersede/keep 결정(spec/10) |
 | 스키마 결함 (필드 표류, enum 불일치, 베이스 위반) | 정의 | **Pack Architect** (척추, [13](./13-kernel-schema.md)) | 스키마/계약 자체의 결함은 척추가 소유 |
 | 템플릿에 라이브 레코드 적재 | G6 | **Pack Router** (`route_confirmed`) | 적재 대상을 인스턴스 팩으로 교정 |
 
@@ -321,18 +330,26 @@ OpenCrab 도구로 실행할 때는 `opencrab_list_workflows`로 정의된 워�
 ### auto-confirm 정책 (review_candidates 우회 — 좁은 예외)
 
 `review_candidates` 상태는 기본적으로 사람을 거칩니다. 단 아래 정책이 *모두* 참인 후보에 한해
-자동 확정으로 우회할 수 있습니다(없으면 항상 사람 검토):
+자동 확정으로 우회할 수 있습니다(없으면 항상 사람 검토). 정식 정의·4계층 캘리브레이션·근거는
+[확인 정책 spec/12 §5](../spec/12-confirmation-policy.md#5-스키마-매핑-auto_confirm_policy-4필드)가
+단일 진실원이며, 머신 스키마는 [`trigger.schema.json`](../schemas/trigger.schema.json)의
+`auto_confirm_policy`입니다.
 
 ```yaml
 auto_confirm_policy:
-  min_confidence: 0.9
-  allowed_sensitivity: [public, internal]     # restricted 불가, sensitive는 경계규칙 선결
+  impact_tier: B                       # 파급 등급. Tier A(정체성·결정·경계·red_flags)는 영구 확인
+  per_tier_threshold: { A: 1.01, B: 0.95, C: 0.90 }   # A는 도달 불가 → 항상 사람
+  min_confidence: 0.9                  # 하위호환(티어 미지정 시 공통 임계)
+  allowed_sensitivity: [public, internal]     # restricted 불가, sensitive는 경계규칙 선결(G5)
   require_any: [explicit_user_statement, repetition_ge_3, correction_backed]
   never_auto_confirm_types: [BoundaryRuleCandidate, DecisionPolicyCandidate]
+  maturity_gate: L2                    # 성숙 L2+ 에서만 정책이 행동(주로 Tier B)
+  target_error_rate: 0.05              # 섀도 불일치율 ≤5% 로 안정될 때만 실제 auto-confirm
 ```
 
-이 정책은 신뢰 노브이지 프라이버시 우회로가 아닙니다 — 고위험 타입과 민감 등급은 언제나
-사람을 거칩니다(G3·G5 보존).
+이 정책은 신뢰 노브이지 프라이버시 우회로가 아닙니다 — 고위험 타입(Tier A)과 민감 등급은 언제나
+사람을 거칩니다(G3·G5 보존). dedup 판정이 `conflict`면 confidence가 높아도 자동 확정 불가, 사람에게
+노출됩니다(spec/12 §3 축4).
 
 ### 핸드오프 = 트리거 (한 줄 요약)
 계층 A(collect→…→scope)는 전부 `requires_confirmation: false`로 **스테이징만** 합니다.

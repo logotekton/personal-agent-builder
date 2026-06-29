@@ -4,8 +4,15 @@
 > 이 리포트가 §5에서 지목한 **"다음 한 수"(`user.boundary_authority`에 `ConfirmationRuleRecord`
 > 시드)** 가 실제로 실행되었습니다. 그 한 바퀴(merge actuator + 교정 + 재평가)와 **T0→T1 측정
 > (L0 → L2 Working, decision_fidelity 0.75→0.92, merge_rate NA→0.059)** 은
-> [`revolution-01/README.md`](./revolution-01/README.md)에 있습니다. **현재 라이브 도구 출력은
-> T1(L2)** 이며, 아래 본문은 그 *이전* 상태를 보존한 베이스라인입니다.
+> [`revolution-01/README.md`](./revolution-01/README.md)에, 바퀴를 한 번 더 돌린 **T1→T2 측정
+> (L2 유지, decision_fidelity 0.92→1.00, coverage 0.57→0.71, merge_rate 0.059→0.095,
+> drift_stability 0.94→0.89)** 은 [`revolution-02/README.md`](./revolution-02/README.md)에 있습니다.
+> **현재 라이브 도구 출력은 T2 — 단, 성숙도 게이트 결함 수정 후 티어는 `L1 Sketch`입니다**
+> (`coverage`를 spec §2 정의 = *엄격 ≥3 깊이*로 게이팅; 라이브 엄격 0.07 / 시드폭 0.71, df 1.00).
+> 위 §의 "L0→L2 / L2 유지" 티어는 **`coverage`를 시드폭으로 게이팅하던 시점** 기준이며, 수정 후엔
+> **L0→L1 / L1 유지**입니다(df·merge_rate·시드폭 등 다른 숫자는 불변). 깊은 팩이 1개뿐이라 L1이
+> 정직한 위치이고, 남은 L2 빗장은 `coverage`(엄격 0.07→0.5) 하나 — *더 많은 팩을 ≥3으로 깊게*.
+> 아래 본문은 *맨 처음* T0 베이스라인을 보존합니다.
 
 > **EN:** A worked convergence report for the `logotekton` subject, computed per
 > [`../../spec/06-convergence-model.md`](../../spec/06-convergence-model.md) from the

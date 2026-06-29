@@ -72,6 +72,12 @@ sensitivity: public
 아니라 세션을 가로질러 반복되는 성향만 들어옵니다. 게이트 G4가 강하게 적용됩니다 — 추측된
 심리가 아니라 **관찰된 행동**으로 기술합니다. 대응 노드: `PersonaTrait`.
 
+> **여기서 'persona'는 행동 페르소나(behavioral mask)다 — 내면 자아가 아니다(설계자 결정 B).** 이
+> 팩의 'value'·'priority'조차 *관찰된 행동으로 드러난 안정 패턴*으로만 적재되며, "이 사람의 진짜
+> 가치는 X"라는 *내면 귀속*은 적재 대상이 아닙니다(그건 자기서술 → `reliability: self_reported`
+> draft-only, [01 §7.1](./01-kernel-schema.md)). 즉 persona_core 는 *당신이 무엇을 느끼는가*가
+> 아니라 *당신이 일관되게 어떻게 행동하는가*를 담습니다.
+
 **레코드 타입** (`record_type`): `PreferenceRecord` · `AvoidanceRecord` · `PriorityRecord` · `ValueRecord` · `StablePatternRecord`.
 
 ```yaml

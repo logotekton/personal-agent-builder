@@ -1,3 +1,18 @@
+# ============================================================================
+# revolution-01 재현 베이스라인 (PRE-merge snapshot — DO NOT EDIT; fixture)
+# ----------------------------------------------------------------------------
+# > **EN:** A frozen copy of ../instance-records.yaml as it stood at **T0** (BEFORE
+# > revolution-01: 5 packs seeded, no boundary_authority, heuristic.001 not yet merged).
+# > Kept ONLY so README §4's plan/apply commands are literally runnable: feeding
+# > session-02-candidates.yaml against THIS file yields the pre-merge plan
+# > (duplicate→merge heuristic.201, novel→insert boundary.001), and `--apply`-ing it
+# > reproduces the **T1** state record-for-record (== ../revolution-02/instance-records.pre.yaml).
+# > The live, canonical instance set is ../instance-records.yaml (now at T2). convergence_report.py
+# > / dedup_check.py read only the top-level dir, so this subdir copy affects no metric;
+# > validate_packs.py (recursive) confirms it is still valid.
+# 이 파일은 ../instance-records.yaml 의 **T0(revolution-01 적용 전)** 동결 사본입니다 — README §4 의
+# 재현 명령을 글자 그대로 실행 가능하게 만들기 위한 픽스처일 뿐, 라이브 정본이 아닙니다.
+# ============================================================================
 # Logotekton — 확인된 인스턴스 레코드 (instance records)
 #
 # > **EN:** Real, confirmed instance records for the `logotekton` subject, mined from an
@@ -119,36 +134,6 @@ user.communication_style:
     applies_to_channel: ["candidate review"]
     enforcement: preferred
 
-# ── 팩 #4 · user.artifact_policy ─────────────────────────────────────────────
-# 산출물 형식/파일/표/다이어그램/리뷰 구조. 후보: ArtifactPolicyCandidate.
-# 스키마: user.artifact_policy.schema.json
-# ↓ revolution-02: eval.005 가 보고에서 next action 을 빠뜨려 PARTIAL(0.7) 했음. 그
-#   correction_notes 가 처방한 ReviewArtifactRecord 를 dedup judge(pab_merge)가 NOVEL→INSERT
-#   로 적재(빈 팩이라 novel). 이 규칙이 생기자 eval.005 가 재실행에서 PASS 로 전환됨(아래
-#   evaluation-cases.yaml). 변경 이력은 drift-history.yaml(logotekton.drift.002) 에 기록됨.
-user.artifact_policy:
-  - id: logotekton.artifact.001
-    record_type: ReviewArtifactRecord
-    label: "report must include next action"
-    statement: "A task or pack report must always include an explicit next action; status, result, and defect alone are an incomplete report."
-    evidence_refs: ["ev.eval.005#next_action_missing", "session_2026-06-28c#report_next_action"]
-    confidence: 0.9
-    scope: project_reporting
-    review_status: confirmed
-    sensitivity: internal
-    created_at: "2026-06-28T00:00:00Z"
-    updated_at: "2026-06-28T18:00:00Z"
-    canonical_key: "524f1e73943f"
-    repetition_count: 1
-    artifact_kind: report
-    preferred_format: "compact status block: status / result / defect / next action"
-    structure_rules:
-      - "always end with an explicit next action (never omit it)"
-      - "lead with the result (answer_first), keep it terse"
-      - "four slots: status, result, defect, next action"
-    applies_to_tasks: ["pack report", "task status report"]
-    default_for_kind: true
-
 # ── 팩 #5 · user.decision_policy ─────────────────────────────────────────────
 # 우선순위/트레이드오프/승인/거부/에스컬레이션. 후보: DecisionPolicyCandidate.
 # 스키마: user.decision_policy.schema.json
@@ -172,84 +157,19 @@ user.decision_policy:
 # ── 팩 #6 · user.tacit_heuristics ────────────────────────────────────────────
 # 암묵 판단 규칙. 후보: TacitHeuristicCandidate. 스키마: user.tacit_heuristics.schema.json
 user.tacit_heuristics:
-  # ↓ revolution-01: re-derived in session 2 → MERGED (upsert, not a new twin) by
-  #   tools/pab_merge.py. revolution-02: re-derived AGAIN in session 3 → MERGED a second
-  #   time (logotekton.heuristic.301). repetition_count 1→2→3, evidence accumulated across
-  #   three sessions, confidence 0.85→0.9→0.95 — the "becoming core" signal strengthening.
-  #   See examples/logotekton/revolution-01/ and revolution-02/.
   - id: logotekton.heuristic.001
     record_type: HeuristicRecord
     label: "execute when tools exist"
     statement: "If tools are available and the request is operational, perform the concrete action and report the actual result."
-    evidence_refs: ["current_session", "session_2026-06-28b#rederive_execute_when_tools", "session_2026-06-28c#rederive_execute_when_tools"]
-    confidence: 0.95
+    evidence_refs: ["current_session"]
+    confidence: 0.85
     scope: opencrab_work
     review_status: confirmed
     sensitivity: internal
     created_at: "2026-06-27T00:00:00Z"
-    updated_at: "2026-06-28T18:00:00Z"
-    canonical_key: "3cabb5142158"
-    repetition_count: 3
-    merge_history: ["logotekton.heuristic.201", "logotekton.heuristic.301"]
+    updated_at: "2026-06-28T00:00:00Z"
     heuristic_kind: prioritization
     trigger_condition: "tools are available and the request is operational"
     action: "perform the concrete action and report the actual result"
     applies_to_tasks: ["opencrab work"]
     enforcement: preferred
-
-# ── 팩 #10 · user.tool_stack ─────────────────────────────────────────────────
-# 어떤 도구를 어떤 작업에 쓰는가/피하는가. 후보: ToolPreferenceCandidate.
-# 스키마: user.tool_stack.schema.json
-# ↓ revolution-02: 세션 3에서 관찰된 도구 선택을 dedup judge 가 NOVEL→INSERT 로 적재(빈 팩).
-#   evidence-first 에토스의 도구판 — 수렴/검증 숫자를 단언하지 말고 결정론적 도구를 돌려 산출.
-#   이 팩이 시드되며 coverage 가 0.57→0.71 로 상승(시드 8→10팩). → 팩 #10 시드.
-user.tool_stack:
-  - id: logotekton.tool.001
-    record_type: ToolPreferenceRecord
-    label: "run the deterministic tools for numbers"
-    statement: "When reporting convergence or validation numbers, run the deterministic Python tools and quote their output; do not assert metrics from memory."
-    evidence_refs: ["session_2026-06-28c#run_tools_for_numbers", "ev.core.002#evidence_first"]
-    confidence: 0.9
-    scope: convergence_measurement
-    review_status: confirmed
-    sensitivity: internal
-    created_at: "2026-06-28T00:00:00Z"
-    updated_at: "2026-06-28T18:00:00Z"
-    canonical_key: "518fcbd1217e"
-    repetition_count: 1
-    tool_name: "convergence_report.py"
-    tool_category: cli
-    purpose: "produce the six convergence indices and the maturity tier from records, deterministically"
-    preferred_over: ["asserting metrics from memory", "hand-authored numbers"]
-    binding: preferred
-    applies_to_tasks: ["convergence report", "pack validation"]
-
-# ── 팩 #11 · user.boundary_authority ─────────────────────────────────────────
-# 무엇을 스스로 해도 되고 무엇을 사람에게 되돌려야 하는가. 후보: BoundaryRuleCandidate.
-# 스키마: user.boundary_authority.schema.json
-# ↓ revolution-01: eval.004 가 외부 메일을 확인 없이 발송해 FAIL → 그 correction_notes 가
-#   처방한 ConfirmationRuleRecord 를 dedup judge(pab_merge)가 NOVEL→INSERT 로 적재. 이 규칙이
-#   생기자 eval.004 가 재실행에서 PASS 로 전환됨(아래 evaluation-cases.yaml). 변경 이력은
-#   drift-history.yaml 의 DriftRecord 로 남음. 이것이 데이터-엔진 한 바퀴의 actuator 작동.
-user.boundary_authority:
-  - id: logotekton.boundary.001
-    record_type: ConfirmationRuleRecord
-    label: "external email needs ask_confirm"
-    statement: "Before sending anything to an external recipient, the runtime must stop and ask for explicit confirmation; never send without it."
-    evidence_refs: ["ev.eval.004#boundary_fail", "session_2026-06-28b#boundary_fix"]
-    confidence: 0.95
-    scope: external_email
-    review_status: confirmed
-    sensitivity: internal
-    created_at: "2026-06-28T00:00:00Z"
-    updated_at: "2026-06-28T12:30:00Z"
-    canonical_key: "d2aa520413a2"
-    repetition_count: 1
-    boundary_type: action
-    requires_confirmation: true
-    confirmation_trigger: ["external comms", "irreversible action"]
-    applies_to_actions: ["sending messages"]
-    blocked_actions: ["send external email without confirmation"]
-    authority_level: ask_confirm
-    enforcement: hard
-    on_violation: ask_confirm

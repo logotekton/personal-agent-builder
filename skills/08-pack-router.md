@@ -31,7 +31,7 @@
 팩 라우팅은 **확정된 후보를 단 하나의 도착지 팩으로 보내고, 후보 계약을 베이스 레코드로
 승격하는** 단계입니다. 라우터의 책임은 *정확히 하나의 팩 선택*과 *깨끗한 승격*, 이 둘뿐입니다.
 
-- **단일 도착지 선택.** `candidate_type`을 [§3 라우팅 표](#3-라우팅-표-1-1-전수)에 넣어 *정확히
+- **단일 도착지 선택.** `candidate_type`을 [§3 라우팅 표](#3-라우팅-표-11-전수)에 넣어 *정확히
   하나의* `user.*` 팩을 얻습니다. 매핑은 1:1·전수(total)이므로 추측·분기·복수 도착지가 없습니다.
   후보가 이미 들고 있는 `proposed_target_pack`은 *제안*일 뿐, 라우터가 타입으로 다시 검산해
   불일치를 잡습니다(§5).
@@ -144,7 +144,7 @@
 G5), `deferred`(보류)는 모두 팩 진입이 차단됩니다(§6 표). 이것이 시스템 신뢰의 마지막 잠금장치
 입니다 — 추측 후보가 런타임 규칙이 되는 경로를 *여기서* 끊습니다.
 
-**[B] 도착지 룩업.** `candidate_type`을 [§3 표](#3-라우팅-표-1-1-전수)에 넣어 단일 `user.*` 팩을
+**[B] 도착지 룩업.** `candidate_type`을 [§3 표](#3-라우팅-표-11-전수)에 넣어 단일 `user.*` 팩을
 얻습니다. 표는 전수이므로 룩업은 *항상* 정확히 하나를 돌려줍니다. 둘 이상이거나 0개가 나오면
 그것은 라우터 버그 또는 잘못된 타입이며, 후자는 S05로 되돌립니다(§5 규칙 3).
 
@@ -164,6 +164,7 @@ G5), `deferred`(보류)는 모두 팩 진입이 차단됩니다(§6 표). 이것
 | `sensitivity` | `sensitivity` | 그대로 이월. `sensitive`/`restricted`는 `exception_rules` 필수 |
 | `validation_status` | `review_status` | 동일 enum. `confirmed`/`narrowed`로 승격 |
 | `extraction_method` | (프로비넌스로 보존) | 출처 스킬 기록 유지(추적성) |
+| `reliability` | `reliability` | 그대로 이월(기본 `behavioral`). `self_reported`면 승격돼도 **draft-only** — auto-confirm 불가·여섯 수렴 지표 미산입([01 §7.1](../spec/01-kernel-schema.md), C) |
 | (도착지 팩이 부여) | `record_type` | 도착지 팩 스키마의 `record_type` enum 값 |
 | (승격 시각) | `created_at`, `updated_at` | 승격 타임스탬프 부여 |
 | (선택 보강) | `applies_in`/`exception_rules`/`temporal_status` 등 | S06이 단 맥락·예외·시간 상태 이월 |
@@ -176,6 +177,16 @@ G5), `deferred`(보류)는 모두 팩 진입이 차단됩니다(§6 표). 이것
 — 도착지가 `user.red_flags`면 `user.red_flags.schema.json`이 통과시켜야 합니다. 검증을 통과하면
 후보→팩을 `promoted_to` 엣지로 잇고([커널 §4](../spec/01-kernel-schema.md#4-엣지-타입-edge-types)),
 출처 후보·증거 사슬을 보존합니다. 검증 실패는 라우팅 실패이며 레코드를 팩에 *쓰지 않습니다*.
+
+> **쓰기 동작은 dedup 판정을 따른다(1:1은 *목적지*, dedup은 *동작*).** 라우팅 표는 *어느 팩인가*
+> 만 정합니다(1:1·전수, 불변). 그 팩 *안에서* 새 레코드를 찍을지는 승격 직전 dedup judge의 판정이
+> 정합니다([10 중복 억제·병합](../spec/10-dedup-and-merge.md), 액추에이터
+> [`tools/pab_merge.py`](../tools/pab_merge.py)): `novel→insert`(새 베이스 레코드), `duplicate→merge`
+> (새 레코드를 찍지 않고 기존 레코드에 `evidence_refs`·`repetition_count`·`confidence` upsert — §2의
+> "멱등 승격"이 바로 이것), `refinement→supersede`(새 레코드 + `supersedes` 엣지, 구 레코드 은퇴).
+> `conflict`(기존 *확정*과 모순) 후보는 라우터에 *도달하지 않는다* — S07/병합 층에서 사람에게
+> 노출되어 보류되기 때문이다(2차 게이트, G3·G5). 즉 라우터는 판정을 *수행*할 뿐 충돌을 자동
+> 해소하지 않는다.
 
 ## 5. 미확정·불일치 후보 거부 (Rejecting bad routes)
 
@@ -210,7 +221,7 @@ G5), `deferred`(보류)는 모두 팩 진입이 차단됩니다(§6 표). 이것
   ([candidate.schema.json](../schemas/candidate.schema.json)). 라우터는 `confirmed`/`narrowed`/
   편집 확정만 처리하고 나머지는 거부합니다(§5).
 - **부 입력:** 도착지 팩의 JSON Schema([`schemas/`](../schemas), [D]/[E] 검증), 도착지 팩의
-  기존 레코드(id 충돌·중복 점검), [§3 라우팅 표](#3-라우팅-표-1-1-전수).
+  기존 레코드(id 충돌·중복 점검), [§3 라우팅 표](#3-라우팅-표-11-전수).
 
 각 `validation_status`의 라우터 처리:
 
@@ -353,6 +364,8 @@ OpenCrab 도구로 실행할 때는 `opencrab_search_packs`로 도착지 팩을 
   [09 프라이버시·경계](./09-privacy-boundary.md)
 - 평가 케이스 팩의 케이스 필드(특수 매핑) → [05 평가·드리프트](../spec/05-evaluation-drift.md)
 - 1:1 라우팅이 지키는 검색 정밀도·추적성·수렴 지표 → [06 수렴 모델](../spec/06-convergence-model.md)
+- 팩 안 쓰기 동작을 정하는 dedup 판정(insert/merge/supersede/surface)·액추에이터 →
+  [10 중복 억제·병합](../spec/10-dedup-and-merge.md) · [`tools/pab_merge.py`](../tools/pab_merge.py)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
 
 

@@ -23,20 +23,34 @@
 
 | 지표 | 정의 | 방향 | 좋은 값 |
 |------|------|------|---------|
-| `coverage` | 확인 레코드 ≥3개인 팩 수 / 14 | ↑ | → 1.0 |
+| `coverage` | **behavioral** 확인 레코드 ≥3개인 팩 수 / 14 | ↑ | → 1.0 |
 | `confirmation_ratio` | confirmed / (confirmed + pending + rejected) | ↑ | ≥ 0.6 |
 | `decision_fidelity` | 통과한 평가 케이스 / 전체 평가 케이스 | ↑ | ≥ 0.8 |
 | `correction_cost` | 작업당 사용자 편집 비율(평균) | **↓** | ≤ 0.2 |
 | `drift_stability` | 1 − (최근 기간 대체수 / 확인 레코드수) | ↑ | ≥ 0.8 |
 | `traceability` | 증거를 가진 활성 규칙 / 활성 규칙 | = | **1.0 필수** |
 
-- `coverage`는 **폭** — 자기표현이 14개 영역에 고루 퍼졌는가.
-- `confirmation_ratio`는 **포착 품질** — 추출이 실제로 승인되는가, 잡음만 많은가.
+- `coverage`는 **깊이** — *behavioral* 확인 레코드 ≥3개인 팩 비율(엄격). 자기서술
+  (`reliability: self_reported`)은 draft-only 라 깊이에 산입하지 않는다 — 깊이=신뢰는 관찰된
+  행동에서만 온다([01 §7.1](./01-kernel-schema.md), 설계자 결정 C). 시드*폭*은 보조 신호(§8).
+- `confirmation_ratio`는 **포착 품질** — 추출이 실제로 승인되는가, 잡음만 많은가. **단, 성숙도 게이트는
+  이 값이 아니라 `human_confirmation_ratio`(auto-confirm 승격을 분자·분모에서 제외한 *사람 게이트* 흐름만)를
+  쓴다** — auto-confirm 이 `confirmed` 분자를 스스로 밀어올려 *떨어졌어야 할* 성숙도를 가리는 자기인증 루프를
+  막기 위해서다([12 확인 정책 §4.4](./12-confirmation-policy.md), 베이스 레코드의 `auto_confirmed` 필드).
+  auto-confirm 이 0건이면 둘은 같다.
 - `decision_fidelity`는 **충실도** — 에이전트가 당신이 승인할 답을 고르는가([평가](./05-evaluation-drift.md)).
 - `correction_cost`는 가장 정직한 지표 — *얼마나 덜 고치게 되었는가*. 유일하게 낮을수록 좋음.
 - `drift_stability`는 **수렴의 증거** — 초기엔 대체가 잦고(높은 드리프트), 수렴할수록 잦아듦이
   줄어듦. 안정화 자체가 "굳어졌다"의 신호.
 - `traceability`는 **타협 불가** — 항상 1.0. 증거 없는 활성 규칙은 존재해선 안 됨(게이트 G1·G3).
+- **self_reported 전면 제외(여섯 지표 *전부*).** 위 표·식의 `confirmed`·`확인 레코드수`·`활성 규칙`·
+  `평가 케이스`는 모두 *behavioral* 만 센다 — `reliability: self_reported`(자기서술)는 draft-only 라
+  **여섯 지표 전부**(coverage·`confirmation_ratio`·`decision_fidelity`·`correction_cost`·
+  `drift_stability`·`traceability`)와 그 게이트 변형 `human_confirmation_ratio`·드리프트·폭(seeded)
+  집계에서 빠진다. 특히 self_reported 평가 케이스도
+  `decision_fidelity` 에 들어가지 않는다. 성숙도는 *관찰된 행동* 위에서만 측정되고, 자기서술은 운반될
+  뿐 수렴 대상이 아니다([01 §7.1](./01-kernel-schema.md), 설계자 결정 C — 자기서술을 무더기 confirmed/pass
+  시켜 성숙도를 부풀리는 백도어를 닫는다).
 
 ## 3. 다섯 단계 성숙도 (Maturity Tiers)
 
@@ -45,13 +59,21 @@
 | 단계 | 이름 | 진입 조건 |
 |------|------|-----------|
 | **L0** | Seed (씨앗) | 3개 미만 팩 시드, 평가 케이스 없음 |
-| **L1** | Sketch (스케치) | ≥7개 팩 시드, ≥3개 평가 케이스, `traceability`=1.0 |
-| **L2** | Working (작동) | `coverage`≥0.5, `decision_fidelity`≥0.6, `confirmation_ratio`≥0.6 |
+| **L1** | Sketch (스케치) | ≥7개 팩 시드, ≥3개 평가 케이스, `traceability`=1.0, **≥1 팩이 ≥3 확인(깊이 한 칸, §8)** |
+| **L2** | Working (작동) | `coverage`≥0.5, `decision_fidelity`≥0.6, `human_confirmation_ratio`≥0.6 |
 | **L3** | Reliable (신뢰) | `coverage`≥0.8, `decision_fidelity`≥0.8, `correction_cost`≤0.3, `drift_stability`≥0.7 |
 | **L4** | Convergent (수렴) | `coverage`=1.0, `decision_fidelity`≥0.9, `correction_cost`≤0.15, `drift_stability`≥0.85, `traceability`=1.0, **N기간 이상 지속** |
 
 > L4는 "완성"이 아니라 **유지**입니다. 사람은 변하므로, 수렴은 한 번 도달하고 끝나는 점이
 > 아니라 드리프트를 흡수하며 머무는 상태입니다. 그래서 `drift_history` 팩이 14개 중 하나입니다.
+
+> **폭(Sketch) vs 깊이(Working+) — 게이트가 쓰는 coverage는 깊이다.** L1 Sketch 의 `≥7개 팩 시드`는
+> *폭*(broad-but-shallow)을 봅니다 — 스케치는 넓게 한 번씩 찍은 상태. 하지만 L2 Working 이상의
+> `coverage`는 **§2 정의 그대로 *엄격(≥3 확인 = 깊이)***를 씁니다. 시드폭으로 L2를 게이팅하면 1레코드씩
+> 흩뿌려 "Working"을 *폭으로* 따게 돼, 깊이=신뢰라는 de-averaging 명제(§8)와 정면으로 모순됩니다.
+> 그래서 게이트는 시드폭이 아니라 엄격 coverage 를 씁니다(이전엔 시드폭으로 게이팅하던 결함을 수정).
+> 예: logotekton 은 시드폭 0.71(L2처럼 보임)이지만 깊은 팩이 1개뿐(엄격 0.07)이라 정직하게 **L1**이며,
+> 남은 L2 빗장은 *더 많은 팩을 ≥3으로 깊게 채우는 것*입니다.
 
 ## 4. 왜 수렴하는가 (직관)
 
@@ -103,3 +125,37 @@
 `merge_rate` 상승은 "아직 발견 중 → 채워 넣는 중"으로의 전환을 뜻합니다. 즉 중복 억제는 청소가
 아니라 **수렴을 보는 또 하나의 창**입니다. 이 신호들은 §2의 6개 핵심 지표를 보완하며, 특히
 `traceability`(=1.0 필수)와 `decision_fidelity`를 떠받칩니다.
+
+
+## 8. 깊이·de-averaging — *모르는 곳을 아는 것*이 수렴이다
+
+> **EN:** Convergence is not breadth of coverage but **de-averaging** — the agent becoming *you*
+> only where it has *your* evidence, and **abstaining** (not answering with the generic average)
+> everywhere else. A personal agent that confidently fills its blind spots with population
+> defaults is not a personal agent; it is a generic model wearing your name. So maturity rewards
+> **depth**, not just breadth, and the report names the **off-frontier** — the slices where the
+> agent must stay draft-only.
+
+이 프로젝트의 *진짜* 명제는 "데이터를 많이 쌓는다"가 아니라 **de-averaging**입니다:
+
+> 에이전트는 **당신의 증거가 있는 곳에서만 당신처럼** 행동하고, 증거가 없는 곳에서는 일반·평균값으로
+> 둘러대지 않고 **기권하거나 묻는다.** 빈 슬라이스를 평균으로 채우는 순간, 그건 *당신*이 아니라
+> *이름만 당신인 일반 모델*이다.
+
+이를 측정·강제하는 세 가지:
+
+1. **깊이 우선 사다리(overfit-tiny-set-first).** 성숙도 L1 은 폭(≥7팩)만이 아니라 **깊이 한 칸**도
+   요구합니다 — *≥1 팩이 ≥3 **behavioral** 확인 레코드*(=`vertical`). 자기서술(self_reported)은
+   깊이를 못 만든다(draft-only, [01 §7.1](./01-kernel-schema.md)). 1레코드씩 14팩에 흩뿌리거나
+   자기서술로 채워 성숙도를 따는 게이밍을 막습니다. 권장 경로는 한 영역을 먼저 깊게(overfit) 다진 뒤
+   넓히는 것입니다.
+   `coverage`는 두 값으로 봅니다: **시드폭**(팩에 값이 하나라도) vs **엄격(≥3)**(깊이). 둘의 간극이
+   크면 *폭은 넓어도 신뢰는 얕다*는 신호입니다.
+2. **off-frontier 경고.** [`convergence_report.py`](../tools/convergence_report.py)는 확인 레코드 0개인
+   팩과 폭≫깊이 간극을 **off-frontier(draft-only)** 로 표시합니다 — "이 영역엔 당신 데이터가 없으니
+   에이전트가 권위 있게 행동하면 안 된다"는 정직성 신호. 이것이 위 de-averaging 명제의 *실행 가능한*
+   형태입니다.
+3. **빈 슬라이스 가드.** 컴파일/런타임은 활성 슬라이스가 비면 평균으로 대체하지 않고 기권/질문해야
+   합니다(게이트 원칙 → [00 개요](./00-overview.md), [04 프라이버시·경계](./04-privacy-boundary.md)의
+   권한 모델과 함께). 부정 증거(`user.red_flags`·회피)는 비어 있으면 *아직 모르는 것*이지 *없는 것*이
+   아닙니다.

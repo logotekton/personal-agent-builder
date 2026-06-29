@@ -54,6 +54,7 @@ updated_at: ""                   # ISO-8601 date-time
 
 --- # user.persona_core
 # 팩 2: 안정 선호/반선호/가치/우선순위 (../schemas/user.persona_core.schema.json)
+# 'persona' = 행동 페르소나(관찰된 안정 패턴), 내면 자아 아님 (B). 자기서술은 self_reported(draft-only).
 # record_type enum: PreferenceRecord | AvoidanceRecord | PriorityRecord | ValueRecord | StablePatternRecord
 # id 종류 토큰: trait  (구 코드명: pa.core)
 id: "template.trait.000"         # <subject>.<recordkind>.NNN 형식

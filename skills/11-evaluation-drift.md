@@ -105,7 +105,11 @@ agent_compiler](./10-agent-compiler.md)가 만든 런타임 프로필이 *주체
 **[D] CONVERT.** 각 실패를 **정확히 하나의 변환**으로 라우팅한다(§6). 변환은 사람을 우회하지
 않는다 — 새 후보/경계는 여전히 *확인된 뒤에만* 런타임 규칙이 되고(G3), 드리프트는 `supersedes`
 엣지로 옛 레코드를 가리켜 무엇이 왜 바뀌었는지를 보존한다([커널 §4](../spec/01-kernel-schema.md)).
-무엇을 고칠지는 `correction_notes`에 적어 루프를 닫는다.
+무엇을 고칠지는 `correction_notes`에 적어 루프를 닫는다. 평가가 *새로 찍는* `CandidateAssertion`은
+대개 이미 비슷한 규칙이 있는 *재유도*이므로, 확인 뒤 승격 직전 dedup judge를 거쳐 `insert`(novel)·
+`merge`(duplicate)·`supersede`(refinement)·`surface`(conflict) 중 하나로 처리된다 — 반드시 1:1 새
+레코드로 적재되는 게 아니다([10 중복 억제·병합](../spec/10-dedup-and-merge.md)). (여기서의 `supersedes`는
+반전→`DriftRecord` 경로이고, dedup judge의 refinement→supersede와 같은 엣지를 공유한다.)
 
 **[E] RE-RUN.** 변환이 확인 게이트를 통과해 팩에 적재되면 [S10](./10-agent-compiler.md)이 슬라이스를
 **재컴파일**하고, 이 스킬이 케이스(특히 회귀 케이스)를 다시 실행한다. 통과한 수정은 가능하면
@@ -194,6 +198,8 @@ evidence_refs: [ev.session.0203#turn09, ev.correction.0044]
 confidence: 0.9
 review_status: confirmed
 sensitivity: internal
+created_at: 2026-06-21T09:00:00Z      # 베이스 필수
+updated_at: 2026-06-21T09:14:00Z      # 베이스 필수
 input_task: "공급사에 거절 답신을 작성해서 보내줘."
 input_context:
   given: ["수신자는 외부", "마감은 내일"]
@@ -285,13 +291,22 @@ regression_for: [logotekton.drift.0012]
 | 이 스킬의 산출 | → 수렴 지표 ([06](../spec/06-convergence-model.md)) | 관계 |
 |----------------|---------------------------------------------------|------|
 | 통과 케이스 / 전체 케이스 | `decision_fidelity` | 동일 정의. 평가가 곧 충실도 지수 |
-| 작업당 사용자 편집 비율 | `correction_cost` (↓) | RUN 단계에서 직접 관측 |
+| 작업당 사용자 편집 비율 | `correction_cost` (↓) | RUN 단계에서 케이스별 **`result.edit_fraction`**(0..1)으로 직접 관측 → 보고 케이스 평균. 미측정이면 **NA**이고 NA는 L3(≤0.3)·L4(≤0.15) 게이트를 통과하지 못함([05 §1](../spec/05-evaluation-drift.md)) |
 | `drift_score` (대체·반전 가중) | `drift_stability` = 1 − (기간 대체수 / 확인 레코드수) | drift_score↑ ⇒ drift_stability↓ |
 | `evidence_traceability` | `traceability` (=1.0 필수) | 동일 불변식. 위반은 무결성 차단 |
 
+> **reliability 채널 주의 — 평가·드리프트도 *behavioral* 만 센다.** 평가 케이스·드리프트 레코드도
+> 베이스 레코드라 `reliability`를 가질 수 있는데, `self_reported`(자기서술 기반)로 표시된 평가 케이스는
+> `decision_fidelity`에, self_reported 드리프트 레코드는 `drift_stability`에 **들어가지 않는다**(draft-only).
+> 성숙도는 관찰된 행동 위에서만 측정되므로, 평가/드리프트도 행동에 근거한 것만 지표가 된다 — 자기서술
+> 케이스를 무더기로 pass 시켜 충실도를 부풀리는 경로를 [`convergence_report.py`](../tools/convergence_report.py)가
+> 닫는다([01 §7.1](../spec/01-kernel-schema.md), 설계자 결정 C). 평가 케이스는 거의 항상 behavioral 이다.
+
 - **성숙도 게이트** — L1은 `traceability`=1.0과 **≥3개 평가 케이스**를 요구한다(즉 이 스킬의
-  케이스가 없으면 사다리를 오를 수 없다). L2는 `decision_fidelity`≥0.6, L3는 ≥0.8과
-  `correction_cost`≤0.3, L4는 ≥0.9·`correction_cost`≤0.15·`drift_stability`≥0.85
+  케이스가 없으면 사다리를 오를 수 없다). L2는 `coverage`≥0.5·`decision_fidelity`≥0.6·
+  `confirmation_ratio`≥0.6; L3는 `coverage`≥0.8·`decision_fidelity`≥0.8·`correction_cost`≤0.3·
+  **`drift_stability`≥0.7**; L4는 `coverage`==1.0·`decision_fidelity`≥0.9·`correction_cost`≤0.15·
+  `drift_stability`≥0.85·`traceability`==1.0
   ([06 §3](../spec/06-convergence-model.md#3-다섯-단계-성숙도-maturity-tiers)).
 - **왜 두 곡선이 만나는가** — 매 실패 변환은 출력 공간을 *당신이 승인하는 영역*으로 더 좁힌다.
   그래서 `correction_cost`는 내려가고, 한 번 굳은 패턴은 잘 안 바뀌어 `drift_stability`는 올라간다.
@@ -404,6 +419,7 @@ OpenCrab 도구로 실행할 때는 `opencrab_run_workflow`/`opencrab_project_ru
 - 이 단계가 속한 파이프라인 계약 → [02 빌더 파이프라인](../spec/02-builder-pipeline.md)
 - 평가 케이스의 기계 계약(`EvaluationCaseRecord` + 패싯) → [`user.evaluation_cases.schema.json`](../schemas/user.evaluation_cases.schema.json)
 - 드리프트의 기계 계약(세 record_type + `change_type`·`from_value`/`to_value`·`supersedes`) → [`user.drift_history.schema.json`](../schemas/user.drift_history.schema.json)
+- 평가가 찍은 후보가 승격 직전 거치는 dedup judge(insert/merge/supersede/surface)·`merge_rate` 보조 신호 → [10 중복 억제·병합](../spec/10-dedup-and-merge.md) · [`tools/pab_merge.py`](../tools/pab_merge.py)
 - 케이스·드리프트가 상속하는 통합 베이스 레코드 → [`record.base.schema.json`](../schemas/record.base.schema.json) · [커널 §7](../spec/01-kernel-schema.md#7-통합-베이스-레코드-필드-표류-해소)
 - 평가할 런타임 프로필을 만드는 상류 → [10 agent_compiler](./10-agent-compiler.md)
 - 실패가 되돌아가는 하류 → [07 confirmation_gate](./07-confirmation-gate.md) · [09 privacy_boundary](./09-privacy-boundary.md) · [06 scope_context](./06-scope-context.md)

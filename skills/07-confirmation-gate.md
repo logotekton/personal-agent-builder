@@ -4,8 +4,12 @@
 > that stands between extracted candidates and the packs. Nothing becomes a runtime rule here
 > without a person's explicit decision (Gate G3). The gate presents each scoped candidate as a
 > review item (claim + evidence summary + source refs + confidence + proposed scope + proposed
-> target pack) and the reviewer takes exactly one of **six review actions** — confirm, edit,
-> reject, narrow_scope, mark_sensitive, defer. Only **confirmed** and **edited** candidates may
+> target pack) and the reviewer takes exactly one terminal action — the **six base review
+> actions** (confirm, edit, reject, narrow_scope, mark_sensitive, defer) plus **two dedup-judge
+> actions** the gate recommends when a confirmed candidate matches an existing record (**merge**,
+> **supersede**); a **conflict** with confirmed knowledge is *surfaced for human review, never
+> auto-applied* (the merge layer is a second gate, G3/G5 — see §dedup and spec/10). Only
+> **confirmed** and **edited** candidates may
 > promote; **narrowed** ones promote only within the approved scope; **sensitive** ones are held
 > until a `BoundaryRule` exists (Gate G5); **rejected** ones are kept as *negative evidence*, not
 > deleted. This is the lifecycle transition `user_reviewed → confirmed_or_rejected`. Read as a
@@ -14,9 +18,12 @@
 확인 게이트는 파이프라인에서 **사람이 결정을 내리는 단 하나의 관문**입니다. 추출기([S05](./05-candidate-extraction.md))가
 타입을 붙이고 스코프([S06](./06-scope-context.md))가 "언제/어디서 참인가"를 확정한 뒤에도, 그
 후보는 아직 **추측이 아닌 잠정 주장**일 뿐입니다. 여기서 사람이 `confirm`/`edit`/`reject`/
-`narrow_scope`/`mark_sensitive`/`defer` 중 **정확히 하나**를 고르고, 그 결정이 `validation_status`를
-정합니다. **이 게이트를 통과한 confirmed/편집본/narrowed만** [S08 pack_router](./08-pack-router.md)로
-승격됩니다(게이트 G3).
+`narrow_scope`/`mark_sensitive`/`defer`(여섯 기본 액션)에 더해, 확정 후보가 기존 레코드와 겹칠 때
+dedup judge가 추천하는 `merge`/`supersede` 중 **정확히 하나**의 종결 액션을 고르고, 그 결정이
+`validation_status`(또는 병합 시 대상 레코드 갱신)를 정합니다. 기존 *확정* 지식과 **모순(conflict)**
+하는 후보는 조용히 덮어쓰지 않고 *사람에게 노출*됩니다 — merge 층이 확인 게이트의 두 번째 관문입니다
+(§중복억제, [spec/10](../spec/10-dedup-and-merge.md)). **이 게이트를 통과한 confirmed/편집본/narrowed/
+병합·대체분만** [S08 pack_router](./08-pack-router.md)로 승격됩니다(게이트 G3).
 
 이 문서는 마케팅이 아니라 **그대로 실행하는 운영 지침**입니다. 어휘는 [커널 스키마](../spec/01-kernel-schema.md)를
 따르며 새 이름을 만들지 않습니다. 상태값은 [`candidate.schema.json`](../schemas/candidate.schema.json)의
@@ -28,13 +35,14 @@
 
 ## 1. 목적 (Purpose)
 
-스코프가 확정된 `CandidateAssertion`을 사람에게 검토 항목으로 제시하고, **여섯 검토 액션** 중
-하나를 받아 후보의 `validation_status`를 정한다. confirmed/편집본만 승격을 허락하고, 나머지는
+스코프가 확정된 `CandidateAssertion`을 사람에게 검토 항목으로 제시하고, **여섯 기본 검토 액션**
+(+ 기존 레코드와 겹칠 때 dedup judge가 추천하는 `merge`/`supersede`, §중복억제) 중 하나를 받아
+후보의 `validation_status`를 정한다. confirmed/편집본만 승격을 허락하고, 나머지는
 좁히거나(narrowed) 보류하거나(sensitive/deferred) 부정 증거로 보존(rejected)한다. 이로써
 라이프사이클의 `user_reviewed → confirmed_or_rejected` 전이를 강제한다.
 
 - **하는 일:** (1) 각 후보를 검토 항목(claim·증거 요약·출처·신뢰도·제안 스코프·제안 팩)으로 렌더,
-  (2) 사람에게 **여섯 액션** 중 하나를 받음, (3) 액션 → `validation_status` 매핑(§4),
+  (2) 사람에게 **여섯 기본 액션(+ dedup judge의 merge/supersede)** 중 하나를 받음, (3) 액션 → `validation_status` 매핑(§4),
   (4) 편집 시 `concise_claim`·`scope`·`sensitivity`의 변경을 기록하고 감사 흔적을 남김,
   (5) narrowed는 *승인된 좁은 스코프* 안에만 머물도록 표시, (6) sensitive는 [S09 privacy_boundary](./09-privacy-boundary.md)가
   `BoundaryRule`을 붙이기 전까지 승격 차단(게이트 G5), (7) rejected를 *부정 증거*로 보존(삭제 금지),
@@ -63,7 +71,7 @@
         ▼
    [B] 검토 큐 정렬(queue)        ── 민감·고임팩트·저신뢰·모순 후보를 앞으로 (§5 정렬 규칙)
         ▼
-   [C] 사람 검토(human review)    ── 여섯 액션 중 정확히 하나 (§4); 빠른 승인 보드 관례 가능(§6)
+   [C] 사람 검토(human review)    ── 검토 액션 중 정확히 하나 (§4: 여섯 기본 + dedup merge/supersede); 보드 관례(§6)
         ▼
    [D] 액션 적용(apply)           ── 액션 → validation_status; 편집 diff·결정 사유·검토자·시각 기록
         ▼
@@ -82,13 +90,19 @@
 (`confidence < 0.7`), **모순**(`contradiction_count > 0`, 드리프트 후보)을 큐 앞으로 올려 사람의
 주의를 집중시킨다. 나머지는 빠른 승인 보드로 묶어도 된다(§6).
 
-**[C] 사람 검토.** 검토자는 후보마다 **여섯 액션 중 정확히 하나**를 고른다(§4). 액션은 배타적이다 —
-"좁히면서 민감"처럼 보이면 먼저 `narrow_scope`로 스코프를 줄이고, 그래도 민감하면 별도로
-`mark_sensitive`를 적용한다(액션은 순차 적용 가능, 단일 후보에 동시 두 종결 액션은 금지).
+**[C] 사람 검토.** 검토자는 후보마다 **정확히 하나의 종결 액션**을 고른다 — 여섯 기본 액션(§4),
+또는 dedup judge가 확정 후보를 기존 레코드와 비교해 추천하는 `merge`/`supersede`(§중복억제). 액션은
+배타적이다 — "좁히면서 민감"처럼 보이면 먼저 `narrow_scope`로 스코프를 줄이고, 그래도 민감하면 별도로
+`mark_sensitive`를 적용한다(액션은 순차 적용 가능, 단일 후보에 동시 두 종결 액션은 금지). conflict는
+종결 액션이 아니라 *사람에게 노출*되어 검토자가 결정한다(조용한 덮어쓰기 금지).
 
 **[D] 액션 적용.** 액션을 `validation_status`로 매핑하고(§4 표), **감사 흔적**을 남긴다:
 편집이면 `concise_claim`/`scope`/`sensitivity`의 before→after diff, 결정 사유(짧은 노트),
-검토자 식별자, 결정 시각. 이 흔적이 나중에 [S11 평가·드리프트](./11-evaluation-drift.md)와
+검토자 식별자, 결정 시각. 이 흔적은 산문이 아니라 **베이스 레코드의 구조화 필드 `review_audit`**
+(`reviewer_id`·`decided_at`·`decision`·`decision_reason`·`diff`·`board_id`)에 기록한다 — 그래야
+*편집된 레코드*가 *고무도장 찍힌 confirmed*와 기계적으로 구별되고 `edit_rate`(라벨 품질 신호)를
+계산할 수 있다(카파시 #8). 실배포에서는 [`validate_packs.py --require-audit`](../tools/validate_packs.py)로
+런타임 활성 레코드에 이 흔적을 강제한다. 이 흔적이 나중에 [S11 평가·드리프트](./11-evaluation-drift.md)와
 [`user.drift_history`](../schemas/user.drift_history.schema.json)의 입력이 된다.
 
 **[E] 승격 규칙 적용.** §5의 승격 규칙을 강제한다. 요지: **confirmed/편집본만** 다음 단계로
@@ -115,16 +129,19 @@ rejected/deferred는 보존 저장소로 보낸다. **확인 전엔 어떤 후�
 | `confidence` | 추출 신뢰도 0..1과 그 입력(`confidence_inputs`) | **참고치**; 승인 사유 아님 |
 | `proposed_scope` | S06이 확정한 "언제/어디서 참인가" | `narrow_scope`로 *좁히기만* 가능 |
 | `proposed_target_pack` | 1:1 라우터가 고정한 단일 팩 | 게이트는 바꾸지 않음(라우팅은 S08) |
-| `review_actions` | 이 후보에 허용된 액션 목록 | 보통 여섯 전부; 정책상 일부 제한 가능 |
+| `review_actions` | 이 후보에 허용된 액션 목록 | 여섯 기본 + (기존 레코드와 겹치면) dedup judge 추천 `merge`/`supersede`; 정책상 일부 제한 가능 |
 
 > `evidence_summary`는 **요약이지 결론이 아니다.** "사용자가 X를 싫어함"처럼 추측을 적지 말고
 > "3개 세션에서 서론 문단을 삭제 교정, 가장 최근은 어제"처럼 *관찰*을 적는다(G4). 검토자가
 > 의심스러우면 `source_refs`로 원본 증거를 직접 확인한다.
 
-## 4. 여섯 검토 액션 (Six review actions)
+## 4. 검토 액션 — 여섯 기본 + dedup judge의 두 액션 (Review actions)
 
-검토자는 후보마다 아래 **여섯 액션 중 정확히 하나**(종결 기준)를 고른다. 각 액션은 단일
-라이프사이클 어휘의 한 상태로 매핑된다.
+검토자는 후보마다 **정확히 하나**의 종결 액션을 고른다. 아래는 **여섯 기본 액션**(각각 단일
+라이프사이클 어휘의 한 상태로 매핑)이며, 확정 후보가 기존 레코드와 겹칠 때는 dedup judge가
+`merge`/`supersede` 두 액션을 *추천*으로 더한다(§중복억제 — `merge`는 새 레코드를 만들지 않는
+upsert, `supersede`는 새 레코드+`supersedes` 엣지). 모순(conflict)은 종결 액션이 아니라 사람에게
+노출된다. 즉 "정확히 하나"는 유지되되, 액션 메뉴가 dedup 판정에 따라 여덟 가지로 확장된다.
 
 | 액션 | 뜻 | → `validation_status` | 승격? |
 |------|----|------------------------|-------|
@@ -156,8 +173,11 @@ rejected/deferred는 보존 저장소로 보낸다. **확인 전엔 어떤 후�
 
 ## 5. 승격 규칙 (Promotion rule)
 
-게이트의 **계약**은 다음 한 문장이다: *오직 confirmed와 편집본만 승격한다.* 나머지는 아래 규칙을
-따른다. 이 규칙은 게이트 G3·G5를 코드로도 강제한다([`tools/validate_packs.py`](../tools/validate_packs.py)).
+게이트의 **계약**은 다음 한 문장이다: *오직 사람이 승인한 후보만 팩에 닿는다* — confirmed/편집본은
+새 레코드로, `merge`/`supersede`는 기존 레코드의 갱신/대체로 승격되고, `conflict`는 노출되어
+보류된다. 나머지는 아래 규칙을 따른다. 이 규칙은 게이트 G3·G5를 코드로도 강제하며
+([`tools/validate_packs.py`](../tools/validate_packs.py)), 병합·대체·충돌의 결정론적 액추에이터는
+[`tools/pab_merge.py`](../tools/pab_merge.py)다([spec/10](../spec/10-dedup-and-merge.md)).
 
 | 상태 | 승격 여부 | 규칙 |
 |------|-----------|------|
@@ -167,6 +187,9 @@ rejected/deferred는 보존 저장소로 보낸다. **확인 전엔 어떤 후�
 | `sensitive` | ⏸ | **`BoundaryRule`이 존재해야** 승격(G5). 규칙 없으면 보류; [S09](./09-privacy-boundary.md)로. |
 | `rejected` | ❌ | 승격 안 함. **부정 증거로 보존**(삭제 금지). 재추출 방지·`rejection_alignment` 평가에 사용. |
 | `deferred` | ⏸ | 승격 안 함. 다음 라운드 큐로 보류. 사유·필요 증거 기록. |
+| `merge`(duplicate) | ✅(upsert) | 새 레코드를 만들지 않고 **기존 레코드를 갱신** — `evidence_refs`·`repetition_count`·`confidence`·`updated_at`. 멱등(§중복억제, [spec/10](../spec/10-dedup-and-merge.md)). |
+| `supersede`(refinement) | ✅(대체) | 새 레코드 + `supersedes` 엣지로 승격, **구 레코드 은퇴**(`narrowed`로 표시) → [`drift_history`](../schemas/user.drift_history.schema.json) 기록. |
+| `conflict` | ⏸(노출) | 승격 안 함. 기존 확정과 모순 → **사람에게 노출, 자동 적용 금지**(조용한 덮어쓰기 방지). 검토자가 결정. |
 
 **불변식:**
 
@@ -178,6 +201,9 @@ rejected/deferred는 보존 저장소로 보낸다. **확인 전엔 어떤 후�
   승격되지 않는다([04 프라이버시·경계](../spec/04-privacy-boundary.md), 게이트 G5).
 - **rejected는 보존된다.** 거부는 정보의 *손실*이 아니라 *획득*이다 — "이건 내가 아니다"라는
   경계선이 곧 페르소나의 일부다.
+- **conflict ⇒ 노출, 절대 자동 적용 금지(2차 게이트).** dedup judge가 기존 *확정* 레코드와의 모순을
+  탐지하면 후보를 조용히 덮어쓰지 않고 사람에게 노출한다. merge 층은 확인 게이트 *다음의* 두 번째
+  관문이라, *이미 확정된* 후보라도 충돌하면 적재되지 않는다(G3·G5 재확인; [spec/10 §3](../spec/10-dedup-and-merge.md)).
 - **저신뢰 후보의 반례.** `confidence < 0.7`인 후보를 confirm/edit으로 승격할 땐 베이스 레코드
   규칙상 `counterexamples`가 필수다([record.base.schema.json](../schemas/record.base.schema.json)) —
   게이트는 검토자에게 반례 입력을 요구한다.
@@ -216,9 +242,10 @@ rejected/deferred는 보존 저장소로 보낸다. **확인 전엔 어떤 후�
 ### 출력
 
 각 출력은 **결정이 찍힌 후보**다 — `validation_status` ∈ {confirmed, rejected, narrowed,
-sensitive, deferred} 중 하나 + 감사 흔적:
+sensitive, deferred} 중 하나(또는 dedup 판정 시 `merge`=기존 레코드 갱신·새 status 없음 /
+`supersede`=새 레코드+`supersedes` 엣지 / `conflict`=노출·보류) + 감사 흔적:
 
-- `validation_status` — 여섯 액션 중 하나의 결과(§4).
+- `validation_status` — 검토 액션 중 하나의 결과(§4: 여섯 기본 + dedup의 merge/supersede).
 - (편집 시) 갱신된 `concise_claim`/`scope`/`sensitivity` + before→after diff.
 - (narrowed 시) `proposed_scope`의 부분집합으로 좁혀진 `scope`.
 - (sensitive 시) `BoundaryRule` 필요 플래그 + [S09](./09-privacy-boundary.md) 핸드오프.
@@ -237,8 +264,11 @@ sensitive, deferred} 중 하나 + 감사 흔적:
 
 - [ ] **사람 결정 존재(G3)** — 모든 통과 후보가 사람의 액션으로 `pending`을 벗어났는가. 자동
   confirm/승격은 없는가.
-- [ ] **단일 종결 액션** — 각 후보가 여섯 액션 중 *정확히 하나*의 종결 상태인가. 두 종결 상태가
-  공존하지 않는가.
+- [ ] **단일 종결 액션** — 각 후보가 *정확히 하나*의 종결 액션(여섯 기본 + dedup의 merge/supersede)
+  으로 끝났는가. 두 종결 상태가 공존하지 않는가.
+- [ ] **dedup judge 통과·충돌 노출(2차 게이트)** — 확정 후보가 승격 전 dedup judge를 거쳤는가
+  (duplicate→merge, refinement→supersede). 기존 확정과 모순되는 후보가 자동 적용되지 않고 사람에게
+  노출됐는가([spec/10](../spec/10-dedup-and-merge.md), G3·G5 재확인).
 - [ ] **승격 규칙 준수** — confirmed/편집본만 S08로 통과했는가. pending/rejected/deferred가
   승격 큐에 새지 않았는가.
 - [ ] **narrowed ⊆ proposed_scope** — narrowed의 스코프가 원래 제안 스코프의 부분집합인가.
@@ -260,7 +290,7 @@ sensitive, deferred} 중 하나 + 감사 흔적:
 [커널 §8](../spec/01-kernel-schema.md#8-crab-에이전트-역할-운영-모델)).
 
 - **소유 작업:** 스코프 확정 후보를 검토 항목으로 렌더하고, 검토 큐를 위험도로 정렬하며, 사람의
-  여섯 액션을 받아 `validation_status`로 매핑하고, 편집·결정의 감사 흔적을 남기고, 승격 규칙(§5)을
+  여섯 기본 액션(+ dedup judge의 merge/supersede)을 받아 `validation_status`로 매핑하고, 편집·결정의 감사 흔적을 남기고, 승격 규칙(§5)을
   강제한다. **결정은 사람이, 기록과 강제는 Crab이.**
 - **핸드오프 (받음):** [Scope Crab](./06-scope-context.md)이 넘긴 스코프 확정 후보 + 그
   `EvidenceItem` 참조. (그 위로 [Candidate Extractor](./05-candidate-extraction.md) → Scope
@@ -291,6 +321,8 @@ OpenCrab 도구로 실행할 때는 `opencrab_query`/`opencrab_search_documents`
 - 게이트가 후보를 넘기는 하류 → [08 pack_router](./08-pack-router.md) · [09 privacy_boundary](./09-privacy-boundary.md)
 - 민감 후보가 받는 경계 규칙·권한 모델 → [04 프라이버시·경계](../spec/04-privacy-boundary.md)
 - 거부·드리프트·rejection_alignment 평가 → [11 evaluation_drift](./11-evaluation-drift.md) · [05 평가·드리프트](../spec/05-evaluation-drift.md)
+- 승격 직전 dedup judge(merge/supersede/conflict→surface)·액추에이터 → [10 중복 억제·병합](../spec/10-dedup-and-merge.md) · [`tools/pab_merge.py`](../tools/pab_merge.py)
+- **merge·insert·conflict가 실제로 도는 worked example** → [`revolution-01`](../examples/logotekton/revolution-01/)(novel→insert·duplicate→merge) · [`revolution-02`](../examples/logotekton/revolution-02/)(conflict→surface 안전 케이스)
 - 역할·상태·핸드오프 운영 모델 → [12 crab 오케스트레이션](./12-crab-orchestration.md)
 
 
@@ -365,6 +397,12 @@ traceability 를 오히려 강화합니다.
 3. **민감도** — `public/internal`만. restricted 불가, sensitive는 경계규칙 선행(G5 하드 오버라이드).
 4. **스코프·dedup 판정** — `novel`/`duplicate(merge)`만. **`conflict`는 항상 사람에게 노출**
    (조용한 덮어쓰기 금지), `refinement`는 검토 권장.
+
+> **추가 절대 바 — `reliability: self_reported`.** 자기서술 후보는 **티어·신뢰도와 무관하게 영구
+> auto-confirm 불가**입니다 — 저신뢰 InterpretationClaim 이라 사람 확인 없이 승격될 수 없습니다
+> ([01 §7.1](../spec/01-kernel-schema.md); [`validate_packs.py`](../tools/validate_packs.py)가 강제,
+> `auto_confirmed=true`이면 FAIL). 자기서술은 *행동으로 확증*돼 별도 `behavioral` 후보로 올라올 때
+> 비로소 자동 승격·신뢰·깊이의 대상이 됩니다(설계자 결정 C).
 
 **경계를 정하는 법(4계층).** ① 보수적 기본(default-deny) → ② 사용자 다이얼(설정 자체가
 `decision_policy`/`boundary_authority` 레코드) → ③ `target_error_rate`로의 **섀도 모드**

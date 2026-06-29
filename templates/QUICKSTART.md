@@ -180,7 +180,9 @@
 성숙도 단계를 출력합니다([수렴 모델 §5](../spec/06-convergence-model.md#5-계산-방법)).
 
 ```bash
-python tools/convergence_report.py --subject <당신>
+python tools/convergence_report.py <당신의-인스턴스-폴더>   # 인스턴스 레코드·평가 케이스가 든 디렉터리 하나
+# 번들 예제로 먼저 감을 잡고 싶다면:
+python tools/convergence_report.py examples/logotekton
 ```
 
 첫 세션 직후 보게 될 대략의 모습:

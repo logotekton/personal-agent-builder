@@ -107,6 +107,13 @@
       ],
       "description": "How this candidate was produced, naming the upstream builder skill (01–04) or a manual/other source. evidence_capture=skill 01; session_mining=skill 02; elicitation_questioning=skill 03 (structured interview); diff_mining=skill 04 (before/after corrections). Records extraction provenance for traceability and for weighting `confidence_inputs` (e.g. diff_mining tends to carry strong correction_strength)."
     },
+    "reliability": {
+      "type": "string",
+      "enum": ["behavioral", "self_reported"],
+      "default": "behavioral",
+      "description": "Evidence CHANNEL of this candidate, intended to carry unchanged into the promoted record's `reliability` (record.base.schema.json) — though the candidate→record promotion step is not yet wired (tools/pab.py promotion is a STUB; live compiler wiring pending, #9). behavioral = extracted from observed behavior/artifacts/corrections (Gate G4) — the default. self_reported = the subject described themselves in words. A self_reported candidate is a low-trust InterpretationClaim about the self: it must not be auto-confirmed on promotion and stays draft-only (does not earn standalone runtime authority or count toward maturity depth). Absent = behavioral. Lets an interior/motivational signal be carried without being laundered into behavioral evidence. Spec: spec/01-kernel-schema.md §7.1.",
+      "$comment": "Most candidates are behavioral by construction (skills 01–04 mine behavior/diffs). self_reported is set when skill 03 elicitation captures a self-description that the subject states but no behavior yet confirms."
+    },
     "confidence_inputs": {
       "type": "object",
       "description": "Optional explicit signals behind `confidence` (contract §8 / skill 05). Making the basis of a score legible keeps confidence auditable rather than a black-box number; a tool may recompute `confidence` from these.",

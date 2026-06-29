@@ -84,6 +84,23 @@ REVIEW_STATUS_ENUM = {
 
 SENSITIVITY_ENUM = {"public", "internal", "sensitive", "restricted"}
 
+# reliability 채널 — 증거 계층 (record.base.schema.json §7.1, spec/00 클레임-계층).
+# behavioral = 관찰된 행동/산출물/교정 (G4, 신뢰 기본값). self_reported = 자기서술 (저신뢰).
+RELIABILITY_ENUM = {"behavioral", "self_reported"}
+
+
+def _truthy_auto_confirm(v) -> bool:
+    """auto_confirmed 의 truthy 해석 — convergence_report._is_auto_confirmed 와 *동일* 규칙.
+
+    두 도구가 같은 판정을 쓰게 해, 문자열 "true"/"auto" 로 self_reported auto-confirm 금지 규칙을
+    우회하는 검증기/수렴기 드리프트를 없앤다 (적대적 검증 M2).
+    """
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v.strip().lower() in ("true", "auto", "yes", "1")
+    return False
+
 # 런타임 활성 상태: 이 상태의 레코드는 증거가 비면 안 됩니다 (G1 + G3).
 RUNTIME_ACTIVE_STATUS = {"confirmed", "narrowed"}
 
@@ -108,8 +125,111 @@ class RecordResult:
         return not self.errors
 
 
+# ── 평가 케이스 무결성 (검증자 검증, #3) ───────────────────────────────────────────
+def _eval_integrity(record: Any, res: "RecordResult") -> None:
+    """평가 케이스의 기록된 판정이 자기 채점 rubric 과 정합하는지 검사한다 (spec/05).
+
+    `decision_fidelity` 는 `result.status` 를 읽어 충실도를 잰다. 그 status 가 *사람이 친 자유
+    문자열*이고 아무도 rubric 과 대조하지 않으면, "보상이 검증이 아니라 기록"이 된다(카파시 #3).
+    이 함수는 *라이브 채점기*(프로필을 실제 실행)는 아니지만 — 그건 컴파일된 런타임이 필요 — 기록의
+    **내부 정합성**을 강제한다: 가중치 합·status↔score·하드페일·judge 결정성.
+    """
+    rubric = record.get("scoring_rubric")
+    result = record.get("result")
+    if not isinstance(rubric, dict) and not isinstance(result, dict):
+        return  # 평가 케이스가 아님 (rubric/result 둘 다 없음)
+
+    def _num(v):
+        return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+    if isinstance(rubric, dict):
+        # (a) criteria 가중치 합 ≈ 1.0 — 가중 평균 score 가 의미를 가지려면.
+        crit = rubric.get("criteria")
+        if isinstance(crit, list) and crit:
+            weights = [c.get("weight") for c in crit if isinstance(c, dict)]
+            nums = [w for w in weights if _num(w)]
+            if len(nums) == len(crit):  # 모든 criteria 에 숫자 weight 가 있을 때만 판정
+                s = sum(nums)
+                if abs(s - 1.0) > 0.01:
+                    res.errors.append(
+                        f"[EVAL] scoring_rubric 가중치 합이 1.0 이 아닙니다: {s:.3f}"
+                    )
+
+        # (d) llm_judge 결정성 — model+temperature 고정 없으면 재현 불가한 판정.
+        judge = rubric.get("judge")
+        jc = rubric.get("judge_config")
+        has_cfg = isinstance(jc, dict) and bool(jc.get("model")) and ("temperature" in jc)
+        if judge == "llm_judge" and not has_cfg:
+            res.errors.append(
+                "[EVAL] judge=llm_judge 인데 judge_config(model+temperature) 가 없습니다 "
+                "— 순수 기계 판정이 비결정적(재현 불가). model·temperature·prompt 를 고정하세요"
+            )
+
+    if isinstance(result, dict):
+        status = str(result.get("status", "")).strip().lower()
+        score = result.get("score")
+        thr = rubric.get("pass_threshold") if isinstance(rubric, dict) else None
+        fired = result.get("unacceptable_fired")
+        fired_any = isinstance(fired, list) and any(isinstance(x, str) and x.strip() for x in fired)
+
+        # (c) 하드페일: unacceptable 이 발동하면 점수와 무관하게 status 는 fail (RLVR).
+        if fired_any and status != "fail":
+            res.errors.append(
+                f"[EVAL] unacceptable_behavior 발동(unacceptable_fired={fired})인데 status={status!r} "
+                "— 하드페일은 점수와 무관하게 fail 이어야 합니다"
+            )
+
+        # (b) status=pass 면 score ≥ pass_threshold 여야 한다.
+        if status == "pass" and _num(score) and _num(thr):
+            if float(score) + 1e-9 < float(thr):
+                res.errors.append(
+                    f"[EVAL] status=pass 인데 score({score}) < pass_threshold({thr}) "
+                    "— 기록된 pass 가 rubric 점수와 모순됩니다"
+                )
+        # status=fail 인데 점수는 통과선 이상이고 하드페일도 없으면 근거 불명확 (경고).
+        if status == "fail" and _num(score) and _num(thr) and float(score) >= float(thr) and not fired_any:
+            res.warnings.append(
+                f"[EVAL] status=fail 인데 score({score}) ≥ pass_threshold({thr})·하드페일 없음 "
+                "— fail 근거가 불명확합니다"
+            )
+
+
+# ── 검토 감사 흔적 (#8) ─────────────────────────────────────────────────────────
+REVIEW_DECISIONS = {
+    "confirm", "edit", "reject", "narrow_scope", "mark_sensitive", "defer", "merge", "supersede",
+}
+
+
+def _review_audit_check(record: Any, res: "RecordResult", require_audit: bool) -> None:
+    """검토 감사 흔적(`review_audit`)을 검사한다 (카파시 #8).
+
+    확정 레코드가 *고무도장*인지 *실제 검토*인지 기계적으로 구별하려면 reviewer·결정·diff 가
+    스키마에 있어야 한다(없으면 `edit_rate` 같은 라벨 품질 신호를 계산할 수 없다). 있으면 항상
+    형태를 검증하고, 없을 때 런타임 활성 레코드에 강제할지는 `--require-audit`(옵트인)로 정한다 —
+    기본 비강제는 *예제에 감사 메타를 날조하지 않기* 위해서다.
+    """
+    ra = record.get("review_audit")
+    rs = record.get("review_status")
+    if isinstance(ra, dict):
+        rid = ra.get("reviewer_id")
+        if not (isinstance(rid, str) and rid.strip()):
+            res.errors.append("[#8] review_audit 에 reviewer_id 가 없습니다 (누가 결정했는가)")
+        dec = ra.get("decision")
+        if dec is not None and dec not in REVIEW_DECISIONS:
+            res.errors.append(
+                f"[#8] review_audit.decision enum 위반: {dec!r} (허용: {sorted(REVIEW_DECISIONS)})"
+            )
+    elif ra is not None:
+        res.errors.append(f"[#8] review_audit 는 객체여야 합니다: got {type(ra).__name__}")
+    elif require_audit and rs in RUNTIME_ACTIVE_STATUS:
+        res.errors.append(
+            "[#8] 런타임 활성 레코드에 review_audit(reviewer_id·decision·diff) 가 없습니다 "
+            "— 고무도장과 구별 불가, edit_rate 계산 불능 (--require-audit)"
+        )
+
+
 # ── 코어 레코드 검증 ────────────────────────────────────────────────────────────
-def validate_record(record: Any, locator: str) -> RecordResult:
+def validate_record(record: Any, locator: str, require_audit: bool = False) -> RecordResult:
     """베이스 레코드 코어 규칙으로 단일 레코드를 검증합니다."""
     res = RecordResult(locator)
 
@@ -171,6 +291,28 @@ def validate_record(record: Any, locator: str) -> RecordResult:
             f"(허용: {sorted(SENSITIVITY_ENUM)})"
         )
 
+    # 6b) reliability 채널 enum + self_reported 는 auto_confirm 금지 (claim-layer 분리, C/#1).
+    #     self_reported = 자기서술(저신뢰 InterpretationClaim) → 사람 게이트 없이 승격 불가.
+    rel = record.get("reliability")
+    if "reliability" in record and rel not in RELIABILITY_ENUM:
+        res.errors.append(
+            f"reliability 가 enum 에 없습니다: {rel!r} "
+            f"(허용: {sorted(RELIABILITY_ENUM)})"
+        )
+    # auto_confirmed 는 boolean 이어야 한다 (스키마 일치). 문자열 "true"/"auto" 등으로 아래 self_reported
+    # auto-confirm 금지 규칙을 우회하는 검증기/수렴기 드리프트를 막는다 (적대적 검증 M2).
+    ac = record.get("auto_confirmed")
+    if "auto_confirmed" in record and not isinstance(ac, bool):
+        res.errors.append(
+            f"auto_confirmed 는 boolean 이어야 합니다: {ac!r} "
+            "(문자열/숫자로 self_reported auto-confirm 금지 규칙 우회 금지)"
+        )
+    if rel == "self_reported" and _truthy_auto_confirm(ac):
+        res.errors.append(
+            "[C] reliability=self_reported 레코드는 auto_confirmed 될 수 없습니다 "
+            "— 자기서술은 저신뢰 채널이라 사람 확인 없이 승격 금지 (draft-only)"
+        )
+
     # 7) confidence < 0.7 이면 counterexamples 필수.
     if conf_is_number and float(conf) < COUNTEREXAMPLE_THRESHOLD:
         cx = record.get("counterexamples")
@@ -189,6 +331,12 @@ def validate_record(record: Any, locator: str) -> RecordResult:
                 f"런타임 활성(review_status={rs}) 레코드인데 evidence_refs 가 "
                 "비어 있습니다 — 런타임에서 추적 불가 (G1/G3)"
             )
+
+    # 9) 평가 케이스 무결성 (검증자 검증, #3) — rubric/result 를 가진 레코드에만 적용.
+    _eval_integrity(record, res)
+
+    # 10) 검토 감사 흔적 (#8) — 있으면 형태 검증, 없으면 (옵트인) 런타임활성 레코드에 요구.
+    _review_audit_check(record, res, require_audit)
 
     return res
 
@@ -267,7 +415,7 @@ def collect_files(paths: Iterable[str]) -> Tuple[List[str], List[str]]:
 
 
 # ── 파일 단위 검증 ──────────────────────────────────────────────────────────────
-def validate_file(path: str) -> Tuple[List[RecordResult], List[str]]:
+def validate_file(path: str, require_audit: bool = False) -> Tuple[List[RecordResult], List[str]]:
     """한 파일을 검증해 (레코드 결과들, 파일레벨 메시지들) 을 돌려줍니다.
 
     파일레벨 메시지는 파싱 실패나 '검증할 레코드 없음' 같은 상황을 담습니다.
@@ -282,7 +430,7 @@ def validate_file(path: str) -> Tuple[List[RecordResult], List[str]]:
     found = False
     for suffix, rec in iter_records(payload):
         found = True
-        results.append(validate_record(rec, f"{path}::{suffix}"))
+        results.append(validate_record(rec, f"{path}::{suffix}", require_audit))
 
     if not found:
         return results, ["검증할 레코드를 찾지 못했습니다 (지원되는 모양이 아님)"]
@@ -298,8 +446,11 @@ def _is_skip_message(msg: str) -> bool:
 
 def run(paths: List[str]) -> int:
     """검증을 수행하고 종료 코드를 돌려줍니다 (0=성공, 1=실패, 2=사용법)."""
+    # --require-audit: 런타임 활성 레코드에 review_audit(#8) 강제. 기본 off (예제 날조 방지).
+    require_audit = "--require-audit" in paths
+    paths = [p for p in paths if not p.startswith("--")]
     if not paths:
-        print("사용법: python tools/validate_packs.py <path-or-dir> [...]")
+        print("사용법: python tools/validate_packs.py [--require-audit] <path-or-dir> [...]")
         return 2
 
     files, missing = collect_files(paths)
@@ -320,7 +471,7 @@ def run(paths: List[str]) -> int:
         return 1
 
     for path in files:
-        results, file_msgs = validate_file(path)
+        results, file_msgs = validate_file(path, require_audit)
 
         for msg in file_msgs:
             if _is_skip_message(msg):

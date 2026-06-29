@@ -1,13 +1,15 @@
-# Logotekton — 드리프트 이력 (drift history · revolution-01)
+# Logotekton — 드리프트 이력 (drift history · revolution-01 + revolution-02)
 #
-# > **EN:** The audit record of the persona model MOVING once — the drift_history pack (#14 of 14).
-# > This DriftRecord logs the correction that turned the data-engine wheel in revolution-01: the
-# > evaluation case eval.004 FAILED (the compiled agent sent an external email without asking for
-# > confirmation), the failure became "the next evidence" (spec/05 §loop), and a new
-# > user.boundary_authority ConfirmationRuleRecord (logotekton.boundary.001) was added. This record
-# > makes that movement visible and reversible (from_value→to_value). It feeds the drift_stability
-# > convergence index (1 − supersessions_last_period / confirmed_records; spec/06) — which is why
-# > drift_stability is no longer a vacuous 1.0: the wheel has now actually wobbled once and recovered.
+# > **EN:** The audit record of the persona model MOVING — the drift_history pack (#14 of 14).
+# > These DriftRecords log the corrections that turned the data-engine wheel: (drift.001,
+# > revolution-01) eval.004 FAILED (the compiled agent sent an external email without asking) →
+# > a user.boundary_authority ConfirmationRuleRecord (logotekton.boundary.001) was added; and
+# > (drift.002, revolution-02) eval.005 was PARTIAL (the agent omitted the next-action slot) →
+# > a user.artifact_policy ReviewArtifactRecord (logotekton.artifact.001) was added. Each failure
+# > became "the next evidence" (spec/05 §loop). These records make the movements visible and
+# > reversible (from_value→to_value). They feed the drift_stability convergence index
+# > (1 − supersessions_last_period / confirmed_records; spec/06) — which is why drift_stability is
+# > no longer a vacuous 1.0: the wheel has now wobbled TWICE (0.94→0.89) and recovered both times.
 #   - 베이스 스키마 : ../../schemas/record.base.schema.json
 #   - 팩 스키마     : ../../schemas/user.drift_history.schema.json
 #   - 평가·드리프트 : ../../spec/05-evaluation-drift.md  (실패 → 다음 증거 루프)
@@ -31,3 +33,28 @@ user.drift_history:
     drift_magnitude: moderate
     resolution_status: resolved
     affected_pack: user.boundary_authority
+
+  # ↓ revolution-02: the SECOND movement. eval.005 was PARTIAL (the agent omitted the
+  #   next-action slot in a report); the partial became the next evidence and a new
+  #   user.artifact_policy ReviewArtifactRecord (logotekton.artifact.001) was added requiring
+  #   an explicit next action. Behavior moved from "sometimes omits next action" to "always
+  #   includes it"; eval.005 re-run passes. Two movements now → drift_stability is a LIVE
+  #   number (0.94→0.89), not a vacuous 1.0: the wheel has wobbled twice and recovered both times.
+  - id: logotekton.drift.002
+    record_type: DriftRecord
+    label: "added report next-action rule (eval.005 fix)"
+    statement: "After eval.005 was only partial (the agent reported status/result/defect but omitted the next action), an artifact rule was added requiring every report to end with an explicit next action; the agent's reports moved from sometimes-incomplete to always-complete."
+    evidence_refs: ["ev.eval.005#next_action_missing", "logotekton.artifact.001"]
+    confidence: 0.9
+    scope: artifact_fit
+    review_status: confirmed
+    sensitivity: internal
+    created_at: "2026-06-28T18:00:00Z"
+    updated_at: "2026-06-28T18:00:00Z"
+    change_type: update
+    from_value: "no next-action rule — eval.005 omitted the next action (score 0.7, partial)"
+    to_value: "every report must end with an explicit next action (logotekton.artifact.001) — eval.005 re-run passes"
+    drift_reason: "evaluation partial eval.005 (artifact_fit) surfaced a missing report rule; the partial was routed back as the next evidence"
+    drift_magnitude: minor
+    resolution_status: resolved
+    affected_pack: user.artifact_policy
