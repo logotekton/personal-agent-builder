@@ -513,6 +513,25 @@ class TestReliabilityTier(unittest.TestCase):
         self.assertEqual(ix["_packs_with_3"], 0)
         self.assertEqual(ix["_behavioral_confirmed_by_pack"]["user.persona_core"], 2)
 
+    def test_self_reported_eval_and_drift_excluded(self):
+        # N1 (adversarial re-verify): the "all six indices" claim must be literally true.
+        # (a) a self_reported eval case must NOT inflate decision_fidelity (a hard L2/L3/L4 gate):
+        # 1 behavioral FAIL + 4 self_reported PASS → fidelity 0.0 (behavioral only), not 0.8.
+        evals = (
+            [{"result": {"status": "fail"}}]
+            + [{"result": {"status": "pass"}, "reliability": "self_reported"} for _ in range(4)]
+        )
+        ix = cr.compute_indices({}, evals, [])
+        self.assertEqual(ix["decision_fidelity"], 0.0)
+        self.assertEqual(ix["_n_eval"], 1)            # only the behavioral eval counts
+        # (b) a self_reported drift record must NOT move drift_stability either
+        behavioral = {"user.persona_core": [
+            {"review_status": "confirmed", "evidence_refs": ["e"]} for _ in range(4)]}
+        base = cr.compute_indices(behavioral, [], [])
+        withsr = cr.compute_indices(behavioral, [],
+                                    [{"supersedes": ["x"], "reliability": "self_reported"}])
+        self.assertEqual(base["drift_stability"], withsr["drift_stability"])
+
     def test_example_has_no_self_reported(self):
         # locks that the worked example is all-behavioral, so the C change preserves every number
         pack_records, eval_cases, drift_records, _ = cr.collect(EXAMPLE)

@@ -611,12 +611,17 @@ def compute_indices(pack_records, eval_cases, drift_records):
     denom_hcr = n_human_confirmed + n_pending + n_rejected
     human_confirmation_ratio = (n_human_confirmed / denom_hcr) if denom_hcr else None
 
-    # decision_fidelity: pass=1, partial=0.5, fail/그외=0
-    n_eval = len(eval_cases)
+    # self_reported 평가/드리프트 레코드는 draft-only 라 성숙도 지표 집계에서 전부 제외한다 — 그래야
+    # "모든 6개 지표 제외"가 글자 그대로 참이 된다(적대적 재검증 N1: self_reported 평가 케이스로
+    # decision_fidelity 를 부풀리는 잔여 경로 차단). 별도 카운트는 위 n_self_reported 에 이미 반영됨.
+    behavioral_evals = [ec for ec in eval_cases if not _is_self_reported(ec)]
+
+    # decision_fidelity: pass=1, partial=0.5, fail/그외=0 (behavioral 평가 케이스만)
+    n_eval = len(behavioral_evals)
     if n_eval:
         passed = 0.0
         n_pass = n_partial = n_fail = 0
-        for ec in eval_cases:
+        for ec in behavioral_evals:
             st = _eval_result_status(ec)
             if st == "pass":
                 passed += 1.0
@@ -631,24 +636,28 @@ def compute_indices(pack_records, eval_cases, drift_records):
         decision_fidelity = None
         n_pass = n_partial = n_fail = 0
 
-    # correction_cost: 편집 비율 필드가 있는 레코드들의 평균. 없으면 NA.
+    # correction_cost: 편집 비율 필드가 있는 레코드들의 평균. 없으면 NA. (self_reported 제외)
     corr_vals = []
-    for ec in eval_cases:
+    for ec in behavioral_evals:
         v = _correction_value(ec)
         if v is not None:
             corr_vals.append(v)
-    # eval 외 레코드에서도 correction 필드를 허용
+    # eval 외 레코드에서도 correction 필드를 허용 (self_reported 는 건너뜀)
     if not corr_vals:
         for recs in pack_records.values():
             for r in recs:
+                if _is_self_reported(r):
+                    continue
                 v = _correction_value(r)
                 if v is not None:
                     corr_vals.append(v)
     correction_cost = (sum(corr_vals) / len(corr_vals)) if corr_vals else None
 
-    # drift_stability = 1 − (최근 대체수 / 확인 레코드수). 드리프트 없으면 1.0.
+    # drift_stability = 1 − (최근 대체수 / 확인 레코드수). 드리프트 없으면 1.0. (self_reported 드리프트 제외)
     supersessions = 0
     for d in drift_records:
+        if _is_self_reported(d):
+            continue
         sup = d.get("supersedes")
         if isinstance(sup, list):
             supersessions += len([s for s in sup if s])

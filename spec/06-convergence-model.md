@@ -43,11 +43,13 @@
 - `drift_stability`는 **수렴의 증거** — 초기엔 대체가 잦고(높은 드리프트), 수렴할수록 잦아듦이
   줄어듦. 안정화 자체가 "굳어졌다"의 신호.
 - `traceability`는 **타협 불가** — 항상 1.0. 증거 없는 활성 규칙은 존재해선 안 됨(게이트 G1·G3).
-- **self_reported 전면 제외(모든 지표).** 위 표·식의 `confirmed`·`확인 레코드수`·`활성 규칙`은 전부
-  *behavioral* 만 센다 — `reliability: self_reported`(자기서술)는 draft-only 라 깊이뿐 아니라
-  `confirmation_ratio`·`human_confirmation_ratio`·`drift_stability`·`traceability` 집계에서도 빠진다.
-  성숙도는 *관찰된 행동* 위에서만 측정되고, 자기서술은 운반될 뿐 수렴 대상이 아니다([01 §7.1](./01-kernel-schema.md),
-  설계자 결정 C — 자기서술을 무더기 confirmed 시켜 성숙도를 부풀리는 백도어를 닫는다).
+- **self_reported 전면 제외(여섯 지표 *전부*).** 위 표·식의 `confirmed`·`확인 레코드수`·`활성 규칙`·
+  `평가 케이스`는 모두 *behavioral* 만 센다 — `reliability: self_reported`(자기서술)는 draft-only 라
+  **여섯 지표 전부**(coverage·`confirmation_ratio`·`human_confirmation_ratio`·`decision_fidelity`·
+  `drift_stability`·`traceability`)와 드리프트 집계에서 빠진다. 특히 self_reported 평가 케이스도
+  `decision_fidelity` 에 들어가지 않는다. 성숙도는 *관찰된 행동* 위에서만 측정되고, 자기서술은 운반될
+  뿐 수렴 대상이 아니다([01 §7.1](./01-kernel-schema.md), 설계자 결정 C — 자기서술을 무더기 confirmed/pass
+  시켜 성숙도를 부풀리는 백도어를 닫는다).
 
 ## 3. 다섯 단계 성숙도 (Maturity Tiers)
 
