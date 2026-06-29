@@ -553,6 +553,36 @@ class TestReliabilityTier(unittest.TestCase):
         self.assertEqual(ix["_n_self_reported"], 0)
 
 
+class TestCandidateSkip(unittest.TestCase):
+    """validate_packs skips candidate files (candidate.schema.json), never FAILs them as base records."""
+
+    def test_candidate_record_detected(self):
+        cand = {"candidate_id": "x.decision_cand.001", "candidate_type": "DecisionPolicyCandidate",
+                "validation_status": "pending"}
+        self.assertTrue(vp._is_candidate(cand))
+
+    def test_candidate_by_id_and_status_alone(self):
+        self.assertTrue(vp._is_candidate({"candidate_id": "x.h.001", "validation_status": "pending"}))
+
+    def test_base_record_is_not_candidate(self):
+        self.assertFalse(vp._is_candidate(_good()))
+
+    @unittest.skipUnless(HAVE_YAML, "PyYAML needed to parse the candidate fixture")
+    def test_candidate_only_file_is_skipped_not_failed(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "cands.yaml")
+            with open(p, "w", encoding="utf-8") as fh:
+                fh.write("candidates:\n"
+                         "  - candidate_id: x.decision_cand.001\n"
+                         "    candidate_type: DecisionPolicyCandidate\n"
+                         "    validation_status: pending\n")
+            results, msgs = vp.validate_file(p)
+        self.assertEqual(results, [])  # not validated as base records (no FAIL)
+        self.assertTrue(any("후보" in m and "건너뜀" in m for m in msgs), msgs)
+        self.assertTrue(all(vp._is_skip_message(m) for m in msgs))  # counts as SKIP, not FILE-ERROR
+
+
 # ───────────────────────── end-to-end CLI (subprocess) ─────────────────────
 def _run(*args):
     return subprocess.run([sys.executable, *args], cwd=REPO, capture_output=True, text=True)
