@@ -1,7 +1,8 @@
 # templates/ — 빈 채우기 템플릿 색인 (Fill-in Templates Index)
 
 > **EN:** This folder holds 14 blank fill-in YAML templates — one per `user.*` ontology
-> pack — that a **new** person copies to start their own Personal Agent. Each template is
+> pack — that a **new** person copies to start their own evidence-bound **self-map** (the
+> material a Personal Agent later compiles from; the map comes first). Each template is
 > the unified base record (the same fields every instance record must have) with **empty
 > values**, **Korean inline comments** explaining every field, and **one commented-out
 > example** showing a filled record. Templates are the *shape* you fill in by hand or with a
@@ -9,8 +10,8 @@
 > [`../schemas/`](../schemas). First time here? Start with
 > [`QUICKSTART.md`](./QUICKSTART.md). Templates never hold live records (Gate G6).
 
-이 폴더는 **새 사용자가 자기 개인 에이전트를 시작하기 위해 복사하는** 14개의 빈 YAML
-템플릿입니다 — 14개 `user.*` 온톨로지 팩마다 하나씩. 각 템플릿은 통합 베이스
+이 폴더는 **새 사용자가 자기 증거 기반 자기지도(self-map)를 시작하기 위해 복사하는** 14개의 빈 YAML
+템플릿입니다 — 14개 `user.*` 온톨로지 팩마다 하나씩(그 지도가 나중에 Personal Agent로 컴파일됨, 지도가 먼저). 각 템플릿은 통합 베이스
 레코드([`../spec/01-kernel-schema.md`](../spec/01-kernel-schema.md) §7)의 필드를 **빈 값**으로
 나열하고, 각 필드 옆에 **무엇을 어떻게 채우는지**를 한국어 주석으로 달고, **주석 처리된 예제
 레코드 1개**로 "완성된 모습"을 보여줍니다. 추측으로 채우는 게 아니라, 실제 세션·교정·결정에서
