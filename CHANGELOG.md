@@ -28,10 +28,16 @@
 > 여전히 L1, 엄격 0.07, confirmed 19, validate 42 PASS).
 - **C · `reliability` 채널 티어 추가 (claim-layer 분리, #1).** 베이스/후보 스키마에 `reliability`
   ∈ {`behavioral`(기본), `self_reported`}. self_reported(자기서술 = InterpretationClaim)는 ① auto-confirm
-  **금지**(allOf 규칙 + [`validate_packs.py`](./tools/validate_packs.py) 에러), ② draft-only, ③ 성숙도
-  **깊이 미산입** — 깊이(엄격 coverage)는 [`convergence_report.py`](./tools/convergence_report.py)에서
-  *behavioral confirmed* 만 ≥3 으로 센다. 자기서술이 행동 증거로 둔갑하는 것을 구조로 차단. 스펙:
-  [01 §7.1](./spec/01-kernel-schema.md). 테스트 +9(58→67), 예제 숫자 불변(예제는 전부 behavioral).
+  **금지**(allOf 규칙 + [`validate_packs.py`](./tools/validate_packs.py) 에러, auto_confirmed 는 boolean
+  강제), ② draft-only — [`context_select.py`](./tools/context_select.py)가 권위 컨텍스트에서 제외하고
+  draft 로만 노출, ③ **모든 성숙도 지표에서 제외**([`convergence_report.py`](./tools/convergence_report.py):
+  깊이·confirmation_ratio·human_confirmation_ratio·drift_stability·traceability 전부 *behavioral* 만 집계).
+  자기서술이 행동 증거로 둔갑하는 것을 구조로 차단. 스펙: [01 §7.1](./spec/01-kernel-schema.md).
+  예제 숫자 불변(예제는 전부 behavioral).
+  - *적대적 검증(Opus) 후 경화:* 최초 구현은 깊이축에서만 제외해, self_reported 를 무더기 confirmed
+    시키면 hcr/drift 로 L1→L2 를 딸 수 있는 백도어(C1)가 있었다 — *모든* 지표 제외로 차단. 문자열
+    `auto_confirmed:"true"` 로 금지 규칙을 우회하던 검증기/수렴기 드리프트(M2)와, draft-only 런타임
+    권위 차단이 미강제이던 점(M1)도 닫음. 테스트 +12(58→71).
 - **A · '위임가능한 일하는 자아' 스코프 명시 + #4 행동주의 입장 선언.** [spec/00](./spec/00-overview.md)에
   "무엇이 *아닌가*" 절 추가: PAB는 **전인격 트윈이 아니라** 행동 증거가 있는 일·판단 영역의 위임가능한
   자아다. 내면 배제는 *암묵 기본값*이 아니라 **선언된 방법론적 입장**(G4)임을 명문화.
