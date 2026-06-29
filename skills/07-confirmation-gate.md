@@ -114,6 +114,14 @@ dedup judge가 추천하는 `merge`/`supersede` 중 **정확히 하나**의 종�
 `validation_status`→`review_status`). sensitive는 [S09 privacy_boundary](./09-privacy-boundary.md)로,
 rejected/deferred는 보존 저장소로 보낸다. **확인 전엔 어떤 후보도 팩에 들어가지 않는다(게이트 G3).**
 
+> **승격 전 필수 점검 — 전이성(주체 vs 주제).** 후보가 *암묵지 팩*(페르소나·결정·암묵·스타일·산출물·
+> 위험·워크플로)으로 가는데 사실은 *프로젝트 사실*(프로젝트를 바꾸면 거짓 — "다른 사람이 같은 프로젝트를
+> 해도 똑같이 말할" 내용)이면, 검토자는 `confirm` 하지 말고 **`reject`** 하거나, `edit` 으로 *패턴만*
+> 남기고 프로젝트 사실은 `memory_project_graph` 후보로 분리한다. 전이성은 의미 판단이라 도구가 막지
+> 못하므로(S05 체크리스트도 사람), **이 게이트가 마지막 사람 방어선**이다 —
+> [전이성 테스트](./02-session-mining.md#11-전이성-테스트--주체를-캐고-주제를-캐지-마라-mine-the-decider-not-the-topic)를
+> 승격 직전에 한 번 더 적용한다.
+
 ## 3. 검토 항목 (Review item)
 
 게이트는 각 후보를 다음 필드를 가진 **검토 항목(review item)**으로 제시한다. 앞 9개는 후보에서

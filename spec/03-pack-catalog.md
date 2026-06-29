@@ -38,6 +38,13 @@
 | 13 | [`user.evaluation_cases`](#13-userevaluation_cases) | 충실도 테스트 케이스 | `EvaluationCaseCandidate` | [schema](../schemas/user.evaluation_cases.schema.json) |
 | 14 | [`user.drift_history`](#14-userdrift_history) | 변경·버전 이력 | `DriftRecordCandidate` | [schema](../schemas/user.drift_history.schema.json) |
 
+> **암묵지 팩 vs 맥락 팩 — 전이성 경계(모든 팩에 적용).** 7개 **암묵지 팩**(persona_core·communication_style·
+> artifact_policy·decision_policy·tacit_heuristics·red_flags·workflow_playbooks)과 역할 페르소나(identity_roles)는
+> *프로젝트를 바꿔도 참인* 당신의 패턴만 담는다 — **프로젝트 사실을 받지 않는다.** 프로젝트 사실(프로젝트를
+> 바꾸면 거짓이 되는 것)은 오직 **맥락 팩**으로 간다: `memory_project_graph`(단일 프로젝트 사실·목표·링크)와
+> `domain_overlays`(여러 프로젝트에 걸친 *지속* 도메인 지식). 판별·강제는 [전이성 테스트](../skills/02-session-mining.md#11-전이성-테스트--주체를-캐고-주제를-캐지-마라-mine-the-decider-not-the-topic)(S02 §1.1)·
+> S05 체크리스트·S07 확인 게이트. 이것이 de-averaging 의 입구다 — *당신이 어떻게 생각하는가*만 페르소나로.
+
 ---
 
 ## 1. `user.identity_roles`
@@ -261,6 +268,15 @@ sensitivity: internal
 담습니다. 일반 성향(`user.persona_core`)이나 과정 규칙(`user.tacit_heuristics`)이 아니라,
 명시된 도메인 안에서만 참인 사실/관습/용어입니다. 게이트 G2가 강하게 적용됩니다 — 한정하는
 도메인이 곧 `scope`입니다. 대응 노드: `DomainOverlay`.
+
+> **이 팩 vs `memory_project_graph` — 전이성 판별기(회색지대 해소).** 둘 다 *맥락 팩*(프로젝트
+> 사실을 받는 곳)이지만 갈린다: 어떤 사실이 **한 프로젝트가 끝나도 *다음 프로젝트로 들고 가는*
+> 도메인 지식**(예: "이 도메인에서 '팩'은 단일 관심사 단위다", "보안 도메인에선 입력검증을 먼저 본다")
+> 이면 → **여기(domain_overlays)**. 그 **한 프로젝트에서만 참인 사실**(예: "ECWM은 모듈러 BIM과
+> 연결된다")이면 → **`memory_project_graph`**. 리트머스: "이 도메인의 *다음* 프로젝트에서도 이게
+> 참인가?" 참이면 도메인 지식(여기), 이 프로젝트에서만이면 프로젝트 사실(§12). 어느 쪽이든 *암묵지
+> 팩*은 아니다 — 둘 다 *당신이 무엇을 아는가/맥락*이지 *당신이 어떻게 판단하는가*가 아니다
+> ([전이성 테스트](../skills/02-session-mining.md#11-전이성-테스트--주체를-캐고-주제를-캐지-마라-mine-the-decider-not-the-topic)).
 
 **레코드 타입** (`record_type`): `DomainKnowledgeRecord` · `DomainAttentionRecord` · `DomainTermRecord`.
 

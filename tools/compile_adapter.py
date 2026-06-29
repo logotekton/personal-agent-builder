@@ -52,6 +52,8 @@ PACK_SECTIONS = {
     "user.domain_overlays": (2, 5),
     "user.tool_stack": (6,),
     "user.boundary_authority": (7,),
+    # memory_project_graph 는 섹션 1·6 에 *프로젝트 맥락 피연산자*로 합류한다(페르소나가 아님) —
+    # 어댑터는 이를 persona 와 섞지 않는 별도 하위블록으로 둔다(skills/10 §4 섹션1 경계, 전이성).
     "user.memory_project_graph": (1, 6),
 }
 
