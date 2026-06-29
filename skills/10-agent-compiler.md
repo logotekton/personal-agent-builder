@@ -97,7 +97,8 @@ v0.3에서 **수정**됩니다. 정체성·역할이 빠지면 어댑터의 [§4
    [2] 팩·슬라이스 선택   ── 작업류에 닿는 팩만 ON, 무관 팩 OFF; **결정론적 scope-overlap 술어**로
         ▼                    작업 태그와 겹치는(또는 무태그=보편) 레코드만, **salience(confidence×recency×
                              repetition_count) 내림차순**으로 **토큰 예산**까지 채우고 *탈락분은 갭으로 로깅*
-                             ([`tools/context_select.py`](../tools/context_select.py) — 참조 구현·결정론적·테스트됨)
+                             ([`tools/context_select.py`](../tools/context_select.py) — 참조 구현·결정론적·테스트됨;
+                             `reliability=self_reported`(자기서술)는 draft-only 라 권위 선택에서 제외 — draft 로만 노출)
    [3] 확정·스코프 검색   ── review_status ∈ {confirmed, narrowed}만; pending/rejected/deferred 제외(G3)
         ▼                    ── drift_history로 supersedes된(폐기) 레코드 제외
    [4] 경계·권한 적용     ── user.boundary_authority 레이어를 모든 슬라이스 위에 강제(§5, G5 산물)
@@ -256,11 +257,11 @@ v0.3에서 **수정**됩니다. 정체성·역할이 빠지면 어댑터의 [§4
 **기록**하되 런타임은 기본 안전 정책으로 계속 동작합니다. 갭은 실패가 아니라 *다음에 무엇을
 포착할지*의 신호입니다.
 
-- **무엇을 로깅하나:** 빈 섹션(예: 이 작업류의 `red_flags` 0개), 저커버리지 팩(확정 레코드 < 3개,
-  [수렴 모델 `coverage`](../spec/06-convergence-model.md)), 충돌로 `ask_confirm`에 떨어진 슬롯(§6 규칙 4),
+- **무엇을 로깅하나:** 빈 섹션(예: 이 작업류의 `red_flags` 0개), 저커버리지 팩(**behavioral** 확정 레코드
+  < 3개, [수렴 모델 `coverage`](../spec/06-convergence-model.md)), 충돌로 `ask_confirm`에 떨어진 슬롯(§6 규칙 4),
   스코프 미스매치(작업 맥락에 닿는 확정 레코드가 없어 기본값으로 동작한 슬롯).
-- **어디로 가나:** 갭 로그는 [11 평가·드리프트](./11-evaluation-drift.md)의 **`coverage`**(시드 폭/
-  깊이) 집계와 다음 채굴 라운드([02 세션 마이닝](./02-session-mining.md)·[03 질문](./03-elicitation-questioning.md))의
+- **어디로 가나:** 갭 로그는 [11 평가·드리프트](./11-evaluation-drift.md)의 **`coverage`**(깊이=behavioral
+  확정 ≥3; 시드 폭은 보조) 집계와 다음 채굴 라운드([02 세션 마이닝](./02-session-mining.md)·[03 질문](./03-elicitation-questioning.md))의
   타깃이 됩니다 — "이 작업류엔 위험 신호가 없으니 다음 세션에서 캐자". (컴파일러는 `coverage` 신호만
   낸다. `correction_cost`는 컴파일 갭이 아니라 **RUN 단계에서 케이스별 `result.edit_fraction`**으로
   관측되는 별개 지표다 — [05 평가·드리프트 §1](../spec/05-evaluation-drift.md)·[06 수렴 모델](../spec/06-convergence-model.md).)

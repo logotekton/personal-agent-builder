@@ -8,9 +8,14 @@ it (1) filters by a deterministic scope-overlap predicate over a controlled tag 
 (3) greedily fills the budget, and (4) returns the dropped tail so the caller can log it as a
 coverage gap. No embeddings, no LLM — same inputs always yield the same slice.
 
-HONEST SCOPE: this is the *selection math* the Karpathy review (#9) asked for. The live compiler
-(tools/pab.py compile branch) is still a STUB, so nothing wires this into a real runtime yet —
-that is the remaining body-work. What is real here is the deterministic, tested predicate.
+It also enforces the reliability claim-layer (decision C, spec/01 §7.1): self_reported records are
+draft-only and are NEVER selected as authoritative context — they are returned by the separate
+draft_only() helper so a caller can show them as unconfirmed drafts, never as runtime authority.
+
+HONEST SCOPE: this is the *selection math* the Karpathy review (#9) asked for, and the predicate
+that makes "self_reported stays draft-only at runtime" real rather than aspirational. The live
+compiler (tools/pab.py compile branch) is still a STUB, so nothing wires this into a real runtime
+yet — that is the remaining body-work. What is real here is the deterministic, tested predicate.
 
 Usage (demo on a tiny built-in fixture):
   python tools/context_select.py            # prints a selected/dropped split for a sample budget
@@ -61,6 +66,12 @@ def scope_overlap(record_scope, task_tags):
     return bool(rt & tt)
 
 
+def _is_draft_only(record):
+    """self_reported records are draft-only (decision C, spec/01 §7.1): they may be SHOWN as drafts
+    but must NEVER be selected as authoritative runtime context. behavioral (default) is eligible."""
+    return str(record.get("reliability", "behavioral")).strip().lower() == "self_reported"
+
+
 def salience(record):
     """Deterministic salience 0..1 from confidence, recency, repetition_count."""
     conf = _num(record.get("confidence"))
@@ -84,7 +95,9 @@ def select_context(records, token_budget, task_tags=None):
     """
     eligible = [
         r for r in records
-        if isinstance(r, dict) and scope_overlap(r.get("scope") or r.get("applies_in"), task_tags)
+        if isinstance(r, dict)
+        and not _is_draft_only(r)  # self_reported is draft-only — never authoritative (decision C)
+        and scope_overlap(r.get("scope") or r.get("applies_in"), task_tags)
     ]
     ranked = sorted(
         eligible,
@@ -99,6 +112,19 @@ def select_context(records, token_budget, task_tags=None):
         else:
             dropped.append(r)
     return selected, dropped
+
+
+def draft_only(records, task_tags=None):
+    """In-scope self_reported records — draft-only, for surfacing as DRAFTS (never authority).
+
+    Kept separate from select_context so a self-report can be shown to the user as an unconfirmed
+    draft without ever being mistaken for authoritative runtime context (decision C, spec/01 §7.1).
+    """
+    return [
+        r for r in records
+        if isinstance(r, dict) and _is_draft_only(r)
+        and scope_overlap(r.get("scope") or r.get("applies_in"), task_tags)
+    ]
 
 
 _DEMO = [

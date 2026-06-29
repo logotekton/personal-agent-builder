@@ -172,11 +172,12 @@ G3 미확인 항목의 런타임 활성화 금지 · G4 행동 언어만 · G5 �
 ## 7. 작동하는지 어떻게 아나 (Convergence & maturity)
 
 추측이 아니라 6개 지표로 봅니다([06 수렴 모델](../spec/06-convergence-model.md)):
-`coverage`(폭) · `confirmation_ratio`(포착 품질) · `decision_fidelity`(충실도) ·
+`coverage`(깊이 — behavioral 확정 ≥3 팩) · `confirmation_ratio`(포착 품질) · `decision_fidelity`(충실도) ·
 `correction_cost`(교정 비용, ↓) · `drift_stability`(안정) · `traceability`(증거 결속, =1.0 필수).
 
 그리고 5단계 사다리를 오릅니다:
-- **L0 Seed** → **L1 Sketch**(7팩 시드) → **L2 Working**(coverage≥0.5, 충실도≥0.6) →
+- **L0 Seed** → **L1 Sketch**(7팩 시드 + 깊이 한 칸: ≥1 팩이 behavioral 확정 ≥3) →
+  **L2 Working**(coverage≥0.5, 충실도≥0.6) →
   **L3 Reliable** → **L4 Convergent**(유지 상태).
 
 처음엔 `identity_roles` → `persona_core` → `communication_style` 세 팩만 채워도 L1로 가는

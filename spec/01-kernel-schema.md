@@ -163,8 +163,10 @@ v0.1은 `score`, v0.2는 `confidence`; 어떤 팩은 `statement`, 어떤 팩은 
 
 - **왜 분리하나.** "나는 ~한 사람이다"라는 자기서술은 *행동 증거가 아니라 자기에 대한 해석*입니다.
   이를 행동 레코드와 같은 통에 넣으면 검증되지 않은 자기상이 규칙으로 굳어, 에이전트가 *실제 행동과
-  다른* 당신을 연기하게 됩니다. 그래서 self_reported 는 ① auto-confirm 금지(사람만 확인), ②
-  draft-only(컴파일러가 단독 런타임 권위 부여 금지), ③ 깊이(엄격 coverage) 미산입.
+  다른* 당신을 연기하게 됩니다. 그래서 self_reported 는 ① auto-confirm 금지(사람만 확인 —
+  `validate_packs.py`), ② draft-only — 런타임 선택 술어가 권위 컨텍스트에서 제외하고 *draft*로만
+  노출(`context_select.py`; 라이브 컴파일러 배선은 #9로 진행 중), ③ **모든 성숙도 지표에서 제외**
+  (깊이·confirmation·drift·traceability — `convergence_report.py`).
 - **"becoming you"는 적용주장(AIApplicationClaim)이다.** 이 프로젝트의 표어("당신으로 수렴하는
   에이전트")는 증거가 아니라 *증거를 에이전트에 적용한 주장*입니다. 그래서 그 표어는 항상 **증거
   계층 위에 얹힌, 사람 검토를 요하는(requires human review) 적용주장**으로 읽혀야 하며, 행동 레코드의

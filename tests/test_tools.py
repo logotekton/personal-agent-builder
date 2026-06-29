@@ -645,6 +645,20 @@ class TestContextSelect(unittest.TestCase):
         b, _ = cs.select_context(list(reversed(recs)), token_budget=budget)  # order-independent
         self.assertEqual([r["id"] for r in a], [r["id"] for r in b])
 
+    def test_self_reported_never_selected_as_authority(self):
+        # M1: a confirmed, high-salience self_reported record must NOT enter authoritative context,
+        # even with unlimited budget and matching scope — draft-only at runtime (decision C).
+        recs = self._recs() + [{
+            "id": "sr", "statement": "I am a careful reviewer", "confidence": 1.0,
+            "repetition_count": 5, "scope": "context.task.code", "reliability": "self_reported",
+        }]
+        sel, dropped = cs.select_context(recs, token_budget=999, task_tags="context.task.code")
+        self.assertNotIn("sr", [r["id"] for r in sel])      # not authoritative
+        self.assertNotIn("sr", [r["id"] for r in dropped])  # not a budget drop either — filtered as draft
+        # it IS retrievable as a draft, so it is surfaced (not silently lost)
+        drafts = cs.draft_only(recs, task_tags="context.task.code")
+        self.assertEqual([r["id"] for r in drafts], ["sr"])
+
 
 class TestCommandGuard(unittest.TestCase):
     """check_commands.py must actually fail when a documented command errors (not a no-op)."""
