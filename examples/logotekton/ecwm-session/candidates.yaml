@@ -1,0 +1,130 @@
+# Logotekton — ECWM 세션에서 추출한 정규화 후보 (normalized CandidateAssertions)
+#
+# > **EN:** A real first-session extraction (the "ECWM" product-design session), normalized to
+# > the canonical CandidateAssertion contract (../../../schemas/candidate.schema.json) AFTER
+# > applying the transferability test (skills/02 §1.1). This demonstrates "mine the decider, not
+# > the topic": project FACTS were relegated to user.memory_project_graph, two project-flavored
+# > patterns were re-scoped to the transferable pattern, one was rejected by the user, and every
+# > sensitivity value was normalized to the canonical enum {public, internal, sensitive, restricted}.
+#
+# 이 파일은 실제 ECWM 구상 세션 추출을 *전이성 테스트*(skills/02-session-mining.md §1.1)로 거른 뒤
+# 정식 후보 계약(candidate.schema.json)으로 정규화한 것입니다. 원본은 OpenCrab "personal agent"
+# 프로젝트의 personal.logotekton.ecwm_session.v0.1 팩.
+#
+# 정규화로 바뀐 것:
+#   1) 프로젝트 사실 → user.memory_project_graph 로 강등 (DOMAIN-001 은 domain_overlays 에서 이동).
+#   2) 프로젝트 색이 묻은 패턴 2개(decision/heuristic) → 프로젝트 디테일을 벗기고 *전이 가능한 패턴*으로 재서술.
+#   3) sensitivity: work_pattern/work_preference/low → 정식 enum 값으로.
+#   4) review_status: candidate_pending_review → validation_status: pending (정식 어휘).
+#   5) id: CAND-ECWM-… → <subject>.<recordkind>.NNN.
+#   6) DECISION-002(MCP-first) 는 사용자가 거절 → 활성 후보 목록에서 제외(아래 'rejected' 주석).
+#
+# ⚠️ 단계: 이건 *확인 전(pending) 후보*입니다. validate_packs.py 는 확인·라우팅 후의 *베이스 레코드*를
+#    검증합니다 — 이 후보들은 S07 확인 게이트를 통과해야 14개 정식 팩의 베이스 레코드가 됩니다(G3).
+# ⚠️ evidence_refs(EV-ECWM-NN)는 원본 세션 증거 앵커를 *그대로 보존*했습니다(증거를 새로 만들지 않음, G1).
+
+candidates:
+  # ── 전이 가능한 암묵지 (tacit knowledge — survives the transferability test) ──────────────
+
+  - candidate_id: logotekton.decision_cand.001
+    candidate_type: DecisionPolicyCandidate
+    # 재스코프: 원본은 ECWM 8계층을 나열했음 → 프로젝트를 바꿔도 참인 *패턴*만 남김.
+    concise_claim: "복잡한 시스템 설계에서 구현 전에 관심사(데이터·주장·증거·런타임·표현 등)를 명시적으로 계층 분리하는 쪽을 택한다."
+    evidence_refs: ["EV-ECWM-02", "EV-ECWM-04", "EV-ECWM-05"]
+    confidence: 0.90
+    scope: "복잡한 시스템·아키텍처 설계 전반 (특정 프로젝트 무관)"
+    sensitivity: internal
+    proposed_target_pack: user.decision_policy
+    validation_status: pending
+    extraction_method: session_mining
+
+  - candidate_id: logotekton.artifact_cand.001
+    candidate_type: ArtifactPolicyCandidate
+    concise_claim: "복잡한 기술 개념을 배경·근거·구현 단계·초독자 맥락을 포함한 다운로드 가능한 Markdown 플랜으로 변환하기를 원한다."
+    evidence_refs: ["EV-ECWM-06"]
+    confidence: 0.96
+    scope: "기획 문서·제품 사양·핸드오프 문서 작성"
+    sensitivity: internal
+    proposed_target_pack: user.artifact_policy
+    validation_status: pending
+    extraction_method: session_mining
+
+  - candidate_id: logotekton.heuristic_cand.001
+    candidate_type: TacitHeuristicCandidate
+    # 재스코프: 'One Model Many Projections' 프로젝트 브랜딩을 벗기고 일반 휴리스틱으로.
+    concise_claim: "한 뷰에 담기엔 차원이 높은 개념은 하나의 캔버스에 욱여넣지 않고 다중 투영(projection)으로 나눠 본다."
+    evidence_refs: ["EV-ECWM-03"]
+    confidence: 0.88
+    scope: "고차원 개념의 시각화·설명·UI 설계"
+    sensitivity: internal
+    proposed_target_pack: user.tacit_heuristics
+    validation_status: pending
+    extraction_method: session_mining
+
+  - candidate_id: logotekton.redflag_cand.001
+    candidate_type: RedFlagCandidate
+    concise_claim: "AI가 추출한 주장을 증거-후보-확인 게이트-런타임 경계를 거치지 않고 확정 사실로 다루는 것을 위험 신호로 본다."
+    evidence_refs: ["EV-ECWM-05"]
+    confidence: 0.87
+    scope: "AI/지식 시스템 구축 전반"
+    sensitivity: internal
+    proposed_target_pack: user.red_flags
+    validation_status: pending
+    extraction_method: session_mining
+
+  - candidate_id: logotekton.workflow_cand.001
+    candidate_type: WorkflowPatternCandidate
+    concise_claim: "새 기술 플랫폼 개념은 개념정의 → 용어 → 시각형태 탐색 → UI 투영 비교 → 구현 청사진 → 다운로드 산출물 순으로 진행한다."
+    evidence_refs: ["EV-ECWM-01", "EV-ECWM-02", "EV-ECWM-03", "EV-ECWM-04", "EV-ECWM-05", "EV-ECWM-06"]
+    confidence: 0.91
+    scope: "제품 아키텍처·플랫폼 설계 세션"
+    sensitivity: internal
+    proposed_target_pack: user.workflow_playbooks
+    validation_status: pending
+    extraction_method: session_mining
+
+  - candidate_id: logotekton.tool_cand.001
+    candidate_type: ToolPreferenceCandidate
+    concise_claim: "온톨로지 팩·기술 플랜을 만들 때 OpenCrab MCP·프로젝트 팩을 참조 자료가 아니라 능동적 빌드 도구로 쓴다."
+    evidence_refs: ["EV-ECWM-05"]
+    confidence: 0.89
+    scope: "OpenCrab 관련 작업"
+    sensitivity: internal
+    proposed_target_pack: user.tool_stack
+    validation_status: pending
+    extraction_method: session_mining
+
+  # ── 프로젝트 사실 (project facts — fail the test → memory_project_graph ONLY, never persona) ──
+
+  - candidate_id: logotekton.project_cand.001
+    candidate_type: ProjectMemoryCandidate
+    # ★ 강등: 원본은 DomainOverlayCandidate(→domain_overlays)였으나, "다른 사람이 같은 프로젝트를
+    #   해도 똑같이 말할" 프로젝트 사실이라 페르소나/도메인 페르소나가 아님 → memory_project_graph.
+    concise_claim: "ECWM(Epistemic Causal World Model)을 OpenCrab·MCP·모듈러 BIM과 연결된 차세대 지식/세계모델 아키텍처로 개발 중이다."
+    evidence_refs: ["EV-ECWM-01", "EV-ECWM-02", "EV-ECWM-05"]
+    confidence: 0.92
+    scope: "현재 ECWM/OpenCrab 제품 설계 작업 (프로젝트 맥락)"
+    sensitivity: internal
+    proposed_target_pack: user.memory_project_graph
+    validation_status: pending
+    extraction_method: session_mining
+
+  - candidate_id: logotekton.project_cand.002
+    candidate_type: ProjectMemoryCandidate
+    concise_claim: "ECWM 프로젝트는 OpenCrab, Personal Agent Builder, OpenCanal/OpenKernel, 모듈러 BIM, 증거우선 AI 지식 인프라와 연결되어 있다."
+    evidence_refs: ["EV-ECWM-05", "EV-ECWM-06"]
+    confidence: 0.93
+    scope: "프로젝트 그래프 / 메모리 그래프"
+    sensitivity: internal
+    proposed_target_pack: user.memory_project_graph
+    validation_status: pending
+    extraction_method: session_mining
+
+# ── 보류/거절 (not active candidates) ────────────────────────────────────────────────────────
+# rejected (사용자 판단):
+#   - CAND-ECWM-DECISION-002 "MCP-first/Pack-first before training a model" — 사용자가 거절(2.3 거절).
+# 재서술/판단 필요 (이 정규화에 미포함 — 원본 재확인 후 결정):
+#   - CAND-ECWM-REDFLAG-001 "ECWM을 단순 그래프로 붕괴 금지" — 프로젝트 종속. 일반 원칙으로 재스코프하면
+#     red_flags 후보가 될 수 있으나(예: "1차 모델을 평면 그래프로 환원하지 않는다"), 현 형태는 ECWM 한정.
+#   - CAND-ECWM-EVAL-001 "좋은 답은 개념층 구분·평탄화 회피" — 전이 가능한 평가 케이스로 보이나 원본
+#     evidence_refs 가 잘려 확인 불가 → 원본에서 evidence_refs 확정 후 user.evaluation_cases 후보로.
