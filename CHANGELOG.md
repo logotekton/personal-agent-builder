@@ -34,10 +34,12 @@
   깊이·confirmation_ratio·human_confirmation_ratio·drift_stability·traceability 전부 *behavioral* 만 집계).
   자기서술이 행동 증거로 둔갑하는 것을 구조로 차단. 스펙: [01 §7.1](./spec/01-kernel-schema.md).
   예제 숫자 불변(예제는 전부 behavioral).
-  - *적대적 검증(Opus) 후 경화:* 최초 구현은 깊이축에서만 제외해, self_reported 를 무더기 confirmed
-    시키면 hcr/drift 로 L1→L2 를 딸 수 있는 백도어(C1)가 있었다 — *모든* 지표 제외로 차단. 문자열
-    `auto_confirmed:"true"` 로 금지 규칙을 우회하던 검증기/수렴기 드리프트(M2)와, draft-only 런타임
-    권위 차단이 미강제이던 점(M1)도 닫음. 테스트 +12(58→71).
+  - *적대적 검증(Opus) 2라운드 후 경화:* 최초 구현은 깊이축에서만 제외해, self_reported 를 무더기
+    confirmed 시키면 hcr/drift 로 L1→L2 를 딸 수 있는 백도어(C1)가 있었다 — 6개 지표 *전부* 제외로 차단.
+    문자열 `auto_confirmed:"true"` 로 금지 규칙을 우회하던 검증기/수렴기 드리프트(M2), draft-only 런타임
+    권위 차단이 미강제이던 점(M1), 그리고 재검증이 잡은 *self_reported 평가 케이스가 `decision_fidelity`
+    (하드 게이트)를 부풀리는 잔여 경로*(N1)까지 닫음 — 이제 self_reported 는 여섯 지표 전부+드리프트에서
+    빠진다. 테스트 +14(58→72).
 - **A · '위임가능한 일하는 자아' 스코프 명시 + #4 행동주의 입장 선언.** [spec/00](./spec/00-overview.md)에
   "무엇이 *아닌가*" 절 추가: PAB는 **전인격 트윈이 아니라** 행동 증거가 있는 일·판단 영역의 위임가능한
   자아다. 내면 배제는 *암묵 기본값*이 아니라 **선언된 방법론적 입장**(G4)임을 명문화.
