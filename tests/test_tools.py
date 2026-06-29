@@ -41,6 +41,7 @@ import convergence_report as cr   # noqa: E402
 import validate_packs as vp       # noqa: E402
 import check_anchors as ca        # noqa: E402
 import context_select as cs        # noqa: E402
+import compile_adapter as comp     # noqa: E402
 
 try:
     import yaml  # noqa: F401
@@ -690,6 +691,82 @@ class TestContextSelect(unittest.TestCase):
         # it IS retrievable as a draft, so it is surfaced (not silently lost)
         drafts = cs.draft_only(recs, task_tags="context.task.code")
         self.assertEqual([r["id"] for r in drafts], ["sr"])
+
+
+class TestCompileAdapter(unittest.TestCase):
+    """S10 reference compiler: deterministic 8-section assembly honoring G3 + reliability +
+    supersession, reproducing the hand-authored runtime-adapter.md membership."""
+
+    def test_live_example_eight_active_packs(self):
+        pack_records, drift = comp.load(EXAMPLE)
+        a = comp.compile_adapter(pack_records, drift)
+        self.assertEqual(a["coverage"]["n_active_packs"], 8)   # T2 live (after rev-01/02)
+        self.assertEqual(a["coverage"]["n_compile_packs"], 12) # 14 packs − eval_cases − drift_history
+        self.assertEqual(a["boundary_source"], "instance")     # boundary.001 present at T2
+        gap_packs = {g["pack"] for g in a["gap_log"]}
+        self.assertEqual(gap_packs, {"user.red_flags", "user.workflow_playbooks",
+                                     "user.domain_overlays", "user.memory_project_graph"})
+
+    def test_section1_identity_membership(self):
+        pack_records, drift = comp.load(EXAMPLE)
+        a = comp.compile_adapter(pack_records, drift)
+        ids = {r["id"] for r in a["sections"]["identity_role"]}
+        self.assertEqual(ids, {"logotekton.role.001", "logotekton.role.002",
+                               "logotekton.trait.001", "logotekton.trait.002"})
+
+    def test_t0_fixture_reproduces_hand_authored_adapter(self):
+        # the hand-authored runtime-adapter.md is a T0 snapshot: 5 active packs, no instance
+        # boundary → default safe policy. The compiler reproduces that membership from the frozen
+        # T0 fixture, so the doc is machine-reproducible, not asserted by construction.
+        pre = os.path.join(EXAMPLE, "revolution-01", "instance-records.pre.yaml")
+        pack_records, drift = comp.load(pre)
+        a = comp.compile_adapter(pack_records, drift)
+        self.assertEqual(a["coverage"]["n_active_packs"], 5)
+        self.assertEqual(a["boundary_source"], "default_safe_policy")
+
+    def test_boundary_progression_t0_to_t1(self):
+        # T0 (no instance boundary) → T1 (rev-01 added boundary.001) flips the boundary source
+        t0, t0d = comp.load(os.path.join(EXAMPLE, "revolution-01", "instance-records.pre.yaml"))
+        t1, t1d = comp.load(os.path.join(EXAMPLE, "revolution-02", "instance-records.pre.yaml"))
+        self.assertEqual(comp.compile_adapter(t0, t0d)["boundary_source"], "default_safe_policy")
+        self.assertEqual(comp.compile_adapter(t1, t1d)["boundary_source"], "instance")
+
+    def test_self_reported_not_compiled(self):
+        # decision C: a confirmed self_reported record is draft-only — never compiled into a section
+        recs = {"user.tacit_heuristics": [
+            {"id": "x.h.1", "review_status": "confirmed", "statement": "behavioral", "scope": "s"},
+            {"id": "x.h.2", "review_status": "confirmed", "reliability": "self_reported",
+             "statement": "self", "scope": "s"},
+        ]}
+        a = comp.compile_adapter(recs, [])
+        ids = {r["id"] for r in a["sections"]["heuristics_red_flags"]}
+        self.assertEqual(ids, {"x.h.1"})
+
+    def test_pending_not_compiled_g3(self):
+        recs = {"user.decision_policy": [
+            {"id": "x.d.1", "review_status": "confirmed", "statement": "a", "scope": "s"},
+            {"id": "x.d.2", "review_status": "pending", "statement": "b", "scope": "s"},
+        ]}
+        a = comp.compile_adapter(recs, [])
+        ids = {r["id"] for r in a["sections"]["decision_policy"]}
+        self.assertEqual(ids, {"x.d.1"})
+
+    def test_superseded_record_excluded(self):
+        # a record named in a drift_history supersedes is the retired old version — excluded
+        recs = {"user.persona_core": [
+            {"id": "x.t.1", "review_status": "confirmed", "statement": "old", "scope": "s"},
+            {"id": "x.t.2", "review_status": "confirmed", "statement": "new", "scope": "s"},
+        ]}
+        drift = [{"id": "x.drift.1", "supersedes": ["x.t.1"]}]
+        a = comp.compile_adapter(recs, drift)
+        ids = {r["id"] for r in a["sections"]["identity_role"]}  # persona_core feeds sections 1 & 3
+        self.assertEqual(ids, {"x.t.2"})
+        self.assertIn("x.t.1", a["superseded_excluded"])
+
+    def test_deterministic_same_input_same_adapter(self):
+        pack_records, drift = comp.load(EXAMPLE)
+        self.assertEqual(comp.compile_adapter(pack_records, drift),
+                         comp.compile_adapter(pack_records, drift))
 
 
 class TestCommandGuard(unittest.TestCase):
