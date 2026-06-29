@@ -19,6 +19,35 @@
 [06 수렴 모델 §8](./06-convergence-model.md#8-깊이de-averaging--모르는-곳을-아는-것이-수렴이다),
 부정 증거(무엇이 *당신이 아닌가*)는 [`user.red_flags`](./03-pack-catalog.md)가 담습니다.
 
+## 무엇이 *아닌가* — 위임가능한 '일하는 자아' (scope & stance)
+
+> **EN:** What PAB builds is a *delegable working-self* — an agent that reproduces your
+> judgment in the work/decision domains where it has your **behavioral evidence** — **not a
+> whole-person digital twin.** This bound is a deliberate design choice and a stated stance,
+> written here so the system is never read as claiming more than its evidence can earn.
+
+PAB가 만드는 것은 **위임 가능한 '일하는 자아'**입니다 — 당신의 *행동 증거가 있는* 일·판단
+영역에서 당신의 판단을 재현하는 에이전트. **전인격 디지털 트윈이 아닙니다.** 세 가지를 명시합니다.
+
+1. **방법론적 입장 — 행동에서 만든다 (declared behavioral stance).** 에이전트는 *관찰된 행동·산출물·
+   교정*에서 만들어집니다(게이트 G4). 내면·동기·정서는 *증거 계층에서 의도적으로 제외*됩니다 —
+   추측한 심리를 규칙으로 굳히지 않기 위해서입니다. 이것은 "사람에게 내면이 없다"는 주장이 아니라,
+   *내면은 행동 증거가 아니므로 증거 계층에 넣지 않는다*는 **선언된 방법론적 입장**입니다. 자기서술
+   (self-report)이 필요하면 `reliability: self_reported` 저신뢰 채널로 *운반만* 하고(draft-only,
+   auto-confirm 금지, 깊이 미산입 — [01 §7.1](./01-kernel-schema.md), 설계자 결정 C), 행동 증거로
+   둔갑시키지 않습니다.
+
+2. **채널 한계 — 증거는 주로 작업 세션에서 온다 (channel limit).** 현재 증거 채널은 대체로 *AI와의
+   작업 세션*입니다. 그래서 추출이 잘 닿는 곳은 **일하는 자아**(판단·커뮤니케이션·워크플로·도구·경계)
+   이고, *관계·정서·미적·서사적 자아*는 이 채널로 잘 닿지 않습니다. 이는 팩이 부족해서가 아니라
+   **채널의 구조적 한계**입니다.
+
+3. **off-ontology 기권 (honest abstention).** 닿지 않는 자아 영역은 *off-ontology*로 둡니다 —
+   에이전트는 그곳에서 평균/일반값으로 당신을 흉내내지 않고 **기권하거나 묻습니다.** 이는 위 핵심
+   명제의 de-averaging 을 *채널 차원*으로 확장한 것입니다: 빈 슬라이스를 채우지 않는 것이 정직이고,
+   그래서 '일하는 자아'는 *과대주장 없이* 유효합니다. 채널 확대(오프라인·다중소스 적재)는 별도
+   로드맵이며, 지금의 약속이 아닙니다.
+
 ## 무엇을 만드는가
 
 세 가지를 분리해서 다룹니다 — 섞으면 신뢰가 무너지기 때문입니다(거버넌스 핵심).
