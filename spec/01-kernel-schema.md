@@ -137,7 +137,8 @@ v0.1은 `score`, v0.2는 `confidence`; 어떤 팩은 `statement`, 어떤 팩은 
 `scope`, `review_status`, `sensitivity`, `created_at`, `updated_at`
 **선택:** `aliases`, `priority_weight`, `counterexamples`, `exception_rules`,
 `related_records`, `supersedes`, `linked_projects`, `linked_domains`, `examples`, `anti_examples`,
-`canonical_key`, `repetition_count`, `merge_history`
+`canonical_key`, `repetition_count`, `merge_history`, `auto_confirmed`, `review_audit`,
+`reliability`(§7.1)
 
 - `review_status` ∈ {pending, confirmed, rejected, narrowed, sensitive, deferred}
 - `sensitivity` ∈ {public, internal, sensitive, restricted}
@@ -146,6 +147,33 @@ v0.1은 `score`, v0.2는 `confidence`; 어떤 팩은 `statement`, 어떤 팩은 
   pack·record_type·normalize(statement)·scope), `repetition_count`(같은 패턴이 재유도·병합된 횟수),
   `merge_history`(이 레코드에 병합된 후보·증거 id) — 모두 선택. `duplicate→merge` upsert가 채운다.
 - 폐기 필드: `score`(→`confidence`), bare `claim`/`rule_statement`/`instruction`/`output_rule`(→`statement`)
+
+### 7.1 reliability 채널 — 증거 계층 vs 적용/해석 계층 (claim-layer)
+
+> **EN:** Every record carries a `reliability` channel marking WHICH CLAIM LAYER it lives in —
+> the structural seam between *what your behavior shows* and *what is said/inferred about you*.
+> An honest personal-agent system must not blur that seam, so the seam is a field, not a vibe.
+
+`reliability` ∈ {`behavioral`(기본), `self_reported`} — 레코드가 **어느 클레임 계층**에 속하는지 표시.
+
+| 채널 | 계층 | 신뢰 | 런타임 권위 | 깊이 산입 | auto-confirm |
+|------|------|------|-------------|-----------|:---:|
+| `behavioral` | 관찰된 행동 (OriginalClaim 에 준함) | 높음 | 예(확인 시) | 예 | 가능 |
+| `self_reported` | 자기에 대한 서술 (InterpretationClaim) | 낮음 | 아니오 (draft-only) | 아니오 | **금지** |
+
+- **왜 분리하나.** "나는 ~한 사람이다"라는 자기서술은 *행동 증거가 아니라 자기에 대한 해석*입니다.
+  이를 행동 레코드와 같은 통에 넣으면 검증되지 않은 자기상이 규칙으로 굳어, 에이전트가 *실제 행동과
+  다른* 당신을 연기하게 됩니다. 그래서 self_reported 는 ① auto-confirm 금지(사람만 확인), ②
+  draft-only(컴파일러가 단독 런타임 권위 부여 금지), ③ 깊이(엄격 coverage) 미산입.
+- **"becoming you"는 적용주장(AIApplicationClaim)이다.** 이 프로젝트의 표어("당신으로 수렴하는
+  에이전트")는 증거가 아니라 *증거를 에이전트에 적용한 주장*입니다. 그래서 그 표어는 항상 **증거
+  계층 위에 얹힌, 사람 검토를 요하는(requires human review) 적용주장**으로 읽혀야 하며, 행동 레코드의
+  신뢰도를 자동 상속하지 않습니다. de-averaging·off-frontier·reliability 가 그 검토를 *기계적으로*
+  떠받칩니다([00 일하는 자아 스코프](./00-overview.md), [06 §8](./06-convergence-model.md)).
+
+스키마: [`record.base.schema.json`](../schemas/record.base.schema.json) `reliability` · 강제:
+[`tools/validate_packs.py`](../tools/validate_packs.py)(self_reported→auto-confirm 금지) ·
+[`tools/convergence_report.py`](../tools/convergence_report.py)(깊이는 behavioral 만 산입).
 
 ## 8. Crab 에이전트 역할 (운영 모델)
 
