@@ -88,6 +88,28 @@
 | [`templates/`](./templates) | 새 사용자가 자기 에이전트를 시작할 수 있는 **빈 채우기 템플릿** + [QUICKSTART](./templates/QUICKSTART.md) |
 | [`tools/`](./tools) | 결정론적 스크립트 — 스키마 검증(`validate_packs`), 수렴 지표(`convergence_report`), 중복 신호(`dedup_check`), dedup/병합 actuator(`pab_merge`), 컨텍스트 선택 참조 술어(`context_select`), 런타임 어댑터 참조 컴파일러(`compile_adapter`), 문서 링크·커맨드 무결성 가드(`check_anchors`·`check_commands`). 모두 테스트로 잠김 |
 
+## OpenCrab 위에서 — 빌더 공장과 개인 에이전트 (2-project)
+
+이 방법론은 [OpenCrab](https://opencrab.ai) MetaOntology OS 위에서 돕니다. 4개 팩 클래스는
+**두 프로젝트**로 나뉩니다 — *빌더*(사람 무관·재사용)와 *개인 에이전트*(주인당 하나·사적):
+
+| 프로젝트 | 담는 것 | 역할 |
+|----------|---------|------|
+| **빌더** (`personal agent builder skills`) | `skill.pab.*`(방법) + `user.*`/`*.template`(형태) + 스펙·거버넌스 | 추출·확인·컴파일을 *수행하는 장치* |
+| **개인 에이전트** (`personal agent`) | `personal.<주인>.*`(확정 데이터) + `*.runtime_adapter`(런타임) | 한 주인의 *산출물* |
+
+```
+당신의 실제 세션 ─(입력)─►  [빌더] 스킬+템플릿으로 추출·확인  ─►  personal.<you>.* 확정 팩
+                                                                        │  ingest
+                                                                        ▼
+                       [개인 에이전트]  데이터  ─► compile ─►  runtime_adapter = 당신의 Personal Agent
+```
+
+빌더로 *만들고*, 개인 에이전트로 *인제스트*합니다. 빌더는 사람을 모르므로(G6) 한 빌더로 여러 사람의
+에이전트를 만들 수 있고, 산출물은 빌더로 역류하지 않습니다 — 클래스 분리를 프로젝트 차원으로 끌어올린
+것입니다. 입력 원재료(당신의 실제 세션)는 *어느 온톨로지 프로젝트에도 속하지 않는* 외부 증거입니다.
+자세히 → [07 프로젝트 토폴로지](./spec/07-opencrab-9space-crosswalk.md#프로젝트-토폴로지--빌더-공장과-산출-인제스트-2-project).
+
 ## 핵심 설계 원칙 (왜 믿을 수 있는가)
 
 1. **증거 우선 (Evidence-first)** — 증거 없는 주장은 없습니다. 모든 레코드는 ≥1개의
@@ -123,6 +145,27 @@
 
 이 프로젝트는 한 사람(Logotekton)의 개인 에이전트를 만들려다 시작됐지만, 만들고 보니
 **그 방법 자체가 누구에게나 적용되는 공용 자산**이었습니다. 그래서 공개합니다.
+
+## 실데이터로 시작하기 (build it with your own data)
+
+당신의 실제 AI 세션으로 직접 만들 수 있습니다. 큰 흐름(각 단계의 게이트는 괄호 안):
+
+1. **빈 템플릿 복사** — [`templates/`](./templates)의 14개 `user.*.template`을 당신 핸들로 복사
+   (`personal.<you>.*`). 출발 안내: [QUICKSTART](./templates/QUICKSTART.md).
+2. **증거에서 추출** — [`skills/`](./skills)의 채굴 스킬(세션마이닝·질문·diff마이닝)으로 실제
+   세션·교정에서 후보를 뽑되, *관찰된 행동 언어*로 적습니다(**G4**). 모든 후보엔 `evidence_refs`(**G1**).
+3. **확인 게이트** — 각 후보를 당신이 confirm/edit/reject/narrow. 확인 전엔 런타임 규칙이 되지
+   않습니다(**G3**). 자기서술은 `reliability: self_reported`(draft-only)로만 운반됩니다(C).
+4. **검증·측정** — `python tools/validate_packs.py <your-dir>`로 게이트 통과를 확인하고,
+   `python tools/convergence_report.py <your-dir>`로 성숙도(L0~L4)와 6개 지표를 봅니다.
+5. **인제스트 → 컴파일** — 확정 `personal.<you>.*` 팩을 *개인 에이전트* 프로젝트에 적재하고,
+   `python tools/compile_adapter.py <your-dir>`로 8섹션 런타임 어댑터를 조립합니다(참조 컴파일러).
+6. **평가·루프** — 실제 작업에 써 보고, 실패를 *다음 증거*로 되돌립니다(평가·드리프트). 수렴
+   지표가 오르는지 지켜봅니다 — 그게 "에이전트가 당신이 되어 간다"의 측정값입니다.
+
+> **정직한 한계.** 라이브 자동 포착/컴파일러([`tools/pab`](./tools/pab))는 아직 **STUB**입니다. 위
+> 도구들은 테스트로 잠긴 *참조 구현*이며(스키마·지표·선택·조립을 결정론적으로 재현), 실제 호스트
+> 런타임 배선은 남은 작업입니다. 끝까지 돌아가는 실증 예제 → [`examples/logotekton/`](./examples/logotekton).
 
 ## 상태
 
