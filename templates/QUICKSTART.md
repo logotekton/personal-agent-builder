@@ -1,16 +1,21 @@
-# QUICKSTART — 첫 세션에서 내 Personal Agent 시작하기
+# QUICKSTART — 첫 세션에서 내 자기지도(self-map) 시작하기
 
-> **EN:** A new-user onboarding guide: build your own *Personal Agent* in your very first
-> session. You start from one real session you already had with an AI agent, capture 3–5
+> **EN:** A new-user onboarding guide: in your very first session, start your own evidence-bound
+> **self-map** — the explicit picture of *how you actually think and decide* that even you don't
+> fully know. (That map is the material a *Personal Agent* later compiles from; the map comes
+> first.) You start from one real session you already had with an AI agent, capture 3–5
 > `EvidenceItem`s, extract typed candidates, confirm them yourself in a quick Korean-style
 > review board, route the confirmed ones into 2–3 packs to reach the **L1 Sketch** tier, and
 > check the numbers with `tools/convergence_report.py`. Nothing here becomes a runtime rule
 > without **your** explicit confirmation — the whole flow is fenced by six quality gates
 > (G1–G6) and your data is private by default.
 
-이 문서는 처음 온 사람을 위한 **30~60분짜리 첫 세션 안내서**입니다. 거창한 설정 없이, 당신이
-*이미 했던* AI 에이전트 세션 하나에서 출발해 — 증거를 줍고, 후보를 뽑고, **당신이 직접 확인**해서,
-2~3개 팩에 채워 넣고, 수렴 지표로 현재 위치(L1 스케치)를 확인하는 데까지 갑니다.
+이 문서는 처음 온 사람을 위한 **30~60분짜리 첫 세션 안내서**입니다. 일차 목표는 *행동하는 에이전트*가
+아니라 **당신의 증거 기반 자기지도를 시작하는 것** — "나도 모르는 나"(어떻게 결정하는가)를 *읽을 수
+있게* 명시화하는 것입니다. 그 지도가 나중에 Personal Agent로 컴파일되지만, **지도가 먼저**입니다
+([README — 거울이냐 대리인이냐](../README.md#거울이냐-대리인이냐--자기명시화가-먼저다)). 거창한 설정 없이,
+당신이 *이미 했던* AI 에이전트 세션 하나에서 출발해 — 증거를 줍고, 후보를 뽑고, **당신이 직접 확인**
+해서, 2~3개 팩에 채워 넣고, 수렴 지표로 현재 위치(L1 스케치)를 확인하는 데까지 갑니다.
 
 핵심 약속 두 가지를 먼저 못 박습니다:
 
