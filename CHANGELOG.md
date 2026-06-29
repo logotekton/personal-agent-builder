@@ -31,7 +31,8 @@
   **금지**(allOf 규칙 + [`validate_packs.py`](./tools/validate_packs.py) 에러, auto_confirmed 는 boolean
   강제), ② draft-only — [`context_select.py`](./tools/context_select.py)가 권위 컨텍스트에서 제외하고
   draft 로만 노출, ③ **모든 성숙도 지표에서 제외**([`convergence_report.py`](./tools/convergence_report.py):
-  깊이·confirmation_ratio·human_confirmation_ratio·drift_stability·traceability 전부 *behavioral* 만 집계).
+  여섯 지표(coverage·confirmation_ratio·decision_fidelity·correction_cost·drift_stability·traceability)+게이트
+  변형 human_confirmation_ratio+폭(seeded) 전부 *behavioral* 만 집계).
   자기서술이 행동 증거로 둔갑하는 것을 구조로 차단. 스펙: [01 §7.1](./spec/01-kernel-schema.md).
   예제 숫자 불변(예제는 전부 behavioral).
   - *적대적 검증(Opus) 2라운드 후 경화:* 최초 구현은 깊이축에서만 제외해, self_reported 를 무더기

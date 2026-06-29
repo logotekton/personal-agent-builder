@@ -166,8 +166,9 @@ v0.1은 `score`, v0.2는 `confidence`; 어떤 팩은 `statement`, 어떤 팩은 
   다른* 당신을 연기하게 됩니다. 그래서 self_reported 는 ① auto-confirm 금지(사람만 확인 —
   `validate_packs.py`), ② draft-only — 런타임 선택 술어가 권위 컨텍스트에서 제외하고 *draft*로만
   노출(`context_select.py`; 라이브 컴파일러 배선은 #9로 진행 중), ③ **여섯 수렴 지표 전부에서 제외**
-  (coverage·confirmation_ratio·human_confirmation_ratio·decision_fidelity·drift_stability·traceability
-  — `convergence_report.py`; 자기서술은 운반될 뿐 수렴 대상이 아님).
+  (coverage·confirmation_ratio·decision_fidelity·correction_cost·drift_stability·traceability)와 그 게이트
+  변형 `human_confirmation_ratio`·폭(seeded)까지 제외(`convergence_report.py`; 자기서술은 운반될 뿐
+  수렴 대상이 아님).
 - **"becoming you"는 적용주장(AIApplicationClaim)이다.** 이 프로젝트의 표어("당신으로 수렴하는
   에이전트")는 증거가 아니라 *증거를 에이전트에 적용한 주장*입니다. 그래서 그 표어는 항상 **증거
   계층 위에 얹힌, 사람 검토를 요하는(requires human review) 적용주장**으로 읽혀야 하며, 행동 레코드의
