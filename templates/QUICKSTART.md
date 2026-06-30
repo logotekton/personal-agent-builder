@@ -5,7 +5,9 @@
 > fully know. (That map is the material a *Personal Agent* later compiles from; the map comes
 > first.) You start from one real session you already had with an AI agent, capture 3–5
 > `EvidenceItem`s, extract typed candidates, confirm them yourself in a quick Korean-style
-> review board, route the confirmed ones into 2–3 packs to reach the **L1 Sketch** tier, and
+> review board, route the confirmed ones into a few packs to reach the **L0 Seed** tier (a real
+> start; the next milestone **L1 Sketch** asks for ≥7 seeded packs *and* one **content** pack with
+> ≥3 confirmed — go deep in one area, not 1 record across many), and
 > check the numbers with `tools/convergence_report.py`. Nothing here becomes a runtime rule
 > without **your** explicit confirmation — the whole flow is fenced by six quality gates
 > (G1–G6) and your data is private by default.
@@ -162,13 +164,15 @@
 
 ### 지금 당신은 어디인가 — 성숙도 사다리
 
-[수렴 모델](../spec/06-convergence-model.md)의 5단계 사다리에서 첫 세션의 목표는 **L1 Sketch**입니다.
+[수렴 모델](../spec/06-convergence-model.md)의 5단계 사다리에서 첫 세션의 현실적 도착점은 **L0 Seed**
+(시작했다는 증거)이고, 그다음 목표가 **L1 Sketch**입니다 — L1 은 ≥7팩 시드 *그리고* **콘텐츠 팩 하나가
+≥3 확인**(한 영역을 깊게)을 요구합니다. 참고로 워크된 예제는 2회전 뒤에도 콘텐츠 깊이 0이라 여전히 L0입니다.
 
 | 단계 | 이름 | 진입 조건 | 첫 세션 |
 |------|------|-----------|---------|
-| **L0** | Seed | 3개 미만 팩 시드, 평가 케이스 없음 | 출발점 |
-| **L1** | **Sketch** | **≥7개 팩 시드, ≥3개 평가 케이스, `traceability`=1.0** | ← 목표 |
-| L2 | Working | `coverage`≥0.5, `decision_fidelity`≥0.6, `human_confirmation_ratio`≥0.6 | 다음 |
+| **L0** | Seed | 3개 미만 팩 시드, 평가 케이스 없음 (시작했으면 졸업) | ← 첫 세션 |
+| **L1** | **Sketch** | **≥7개 팩 시드, ≥3개 평가 케이스, `traceability`=1.0, 콘텐츠 팩 ≥1개가 ≥3 확인(깊이)** | 다음 목표 |
+| L2 | Working | `coverage`≥0.5, `decision_fidelity`≥0.6, `human_confirmation_ratio`≥0.6 | 그다음 |
 | L3 | Reliable | `coverage`≥0.8, `decision_fidelity`≥0.8, `correction_cost`≤0.3 … | 이후 |
 | L4 | Convergent | 전 지표 충족 + N기간 지속 (도달이 아니라 *유지*) | 장기 |
 

@@ -2,7 +2,9 @@
 
 > ⚙️ **성숙도 게이트 결함 수정 노트(사후).** 본문의 **L0 → L2 Working** 도약은 `coverage`를 *시드폭*으로
 > 게이팅하던 시점 기준입니다. 이후 게이트가 spec §2 정의(*엄격 ≥3 깊이*)를 쓰도록 수정되어, 이 회전의
-> 정직한 티어 전이는 **L0 → L1 Sketch**입니다(깊은 팩이 1개뿐). 이는 사실 본문 §2의 정직성 노트가
+> 정직한 티어는 두 시점 모두 **L0 Seed**입니다(**콘텐츠 깊이 vertical 0** — 유일한 ≥3 팩이 *메타* eval).
+> 이 회전은 df·coverage(시드폭)·merge_rate 를 끌어올렸지만 *콘텐츠 깊이*를 만들지 않아 티어는 그대로 L0 —
+> "여러 지표가 올라도 콘텐츠 깊이 없이는 Seed"라는 de-averaging 교훈입니다. 이는 사실 본문 §2의 정직성 노트가
 > 카파시 #7로 지목했던 "폭-우선 문턱이 관대하다"를 게이트로 *해소*한 결과입니다 —
 > `decision_fidelity`(0.75→0.92)·`merge_rate`·시드폭 등 다른 숫자는 모두 불변.
 
@@ -104,9 +106,9 @@ python tools/pab_merge.py /tmp/t1.yaml \
        examples/logotekton/revolution-01/session-02-candidates.yaml   # → already_merged ×2
 
 # (3) 측정 — 주의: 라이브 디렉터리는 그 뒤 rev-02 로 한 바퀴 더 돌아 지금은 T2.
-#     게이트 결함 수정 후 라이브 티어 = L1 Sketch(coverage 엄격 0.07 / 시드폭 0.71, df 1.00).
-#     이 문서의 T0→T1 숫자(시드폭 게이트 당시 L0→L2; 수정 후 L0→L1)는 §2 표에 보존, 상단 노트 참조.
-python tools/convergence_report.py examples/logotekton    # 현재 라이브 = T2 → L1 Sketch (rev-01 당시엔 T1)
+#     게이트 결함 수정 후 라이브 티어 = L0 Seed(콘텐츠 깊이 vertical 0; coverage 엄격 0.07 / 시드폭 0.71, df 1.00).
+#     이 문서의 T0→T1 숫자(시드폭 게이트 당시 L0→L2; 콘텐츠-깊이 게이트 적용 후 L0→L0)는 §2 표에 보존, 상단 노트 참조.
+python tools/convergence_report.py examples/logotekton    # 현재 라이브 = T2 → L0 Seed (콘텐츠 깊이 0; rev-01 당시엔 T1)
 python tools/validate_packs.py     examples/logotekton     # 42 PASS (재귀: 라이브 25 + .pre 픽스처 17)
 ```
 

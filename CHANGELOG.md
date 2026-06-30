@@ -21,6 +21,23 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.5 (L1 깊이 게이트 공허성 + 예제 정직 재분류)
+> 게이밍 3라운드·README 주장·스키마↔도구상수·성숙도 수학·회귀 5렌즈로 4 확인 / 0 기각.
+- **[Fixed] L1 깊이-vertical 공허성 (중심 명제 결함).** L1 의 깊이 요구('≥1 팩 ≥3 확인')가 *메타* 팩
+  `user.evaluation_cases` 로 자동 충족됐다 — L1 이 이미 'n_eval≥3' 을 요구하므로 vertical 이 0 제약.
+  결과: 7개 얕은 팩 + 평가 3개로 L1 도달(흩뿌리기 게이밍을 막겠다던 §8 약속이 거짓). vertical 을
+  *콘텐츠* 팩(메타 제외)으로 한정 → 같은 프로파일이 L0. spec/06 §3·§8 명문화, 회귀 테스트.
+- **[Fixed] 워크된 예제 정직 재분류 L1 → L0 Seed.** 위 수정으로 logotekton 의 유일한 ≥3 팩이 메타 eval
+  이라 **콘텐츠 깊이 0** → 정직한 티어는 **L0 Seed**(폭 10팩 ≥7 이나 콘텐츠 깊이 없음). 이는 de-averaging
+  명제의 산 예시 — *폭은 넓되 깊이 없으면 Seed*. 예제 convergence-report §4 를 라이브 T2 수치로 갱신
+  (stale 0.43/0.75/NA → 0.07/1.00/0.08), revolution-01/02·runtime-adapter·README·QUICKSTART 의 L1 표기
+  정정. 2회전 뒤에도 L0 인 것이 "여러 지표가 올라도 콘텐츠 깊이 없이는 Seed"를 보여줌.
+- **[Fixed] 공허 루브릭 스키마 드리프트(R1).** it.4 의 validate_packs 강화(빈 criteria·임계0 거부)와
+  eval 스키마가 어긋남 → 스키마에 `criteria.minItems:1`·`pass_threshold.exclusiveMinimum:0` 추가로 정합.
+- **[Fixed] README 테스트 수 98 → 108.**
+- **[명시] 깊이 카운터는 내용 중복 비검사.** ≥3 깊이 칸은 동일 진술 사본 3개로도 채워짐 — 근접중복 탐지는
+  별도 `dedup_check.py`(redundancy_ratio) 책임임을 spec/06 §8 에 명시(깊이 게이트 ≠ 중복 게이트).
+
 ### 다중 에이전트 적대적 검증 스윕 — it.4 (게이밍 2라운드 + 정직한 한계 명시)
 > 게이밍 저항 2라운드·미구현 주장·OpenCrab 크로스워크·G6·회귀 5렌즈로 6 확인 / 1 기각. it.3 가 닫은
 > 게이밍 홀 *다음 층*을 채굴.
