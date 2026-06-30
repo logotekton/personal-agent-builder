@@ -1,9 +1,13 @@
 # 06 · 수렴 모델 (Convergence Model)
 
-> **EN:** Convergence is the monotone accumulation of confirmed, evidence-bound, scoped
-> records across the 14 packs, with **falling correction cost** and **stabilizing drift**.
-> We measure it with six indices and five maturity tiers (L0–L4), so "my agent is becoming
-> me" is a number you can watch climb — not a feeling. This is the participation hook.
+> **EN:** Convergence reads in two layers. **Map convergence (the mirror, primary)** is the
+> monotone accumulation of confirmed, evidence-bound, scoped records across the 14 packs with a
+> shrinking off-frontier — *how explicit your self-map has become*, measured without ever
+> compiling or running an agent (L0–L1). **Delegate convergence (optional, after you compile)**
+> adds **falling correction cost** and rising decision-fidelity — *how delegable your judgment
+> has become* — and only it requires running the compiled profile (L2+). So "watching myself
+> become explicit" is a number you can watch climb (not a feeling); "my agent becoming me" is
+> the optional layer on top. Six indices, five maturity tiers (L0–L4). This is the participation hook.
 
 이 프로젝트의 핵심 명제는 *"암묵지가 쌓이면 개인 에이전트로 수렴한다"*입니다. 명제가
 설득력을 가지려면, **수렴을 측정**할 수 있어야 합니다. 이 문서가 그 측정 도구입니다.
@@ -16,8 +20,17 @@
 > **스코프가 지정된(scoped)** 레코드가 쌓이면서, **교정 비용은 내려가고** **드리프트는
 > 안정화**되는 과정.
 
-즉, 단순히 "데이터가 많아짐"이 아니라 — 에이전트의 출력이 점점 **당신의 승인 없이도 당신이
-승인했을 모습**에 가까워지는 것입니다. 그것을 아래 6개 지표로 본다.
+즉, 단순히 "데이터가 많아짐"이 아닙니다. 수렴은 **두 겹**으로 읽힙니다(거울 → 대리인):
+
+> - **지도 수렴 (거울, 일차)** — 확인·증거결속 레코드가 쌓이고 *off-frontier(빈 곳)가 줄며*
+>   `traceability`=1.0 이 유지되는 것. *당신의 자기지도가 채워지는 것.* 측정: `coverage`(깊이)·
+>   `confirmation_ratio`·`traceability` — **에이전트를 컴파일·실행하지 않아도** 잰다.
+> - **대리인 수렴 (선택, 컴파일 후)** — 컴파일된 프로필의 출력이 점점 *당신이 승인했을 모습*에
+>   가까워지는 것. 측정: `decision_fidelity`↑·`correction_cost`↓ — **컴파일된 프로필을 평가 케이스로
+>   실행해야** 잰다(곧 대리인을 만들었을 때만 의미).
+
+거울이 일차이고, 대리인 수렴은 지도를 *행동하는 프로필로 컴파일·평가*했을 때만 켜집니다 — 그래서
+성숙도 사다리도 **L0–L1(거울)** 과 **L2+(대리인 검증)** 으로 갈립니다(§3). 그것을 아래 6개 지표로 본다.
 
 ## 2. 여섯 가지 수렴 지표
 
@@ -67,6 +80,17 @@
 > L4는 "완성"이 아니라 **유지**입니다. 사람은 변하므로, 수렴은 한 번 도달하고 끝나는 점이
 > 아니라 드리프트를 흡수하며 머무는 상태입니다. 그래서 `drift_history` 팩이 14개 중 하나입니다.
 
+> **거울 티어 vs 대리인 티어 — 사다리가 곧 거울→대리인 경계다.** **L0–L1 은 *지도(거울)* 측 지표만으로**
+> 오릅니다: 시드/깊이(`coverage`), `traceability`=1.0, 평가 케이스 *정의* 수, 사람 확인. 즉 **에이전트를
+> 컴파일·실행하지 않아도** 자기지도를 채우며 L1까지 갑니다 — *자기명시화만 하는 사용자의 자연 거처*. 반면
+> **L2 이상은 `decision_fidelity`(컴파일된 프로필을 평가 케이스로 *실행*)와 `correction_cost`(에이전트
+> 출력 편집률)를 요구**하므로, *대리인을 컴파일·평가*했을 때만 오릅니다. 그래서 **`L1→L2` 전이가
+> [README 의 '거울 → 대리인' 교차점](../README.md#거울이냐-대리인이냐--자기명시화가-먼저다)과 같은 자리**입니다 —
+> L2+ 사다리는 *대리인 검증* 사다리이고, 거기 오를지는 (텔로스대로) **선택**입니다. 거울만 원하면 L0–L1
+> 에서 지도를 *무한히 깊게* 채우면 됩니다(더 많은 팩을 ≥3 으로). *주의:* 이 전이를 가로막는 **게이트는
+> 기술적**(shadow-validation = 무회귀)일 뿐, "내 패턴을 *내 이름으로 행동*하게 해도 되는가"라는 *결과적*
+> 판단은 어떤 게이트도 대신해 주지 않습니다 — 그건 사람이 내리는 별개 결정입니다([거울이냐 대리인이냐](../README.md#거울이냐-대리인이냐--자기명시화가-먼저다)).
+
 > **폭(Sketch) vs 깊이(Working+) — 게이트가 쓰는 coverage는 깊이다.** L1 Sketch 의 `≥7개 팩 시드`는
 > *폭*(broad-but-shallow)을 봅니다 — 스케치는 넓게 한 번씩 찍은 상태. 하지만 L2 Working 이상의
 > `coverage`는 **§2 정의 그대로 *엄격(≥3 확인 = 깊이)***를 씁니다. 시드폭으로 L2를 게이팅하면 1레코드씩
@@ -103,9 +127,10 @@
 ## 6. 참여 관점 — 왜 이게 매력적인가
 
 - **자기 정량화(self-quantification)의 새 축**: 걸음 수가 아니라 *"내 암묵지가 얼마나 명시·
-  증거화됐는가 — 나도 모르던 나를 얼마나 봤는가"*를 봅니다(일차 읽기). 그 부산물로 *"내 판단이
-  얼마나 위임 가능해졌는가"*도 따라옵니다. 수렴은 *대리인의 완성도*이기 전에 *자기지도의 충실도*입니다
-  ([README — 거울이냐 대리인이냐](../README.md#거울이냐-대리인이냐--자기명시화가-먼저다)).
+  증거화됐는가 — 나도 모르던 나를 얼마나 봤는가"*를 봅니다(거울 읽기, L0–L1 의 지도 측 지표). 그 위에
+  *선택적으로* — 지도를 행동하는 프로필로 컴파일·평가하면 — *"내 판단이 얼마나 위임 가능해졌는가"*(대리인
+  읽기, L2+ 의 `decision_fidelity`·`correction_cost`)가 얹힙니다. 즉 수렴은 *먼저* 자기지도의 충실도이고,
+  대리인 완성도는 그 위의 *선택 층*입니다(§1·§3, [README — 거울이냐 대리인이냐](../README.md#거울이냐-대리인이냐--자기명시화가-먼저다)).
 - **소유와 이식성**: 지표는 당신 데이터에서 나오고, 팩은 당신 것입니다. 플랫폼을 떠나도
   스키마는 열려 있어 가져갈 수 있습니다.
 - **공동 발전**: 14개 팩 스키마와 지표 정의가 공개이므로, 더 나은 지표·더 나은 채굴법을
@@ -131,12 +156,12 @@
 
 ## 8. 깊이·de-averaging — *모르는 곳을 아는 것*이 수렴이다
 
-> **EN:** Convergence is not breadth of coverage but **de-averaging** — the agent becoming *you*
-> only where it has *your* evidence, and **abstaining** (not answering with the generic average)
-> everywhere else. A personal agent that confidently fills its blind spots with population
-> defaults is not a personal agent; it is a generic model wearing your name. So maturity rewards
-> **depth**, not just breadth, and the report names the **off-frontier** — the slices where the
-> agent must stay draft-only.
+> **EN:** Convergence is not breadth of coverage but **de-averaging** — the self-map (and any
+> agent compiled from it) modeling *you* only where it has *your* evidence, and **abstaining**
+> (not filling blind spots with the generic average) everywhere else. A self-map — or an agent —
+> that confidently fills its blind spots with population defaults is not *you*; it is a generic
+> model wearing your name. So maturity rewards **depth**, not just breadth, and the report names
+> the **off-frontier** — the slices where the map stays sparse and any agent must stay draft-only.
 
 이 프로젝트의 *진짜* 명제는 "데이터를 많이 쌓는다"가 아니라 **de-averaging**입니다:
 
