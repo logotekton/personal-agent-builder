@@ -634,6 +634,47 @@ class TestReliabilityTier(unittest.TestCase):
         self.assertEqual(ix["_n_self_reported"], 0)
 
 
+class TestAutoConfirmGateImmunity(unittest.TestCase):
+    """spec/12 §4.4 순환 차단: auto-confirm 은 성숙도 게이트 신호를 '건드릴 수 없다'. hcr 뿐 아니라
+    coverage 깊이·decision_fidelity·correction_cost 도 auto-confirm 면역이어야 한다 (it.3 게이밍 홀)."""
+
+    def test_auto_confirmed_excluded_from_coverage_depth(self):
+        # 3 auto_confirmed behavioral confirmed in a pack → NOT a depth vertical (human depth 0).
+        recs = {"user.persona_core": [
+            {"review_status": "confirmed", "reliability": "behavioral", "auto_confirmed": True,
+             "evidence_refs": ["e"]} for _ in range(3)]}
+        ix = cr.compute_indices(recs, [], [])
+        self.assertEqual(ix["_behavioral_confirmed_by_pack"]["user.persona_core"], 0)
+        self.assertEqual(ix["_packs_with_3"], 0)          # auto-confirm can't build depth
+        self.assertEqual(ix["_n_auto_confirmed"], 3)
+
+    def test_auto_confirmed_evals_excluded_from_fidelity(self):
+        # auto_confirmed pass eval cases must NOT inflate decision_fidelity (the §4.4 promise).
+        evals = (
+            [{"result": {"status": "fail"}}]                                  # 1 human behavioral FAIL
+            + [{"result": {"status": "pass"}, "auto_confirmed": True} for _ in range(4)]  # 4 auto PASS
+        )
+        ix = cr.compute_indices({}, evals, [])
+        self.assertEqual(ix["_n_eval"], 1)               # only the human-gated eval counts
+        self.assertEqual(ix["decision_fidelity"], 0.0)   # not 0.8
+
+    def test_autoconfirm_flood_plus_three_human_records_cannot_reach_L4(self):
+        # The empirically-reproduced it.3 attack: flood all 14 packs with auto-confirmed records
+        # + 3 human records → must NOT reach a high tier (was L4 before the fix).
+        packs = {p: [{"review_status": "confirmed", "reliability": "behavioral",
+                      "auto_confirmed": True, "evidence_refs": ["e"]} for _ in range(3)]
+                 for p in cr.CANONICAL_PACKS}
+        packs["user.persona_core"] += [
+            {"review_status": "confirmed", "reliability": "behavioral", "evidence_refs": ["e"]}
+            for _ in range(3)]
+        evals = [{"result": {"status": "pass"}, "auto_confirmed": True, "edit_fraction": 0.05}
+                 for _ in range(5)]
+        ix = cr.compute_indices(packs, evals, [])
+        tier, _, _ = cr.maturity_tier(ix)
+        self.assertEqual(ix["coverage"], 1 / 14)          # only the 1 human-depth pack counts
+        self.assertNotIn(tier, ("L3", "L4"))              # flood cannot self-certify maturity
+
+
 class TestCandidateSkip(unittest.TestCase):
     """validate_packs skips candidate files (candidate.schema.json), never FAILs them as base records."""
 

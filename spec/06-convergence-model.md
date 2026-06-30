@@ -45,13 +45,18 @@
 
 - `coverage`는 **깊이** — *behavioral* 확인 레코드 ≥3개인 팩 비율(엄격). 자기서술
   (`reliability: self_reported`)은 draft-only 라 깊이에 산입하지 않는다 — 깊이=신뢰는 관찰된
-  행동에서만 온다([01 §7.1](./01-kernel-schema.md), 설계자 결정 C). 시드*폭*은 보조 신호(§8).
+  행동에서만 온다([01 §7.1](./01-kernel-schema.md), 설계자 결정 C). **또한 `auto_confirmed` 승격(사람
+  미게이트)도 깊이에서 제외**한다 — 성숙도 게이트가 *그것이 통제하는* auto-confirm 으로 부풀려지면
+  독립 신뢰 신호가 못 되기 때문(§4.4 순환 차단; auto-confirm 무더기로 깊이를 채워 L3/L4 를 따는 경로
+  차단). 시드*폭*은 보조 신호(§8).
 - `confirmation_ratio`는 **포착 품질** — 추출이 실제로 승인되는가, 잡음만 많은가. **단, 성숙도 게이트는
   이 값이 아니라 `human_confirmation_ratio`(auto-confirm 승격을 분자·분모에서 제외한 *사람 게이트* 흐름만)를
   쓴다** — auto-confirm 이 `confirmed` 분자를 스스로 밀어올려 *떨어졌어야 할* 성숙도를 가리는 자기인증 루프를
   막기 위해서다([12 확인 정책 §4.4](./12-confirmation-policy.md), 베이스 레코드의 `auto_confirmed` 필드).
   auto-confirm 이 0건이면 둘은 같다.
 - `decision_fidelity`는 **충실도** — 에이전트가 당신이 승인할 답을 고르는가([평가](./05-evaluation-drift.md)).
+  성숙도 게이트의 1차 신호이므로 `correction_cost` 와 함께 **`auto_confirmed` 평가 케이스를 제외**해
+  auto-confirm 면역으로 둔다(§4.4 의 'auto-confirm 여부와 무관' 약속을 코드로 강제).
 - `correction_cost`는 가장 정직한 지표 — *얼마나 덜 고치게 되었는가*. 유일하게 낮을수록 좋음.
 - `drift_stability`는 **수렴의 증거** — 초기엔 대체가 잦고(높은 드리프트), 수렴할수록 잦아듦이
   줄어듦. 안정화 자체가 "굳어졌다"의 신호. **현 구현(`tools/convergence_report.py`)은 *전 기간 누적*

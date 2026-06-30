@@ -571,7 +571,11 @@ def compute_indices(pack_records, eval_cases, drift_records):
     """6개 지표 + 보조 카운트를 dict 로 반환."""
     # 팩별 확인 레코드 수
     confirmed_by_pack = {}
-    behavioral_confirmed_by_pack = {}   # 깊이는 behavioral confirmed 만 (self_reported 는 draft-only)
+    # 깊이(coverage)는 behavioral *그리고* 사람이 직접 게이트한(=auto-confirm 아닌) confirmed 만 센다.
+    # self_reported(draft-only) 제외 + auto_confirmed 제외 — spec/12 §4.4 '순환 차단': 성숙도 게이트가
+    # *그것이 통제하는* auto-confirm 으로 부풀려지면 독립 신뢰 신호가 못 된다. auto-confirm 무더기로
+    # 깊이를 채워 L3/L4 를 따는 게이밍 경로 차단(적대적 검증 it.3 AC-COVERAGE-DF-GATE-POLLUTION).
+    behavioral_confirmed_by_pack = {}
     seeded_packs = 0
     n_confirmed = n_pending = n_rejected = 0
     n_auto_confirmed = 0
@@ -580,7 +584,8 @@ def compute_indices(pack_records, eval_cases, drift_records):
         recs = pack_records.get(pack, [])
         c = sum(1 for r in recs if _status_of(r) in CONFIRMED_STATES)
         bc = sum(1 for r in recs
-                 if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r))
+                 if _status_of(r) in CONFIRMED_STATES
+                 and not _is_self_reported(r) and not _is_auto_confirmed(r))
         confirmed_by_pack[pack] = c
         behavioral_confirmed_by_pack[pack] = bc
         # 폭(seeded)도 *behavioral* 존재를 요구한다 — self_reported 만 든 팩은 행동 증거가 없어
@@ -628,10 +633,12 @@ def compute_indices(pack_records, eval_cases, drift_records):
     denom_hcr = n_human_confirmed + n_pending + n_rejected
     human_confirmation_ratio = (n_human_confirmed / denom_hcr) if denom_hcr else None
 
-    # self_reported 평가/드리프트 레코드는 draft-only 라 성숙도 지표 집계에서 전부 제외한다 — 그래야
-    # "모든 6개 지표 제외"가 글자 그대로 참이 된다(적대적 재검증 N1: self_reported 평가 케이스로
-    # decision_fidelity 를 부풀리는 잔여 경로 차단). 별도 카운트는 위 n_self_reported 에 이미 반영됨.
-    behavioral_evals = [ec for ec in eval_cases if not _is_self_reported(ec)]
+    # decision_fidelity·correction_cost 는 성숙도 게이트의 1차 신호다. spec/12 §4.4 는 이 둘이
+    # 'auto-confirm 여부와 무관'하다고 약속한다 — 그러려면 평가 케이스도 self_reported(draft-only)뿐
+    # 아니라 auto_confirmed(사람 미게이트) 도 제외해야 한다. 안 그러면 auto-confirm 한 pass 평가 케이스를
+    # 무더기로 넣어 decision_fidelity 를 부풀려 L3/L4 를 따는 경로가 열린다(it.3 AC-* 게이밍 홀).
+    behavioral_evals = [ec for ec in eval_cases
+                        if not _is_self_reported(ec) and not _is_auto_confirmed(ec)]
 
     # decision_fidelity: pass=1, partial=0.5, fail/그외=0 (behavioral 평가 케이스만)
     n_eval = len(behavioral_evals)
