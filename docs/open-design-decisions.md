@@ -27,16 +27,26 @@
   입력 순서에 따라 *다른* 후보가 `confirmed` 로 저장되고 다른 쪽은 `surface` 로 드롭됨.
 - **it.17** — supersede-chain 순서 의존: 같은 identity·다른 scope 클러스터가 한 배치에 오면 어느
   레코드가 `narrowed`(은퇴)되고 어떤 `SupersessionRecord` 가 나오는지 입력 순서에 의존.
+- **it.24** — **순수 중복(duplicate) 경로**(Jaccard 1.0, 같은 scope, verdict `duplicate`/`merge`)도
+  같은 결함: 같은 canonical_key 후보 2개가 한 배치에 오면 둘 다 1 레코드로 올바르게 합쳐지고 멱등이지만
+  (트윈 없음·rep=2), *어느 id 가 생존자로 남고 어느 id 가 merge_history 에 들어가는지*가 첫-도착(입력
+  순서)으로 결정됨(75k 속성 케이스 중 516/516 중복 케이스에서 재현). it.16/it.17 은 충돌밴드·다른-scope
+  refinement 만 다뤄 이 경로를 빠뜨렸다 — 동일 'canonical 생존자' 결정이 *세 verdict(duplicate·
+  refinement·conflict) 전부*에 걸쳐 있음이 이로써 완성됨.
 
-**핵심 질문.** 충돌·체인 클러스터에서 *어느 후보가 권위(confirmed/생존)로 선택되는가*:
+**핵심 질문.** 충돌·체인·**중복** 전반에서 *어느 후보가 권위(confirmed/생존)로 선택되는가*:
 (a) canonical 순서(`canonical_key` 또는 `(record_type, statement, scope, id)` 전순서)로 결정론적 단일
 생존자를 뽑는다, vs (b) 자동 해소하지 않고 *양쪽을 surface* 로 남겨 사람이 판단한다.
 
-**권고.** 두 사례를 **하나의 'intra-batch 결정성 정책'** 으로 묶는다.
+**권고.** 세 사례를 **하나의 'intra-batch 결정성 정책'** 으로 묶는다(단일 canonical-survivor tie-break 이
+세 verdict 전부를 해소한다).
+- **중복(duplicate)** → (a) canonical 생존자 고정: 같은 canonical_key 그룹에서 `(canonical_key, id)`(또는
+  `(record_type, statement, scope, id)`) 최소값을 생존자로 뽑고, 더 일찍 도착한 것 포함 나머지를 그쪽으로
+  병합 → 생존 id·merge_history 멤버집합이 입력 순서와 무관.
+- **supersede-chain** → (a) 같은 canonical 생존자 규칙.
 - **충돌밴드** → (b) 양쪽 surface(자동 `confirmed` 금지) + SURFACE 레코드의 primary 만 canonical 순서로
   결정론화. (충돌밴드는 설계상 'never auto-applied' 카테고리라 자동 승격 자체가 의심스럽다.)
-- **supersede-chain** → (a) canonical 생존자 고정.
-- 어느 쪽이든 회귀 테스트로 **입력 순열 불변**(셔플해도 동일 plan)을 잠근다.
+- 셋 다 회귀 테스트로 **입력 순열 불변**(셔플해도 동일 최종 집합, merge_history 는 list 순서만 허용)을 잠근다.
 
 **잠금 숫자 영향.** 예제 logotekton 에는 충돌밴드/동일-identity-다른-scope 다중 후보 클러스터가 없으므로
 (`merge_rate 0.095` · `supersessions 2` 는 깨끗한 1:1 경로에서 나옴) canonical tie-break 도입은 잠금값에

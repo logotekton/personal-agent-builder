@@ -21,6 +21,19 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.24 (2차 속성 퍼징 — 코드수정 0 / 설계판단 1건)
+> 새 불변식 5렌즈 ~**75,000 케이스**: compile-roundtrip 충실도/재정렬-결정성(2.4k)·dedup 대칭(5.4k)
+> **전부 통과**. 위반 3건 중 2건 기각(잘못된 entry point/의도된 제외), 1건 확인 — 모두 *실제 plan_batch+
+> apply_plan 경로*에 재검증(인프라 드리프트 대비). 코드 변경 0, 잠금 숫자 불변.
+- **[NOTE] (보고만·미적용 — 클러스터 1 확장)** 순수 중복(duplicate, Jaccard 1.0·같은 scope) 경로의
+  생존자-id 순서 의존: 같은 canonical_key 후보 2개가 한 배치에 오면 1 레코드로 올바르게 합쳐지고 멱등이나
+  (트윈 없음), *어느 id 가 생존하고 어느 id 가 merge_history 에 들어가는지*가 입력 순서로 결정됨(516/516
+  중복 케이스 재현, 실제 plan_batch 경로). it.16(충돌밴드)·it.17(supersede-chain)이 빠뜨린 세 번째 경로 —
+  단일 canonical-survivor tie-break 이 duplicate·refinement·conflict 세 verdict 전부를 해소함이 이로써
+  완성. docs/open-design-decisions.md 클러스터 1 에 통합.
+- **[positive] 속성-검증 강건성 누적**: it.23(38k)+it.24(75k) = ~**113,000 무작위 케이스**에서 index-range·
+  monotonicity·gate-implication·compile-roundtrip·dedup-대칭 전부 통과, 실 코드버그는 it.23 ULP 1건뿐.
+
 ### 다중 에이전트 적대적 검증 스윕 — it.23 (메타모픽/속성 기반 퍼징 — 실 버그 1건)
 > 손-제작 입력 대신 *무작위 유효 레코드 집합*을 대량 생성해 불변식을 검증하는 5렌즈 퍼징. 약 **38,000
 > 케이스**가 index-range(11k)·monotonicity(3.6k)·gate-implication(23k) 에서 **전부 통과** — 도구가
