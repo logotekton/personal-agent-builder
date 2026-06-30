@@ -8,7 +8,7 @@
 순수 표준 라이브러리 테스트입니다(외부 의존성 없음; PyYAML이 있으면 재귀 CLI 경로까지 검사). 프로젝트가
 의존하는 *모든 숫자*를 회귀로 잠급니다.
 
-## 무엇을 잠그나 (`test_tools.py`, 109 tests)
+## 무엇을 잠그나 (`test_tools.py`, 110 tests)
 
 - **`tools/pab_merge.py`** — `canonical_key` 결정성 + 알려진 값(`3cabb5142158`); 네 판정
   (`novel→insert` · `duplicate→merge` · `refinement→supersede` · `conflict→surface`) + `already_merged`;
