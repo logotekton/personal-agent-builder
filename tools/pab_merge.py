@@ -187,7 +187,10 @@ def classify(existing_by_pack, candidate):
 
     # exact-identity (same scope) -> duplicate -> merge (idempotent on merge_history)
     for r in existing:
-        r_ck = r.get("canonical_key") or canonical_key(pack, r.get("record_type", ""), r.get("statement", ""), r.get("scope", ""))
+        # 정체성은 *내용*에서 파생한다(spec/10 §2: sha1(pack·type·norm(statement)·norm(scope))).
+        # 저장된 canonical_key 는 출력/감사용 캐시일 뿐 — 매칭에 신뢰하면 stale 키가 (a) 진짜 중복을
+        # 놓쳐 쌍둥이를 삽입(G1 위반)하거나 (b) 무관한 레코드에 잘못 병합(조용한 손상)한다. 항상 재계산. (it.15)
+        r_ck = canonical_key(pack, r.get("record_type", ""), r.get("statement", ""), r.get("scope", ""))
         if r_ck == ck:
             # already present (this candidate WAS this record, e.g. a prior insert) -> noop
             if r.get("id") == cid or cid in (r.get("merge_history") or []):
@@ -206,7 +209,9 @@ def classify(existing_by_pack, candidate):
     # similar-but-not-equal within same (type, scope) -> possible conflict -> surface
     cand_tok = _norm_tokens(stmt)
     for r in existing:
-        if r.get("record_type") == rt and _norm_scope(r.get("scope", "")) == _norm_scope(scope):
+        # record_type 누락(None)을 후보 기본값('')과 동일하게 정규화 — 위 duplicate/refinement 패스와 대칭.
+        # bare r.get("record_type")(None) vs rt('') 비교는 untyped 레코드의 진짜 충돌을 놓친다. (it.15)
+        if r.get("record_type", "") == rt and _norm_scope(r.get("scope", "")) == _norm_scope(scope):
             sim = _jaccard(cand_tok, _norm_tokens(r.get("statement", "")))
             if CONFLICT_LOW <= sim < CONFLICT_HIGH:
                 return {"candidate": cid, "pack": pack, "verdict": "conflict",
@@ -274,8 +279,8 @@ def apply_plan(existing_by_pack, candidates, plans, stamp):
                 if r.get("id") == plan["target"]:
                     try:
                         base = int(r.get("repetition_count", 1))
-                    except (TypeError, ValueError):
-                        base = 1  # 비정수 repetition_count 도 1 로 보고 진행(적대적 검증 it.14)
+                    except (TypeError, ValueError, OverflowError):
+                        base = 1  # 비정수·무한값 repetition_count 도 1 로 보고 진행(it.14; OverflowError it.15)
                     r["repetition_count"] = base + 1
                     refs = _as_ref_list(r.get("evidence_refs"))
                     for ev in _as_ref_list(cand.get("evidence_refs")):

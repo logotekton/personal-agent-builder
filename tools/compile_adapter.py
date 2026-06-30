@@ -142,7 +142,11 @@ def compile_adapter(pack_records, drift_records, task_tags=None):
         active = [
             r for r in recs
             if is_runtime_active(r, superseded)
-            and (task_tags is None or cs.scope_overlap(r.get("scope"), task_tags))
+            # scope 소스 해석을 context_select 와 일치시킨다(`scope` 없으면 `applies_in`) — applies_in 은
+            # 런타임 컨텍스트 스위치(spec/01 §, skills/06)이므로 scope 만 보면 applies_in-스코프 레코드가
+            # 모든 작업류에 새어든다. 두 결정론 도구가 runtime-active 집합에서 갈라지면 안 된다. (it.15)
+            and (task_tags is None
+                 or cs.scope_overlap(r.get("scope") or r.get("applies_in"), task_tags))
         ]
         # 결정론: (id, statement) 전순서로 정렬 (동일 입력 → 동일 어댑터).
         # id 만으로는 동일-id 레코드(예: 충돌/중복)에서 안정정렬이 입력순서에 의존 — statement 를
