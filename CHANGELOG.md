@@ -21,6 +21,29 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.17 (스키마-검증기 경계 정합 — 실 버그 4건 + 설계판단 4건)
+> 5렌즈(스키마↔검증기 정합 · 성숙도 게이트 경계 · 문서수치↔도구 드리프트 · intra-batch 결정성 심화 ·
+> 퇴화입력 CLI)로 **8 확인 / 1 기각**. 검증기가 스키마가 선언한 수치 경계([0,1]·(0,1])를 강제하지 않아
+> 불가능한 값이 통과·지표를 오염시키던 부류를 닫음. 잠금 숫자 전부 불변. + 설계판단 4건은 보고만(아래).
+- **[Fixed] (MEDIUM) result.score 가 [0,1] 밖이어도 통과.** score=5.0 이 status↔score 정합 게이트(score≥thr)를
+  무의미하게 통과시켜 불가능한 점수가 'pass' 를 인증. 스키마(result.score min0 max1)대로 경계 강제(it.13 NaN/inf 와 대칭).
+- **[Fixed] (MEDIUM) result.edit_fraction 이 [0,1] 밖이어도 통과 + correction_cost 오염.** 50.0 이 검증기를
+  통과하고 평균에 그대로 들어가 correction_cost=50.0. *음수*는 비용을 과소평가해 L3/L4 게이트를 헛되이
+  통과시키는 게이밍 벡터. 검증기에서 경계 강제 + convergence `_finite_num` 도 [0,1] 분수만 받도록 방어(원시 레코드).
+- **[Fixed] (LOW) criteria weight 가 [0,1] 밖이어도 합만 맞으면 통과.** 2.0+(-1.0)=1.0 이 가중치합 게이트를
+  통과 → 음수/초과 weight 명시 거부(스키마 weight 0..1).
+- **[Fixed] (LOW) pass_threshold 상한 미강제.** 임계>1 은 도달 불가능해 영구 fail 인데 통과됨 → (0,1] 로 강제(스키마 max1).
+- **[Added] 회귀 테스트 5건**(`TestSchemaBoundParityIt17`). 총 141→146.
+- **[NOTE] (보고만·미적용 — 설계판단 4건):**
+  (1) **pab_merge supersede-chain 순서 의존** — 같은 identity·다른 scope 클러스터가 한 배치에 오면 어느
+  레코드가 narrowed(은퇴)되고 어떤 SupersessionRecord 가 나오는지 입력순서에 의존(it.16 충돌밴드와 동류 —
+  pab_merge intra-batch 결정성을 통합 결정 필요).
+  (2) **dedup_check 멀티문서 YAML 오파싱** — `---` 분리 다문서를 한 'unknown' 팩으로 뭉개 id=None·유령
+  redundancy 생성, --strict 종료코드 0→1 뒤집힘(병합 vs 거부 선택 필요).
+  (3) **dedup_check 누락/손상 경로에 --strict 여도 exit 0** — I/O 오류를 삼켜 형제 도구와 종료코드 계약 불일치.
+  (4) **convergence_report null-파싱 파일에 exit 2** — 주석만 있는(파싱=None) 파일을 '읽기불가'와 혼동해
+  '읽을 파일 없음'으로 중단(load_structured 신호 분리 필요).
+
 ### 다중 에이전트 적대적 검증 스윕 — it.16 (it.15 패턴 일반화 — 실 버그 6건 + 설계판단 1건)
 > it.15 가 드러낸 두 패턴(리스트형 게이트의 항목-품질 누락 · 저장된 파생값 신뢰)을 *체계적으로* 추적한
 > 5렌즈 스윕으로 **6 확인 / 0 기각**. 잠금 숫자(6지표·canonical_key·merge_rate 0.095·supersessions 2)는
