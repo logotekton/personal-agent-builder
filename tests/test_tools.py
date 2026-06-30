@@ -54,6 +54,30 @@ def almost(a, b, places=4):
     return round(a - b, places) == 0
 
 
+# ─────────────────────── convergence_report: mini-YAML ──────────────────────
+class TestMiniYAMLScalars(unittest.TestCase):
+    """미니 YAML 폴백 파서가 PyYAML 과 갈라지지 않게 잠근다 (특히 NaN/inf 주입 방지)."""
+
+    def test_bare_nan_inf_stay_strings(self):
+        # PyYAML 1.1 은 bare nan/inf/infinity 를 *문자열* 로 본다(.nan/.inf 만 float).
+        # 미니 파서가 float NaN 을 만들면 평균·비율에 조용히 NaN 이 스며든다.
+        for word in ("nan", "inf", "-inf", "+inf", "infinity", "NaN", "Inf"):
+            v = cr._parse_scalar(word)
+            self.assertIsInstance(v, str, f"{word!r} should parse as str, got {v!r}")
+            self.assertEqual(v, word)
+
+    def test_real_numbers_still_parse(self):
+        self.assertEqual(cr._parse_scalar("0.43"), 0.43)
+        self.assertEqual(cr._parse_scalar("7"), 7)
+        self.assertEqual(cr._parse_scalar("1e3"), 1000.0)
+
+    @unittest.skipUnless(HAVE_YAML, "PyYAML not installed")
+    def test_matches_pyyaml_on_special_words(self):
+        import yaml
+        for word in ("nan", "inf", "-inf", "infinity"):
+            self.assertEqual(cr._parse_scalar(word), yaml.safe_load("x: " + word)["x"])
+
+
 # ───────────────────────── pab_merge: identity keys ─────────────────────────
 class TestCanonicalKey(unittest.TestCase):
     def test_deterministic(self):

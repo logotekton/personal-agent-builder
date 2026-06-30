@@ -146,6 +146,15 @@ def _strip_comment(line: str) -> str:
     return "".join(out)
 
 
+# PyYAML 1.1 은 bare nan/inf/infinity 를 float 가 아니라 문자열로 해석한다
+# (특수 부동소수는 `.nan`/`.inf` 표기를 요구). 미니 파서를 같은 규칙에 맞춘다.
+_SPECIAL_FLOAT_WORDS = {
+    "nan", "+nan", "-nan",
+    "inf", "+inf", "-inf",
+    "infinity", "+infinity", "-infinity",
+}
+
+
 def _parse_scalar(tok: str):
     """YAML 스칼라 토큰 → Python 값 (문자열/숫자/불리언/null/인라인 컬렉션)."""
     tok = tok.strip()
@@ -160,6 +169,11 @@ def _parse_scalar(tok: str):
         return False
     if tok.startswith("[") or tok.startswith("{"):
         return _parse_inline(tok)
+    # 특수 부동소수 워드(nan/inf/infinity, ± 포함)는 PyYAML 1.1 처럼 *문자열* 로 둔다.
+    # Python float() 는 "nan"/"inf" 를 받아들이지만, 그러면 미니 파서가 PyYAML 과
+    # 갈라져 NaN 이 조용히 수치 계산(평균·비율)에 스며든다 (적대적 검증 F4).
+    if low in _SPECIAL_FLOAT_WORDS:
+        return tok
     # 숫자?
     try:
         if any(c in tok for c in ".eE") and not tok.startswith("0x"):
