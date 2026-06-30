@@ -40,7 +40,7 @@
 | `confirmation_ratio` | confirmed / (confirmed + pending + rejected) | ↑ | ≥ 0.6 |
 | `decision_fidelity` | 통과한 평가 케이스 / 전체 평가 케이스 | ↑ | ≥ 0.8 |
 | `correction_cost` | 작업당 사용자 편집 비율(평균) | **↓** | ≤ 0.2 |
-| `drift_stability` | 1 − (최근 기간 대체수 / 확인 레코드수) | ↑ | ≥ 0.8 |
+| `drift_stability` | 1 − (대체수 / 확인 레코드수) | ↑ | ≥ 0.8 |
 | `traceability` | 증거를 가진 활성 규칙 / 활성 규칙 | = | **1.0 필수** |
 
 - `coverage`는 **깊이** — *behavioral* 확인 레코드 ≥3개인 팩 비율(엄격). 자기서술
@@ -54,7 +54,10 @@
 - `decision_fidelity`는 **충실도** — 에이전트가 당신이 승인할 답을 고르는가([평가](./05-evaluation-drift.md)).
 - `correction_cost`는 가장 정직한 지표 — *얼마나 덜 고치게 되었는가*. 유일하게 낮을수록 좋음.
 - `drift_stability`는 **수렴의 증거** — 초기엔 대체가 잦고(높은 드리프트), 수렴할수록 잦아듦이
-  줄어듦. 안정화 자체가 "굳어졌다"의 신호.
+  줄어듦. 안정화 자체가 "굳어졌다"의 신호. **현 구현(`tools/convergence_report.py`)은 *전 기간 누적*
+  대체수**(모든 `SupersessionRecord`)를 센다 — 레코드에 아직 기간/타임스탬프 윈도우 모델이 없기
+  때문이다. *최근 기간* 윈도우(예: 최근 N건·N일만 분자로)는 수렴의 *시간적* 회복을 더 직접 보여주는
+  계획된 정련이며, 기간 필드가 추가될 때 도입한다. 그 전까지 정의=구현=전 기간 비율로 일치시킨다.
 - `traceability`는 **타협 불가** — 항상 1.0. 증거 없는 활성 규칙은 존재해선 안 됨(게이트 G1·G3).
 - **self_reported 전면 제외(여섯 지표 *전부*).** 위 표·식의 `confirmed`·`확인 레코드수`·`활성 규칙`·
   `평가 케이스`는 모두 *behavioral* 만 센다 — `reliability: self_reported`(자기서술)는 draft-only 라

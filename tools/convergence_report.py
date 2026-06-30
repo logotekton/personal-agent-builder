@@ -30,7 +30,7 @@ JSON과 YAML의 안전한 부분집합을 읽습니다.
                         성숙도 게이트는 auto-confirm 을 제외한 human_confirmation_ratio 를 쓴다(§4.4)
   decision_fidelity   = 통과 평가 케이스 / 전체 평가 케이스    (↑, ≥0.8; partial=0.5)
   correction_cost     = 작업당 사용자 편집 비율 평균          (↓, ≤0.2; 없으면 NA)
-  drift_stability     = 1 − (최근 대체수 / 확인 레코드수)     (↑, ≥0.8; 드리프트 없으면 1.0)
+  drift_stability     = 1 − (전기간 대체수 / 확인 레코드수)   (↑, ≥0.8; 드리프트 없으면 1.0)
   traceability        = 증거 보유 활성 규칙 / 활성 규칙       (= 1.0 필수)
 
 성숙도 단계 (spec/06 §3):
@@ -670,7 +670,9 @@ def compute_indices(pack_records, eval_cases, drift_records):
                     corr_vals.append(v)
     correction_cost = (sum(corr_vals) / len(corr_vals)) if corr_vals else None
 
-    # drift_stability = 1 − (최근 대체수 / 확인 레코드수). 드리프트 없으면 1.0. (self_reported 드리프트 제외)
+    # drift_stability = 1 − (전기간 대체수 / 확인 레코드수). 드리프트 없으면 1.0. (self_reported 드리프트 제외)
+    # 주: 기간/타임스탬프 윈도우 모델이 아직 없어 *전 기간 누적* 대체수를 센다(spec/06 §1 표 주석).
+    # '최근 기간' 윈도우는 계획된 정련 — 기간 필드 추가 시 도입.
     supersessions = 0
     for d in drift_records:
         if _is_self_reported(d):
