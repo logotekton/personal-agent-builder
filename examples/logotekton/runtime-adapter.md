@@ -300,7 +300,7 @@ response_policy:
 | 반복 워크플로 미확정 | `user.workflow_playbooks` (8) | 섹션 6 (steps) | 빈 슬롯 |
 | 도메인 주의 패턴 없음 | `user.domain_overlays` (9) | 섹션 2·5 (domain) | 빈 슬롯 |
 | 도구 선호 미확정 | `user.tool_stack` (10) | 섹션 6 (tools) | 빈 슬롯 |
-| **확인된 경계 0개 → 기본 정책** | `user.boundary_authority` (11) | 섹션 7·8 | 인스턴스 경계 부재 |
+| **확인된 경계 0개 → 기본 정책** | `user.boundary_authority` (11) | 섹션 7 (+8 파생) | 인스턴스 경계 부재 |
 | 프로젝트·목표 그래프 미확정 | `user.memory_project_graph` (12) | 섹션 1·6 | 빈 슬롯 |
 | 평가 케이스 (컴파일 입력 아님) | `user.evaluation_cases` (13) | — ([11 평가](../../skills/11-evaluation-drift.md)가 사용) | 측정 입력 |
 | 드리프트 이력 없음 | `user.drift_history` (14) | (폐기 선별) | 폐기 레코드 0개 |

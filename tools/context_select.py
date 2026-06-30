@@ -4,7 +4,8 @@
 The compiler contract is "task-scoped activation, not a memory dump." This module makes that
 predicate EXECUTABLE instead of prose: given confirmed records, a task scope, and a token budget,
 it (1) filters by a deterministic scope-overlap predicate over a controlled tag vocabulary,
-(2) ranks by a deterministic salience score (confidence × recency × repetition_count),
+(2) ranks by a deterministic salience score (weighted sum:
+    0.5·confidence + 0.3·recency + 0.2·(repetition_count/REP_CAP)),
 (3) greedily fills the budget, and (4) returns the dropped tail so the caller can log it as a
 coverage gap. No embeddings, no LLM — same inputs always yield the same slice.
 
@@ -139,9 +140,10 @@ _DEMO = [
 
 def main():
     # no scope filter, a budget that fits the two most salient records and drops the tail
-    selected, dropped = select_context(_DEMO, token_budget=27, task_tags=None)
-    print("budget=27  (no scope filter)")
-    print("selected:", [r["id"] for r in selected], "  (by salience: confidence×recency×repetition)")
+    selected, dropped = select_context(_DEMO, token_budget=28, task_tags=None)
+    print("budget=28  (no scope filter)")
+    print("selected:", [r["id"] for r in selected],
+          "  (by salience: 0.5·confidence + 0.3·recency + 0.2·repetition)")
     print("dropped (logged as coverage gap):", [r["id"] for r in dropped])
     print("task_types:", ", ".join(TASK_TYPES))
     return 0

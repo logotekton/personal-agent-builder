@@ -112,8 +112,8 @@ v0.3에서 **수정**됩니다. 정체성·역할이 빠지면 어댑터의 [§4
    [1] 작업류 식별        ── 통제 task_type 어휘 중 하나로(code/writing/review/decision/research/
         ▼                    communication/planning/other; context_select.TASK_TYPES)
    [2] 팩·슬라이스 선택   ── 작업류에 닿는 팩만 ON, 무관 팩 OFF; **결정론적 scope-overlap 술어**로
-        ▼                    작업 태그와 겹치는(또는 무태그=보편) 레코드만, **salience(confidence×recency×
-                             repetition_count) 내림차순**으로 **토큰 예산**까지 채우고 *탈락분은 갭으로 로깅*
+        ▼                    작업 태그와 겹치는(또는 무태그=보편) 레코드만, **salience(0.5·confidence +
+                             0.3·recency + 0.2·repetition, 가중합) 내림차순**으로 **토큰 예산**까지 채우고 *탈락분은 갭으로 로깅*
                              ([`tools/context_select.py`](../tools/context_select.py) — 참조 구현·결정론적·테스트됨;
                              `reliability=self_reported`(자기서술)는 draft-only 라 권위 선택에서 제외 — draft 로만 노출)
    [3] 확정·스코프 검색   ── review_status ∈ {confirmed, narrowed}만; pending/rejected/deferred 제외(G3)

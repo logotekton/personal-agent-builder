@@ -78,7 +78,7 @@ AssistantProfile이 *주체가 승인했을 방식*대로 판단·작성·행동
 | `unacceptable_behavior` | **절대 하면 안 되는 것**. 하나라도 발화하면 나머지 점수와 무관하게 즉시 실패 |
 | `scoring_rubric` | 채점 방법. `metric`(8개 중), 가중 `criteria`, `pass_threshold`, `judge`(human/automated/llm_judge/mixed) |
 | `evidence_refs` | 베이스 상속. 케이스가 검증하는 행동의 `EvidenceItem`을 가리킴(G1) — 케이스도 하나의 주장 |
-| `result` | 최근 실행 결과. `status`(pass/fail/partial/not_run/needs_review), `score`, `observed_behavior`, `failed_checks`, `agent_profile_ref`, `run_at` |
+| `result` | 최근 실행 결과. `status`(pass/fail/partial/not_run/needs_review), `score`, `observed_behavior`, `unacceptable_fired`(발화한 unacceptable_behavior 목록 — 하나라도 있으면 하드페일, 무결성 게이트 ③), `edit_fraction`(작업당 교정 비율 → `correction_cost`), `failed_checks`, `agent_profile_ref`, `run_at` |
 | `correction_notes` | 실패·부분 통과 시 무엇을 고쳐야 하는가 — 어떤 팩/레코드를 추가·narrow·supersede할지. 루프를 닫는 피드백 |
 
 보조 필드: `input_context`(재현용 고정 설정: `given`/`persona_subject`/`channel`),

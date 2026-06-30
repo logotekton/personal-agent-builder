@@ -21,6 +21,20 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.8 (미탐색 영역 심층 — 문서-정확성 4건)
+> 트리거스키마·context_select·후보라우팅·어댑터·전체스펙재독 5렌즈로 4 확인 / 2 기각. *새 영역*에서
+> 진짜 새 발견(전부 LOW 문서-정확성, 코드 버그 아님) — 도구는 정확, 문서가 약간 어긋났던 것.
+- **[Fixed] salience 곱→가중합 오기.** 5개 문서가 salience 를 `confidence×recency×repetition`(곱)로 적었으나
+  구현은 *가중합* `0.5·conf+0.3·rec+0.2·rep(정규화)` — 다른 랭킹 함수. 5곳(context_select 독스트링·CLI·
+  tools/README·skills/10·CHANGELOG)을 실제 식으로 정정(코드·테스트 불변).
+- **[Fixed] context_select 데모 off-by-one.** 주석은 budget=27 이 "두 레코드"를 담는다 했으나 a+b=28>27 라
+  하나만 선택 → budget=28 로 올려 데모가 실제로 둘을 담게(주석과 일치).
+- **[Fixed] gap-table 섹션 표기.** runtime-adapter gap 표가 boundary_authority→"섹션 7·8" 인데 도구
+  feeds_sections=[7](§8 은 SECTION8_INPUT_PACKS 파생 경로) → "섹션 7 (+8 파생)"으로 정정(타 행은 전부 일치).
+- **[Fixed] spec/05 §2 result 필드 누락.** `unacceptable_fired`(하드페일·무결성 게이트 ③)·`edit_fraction`
+  (correction_cost 출처)이 result 하위필드 열거에서 빠져 있어 추가(스키마·게이트와 일치).
+- **2 기각**: pab_merge 라우팅·Tier A "동치" 주장 — 둘 다 적대적 검증이 기각.
+
 ### 다중 에이전트 적대적 검증 스윕 — it.7 (L1→L0 연쇄 꼬리 정리 — 코드 수렴)
 > 회귀·전체정합·신규사용자 온보딩·결정론·정직한-한계 5렌즈로 5 확인 / 2 기각. **5개 전부 문서-정합
 > 꼬리**(L1→L0 잔여 + stale 숫자 2건), **새 코드/설계 결함 0** — 코드 수준 수렴 확인.
@@ -226,7 +240,7 @@
 - **#9 결정론적 컨텍스트 조립(참조 술어).** 컴파일러 계약이 "메모리 덤프 아닌 작업별 활성화"라면서도
   토큰 예산·overlap 알고리즘·task_type 분류가 없어 *산문으로만* 시연되던 문제에, **실행 가능한 참조
   술어** [`tools/context_select.py`](./tools/context_select.py)를 추가했습니다: 통제 `task_type` 어휘 +
-  결정론적 scope-overlap 술어 + `salience`(confidence×recency×repetition_count) 내림차순 + **토큰 예산**
+  결정론적 scope-overlap 술어 + `salience`(0.5·confidence + 0.3·recency + 0.2·repetition, 가중합) 내림차순 + **토큰 예산**
   채움 + *탈락분을 갭으로 반환*(조용한 절단 금지). skills/10 §3 [2]가 이 술어를 가리킵니다. 테스트
   +5(58개). *정직한 한계: 라이브 컴파일러(`pab.py` compile 분기)는 스텁이라 아직 아무도 이 술어를 호출
   하지 않습니다 — 실런타임 배선이 남은 몸-작업. 여기 있는 건 검증된 **선택 수학**입니다.*
