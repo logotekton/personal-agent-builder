@@ -94,7 +94,7 @@ AssistantProfile이 *주체가 승인했을 방식*대로 판단·작성·행동
 > 케이스의 **기록 내부 정합성**을 게이트로 강제합니다: ① `criteria` 가중치 합 = 1.0, ②
 > `status=pass`면 `score ≥ pass_threshold`(점수와 모순되는 pass 거부), ③ `result.unacceptable_fired`가
 > 비어있지 않으면 status는 **반드시 `fail`**(하드페일은 점수와 무관, RLVR), ④ `judge=llm_judge`면
-> `judge_config`(model·temperature·prompt 고정) 필수 — 비결정 판정 금지. *라이브 채점기*(프로필을
+> `judge_config`의 **`model`·`temperature`·`prompt_id` 셋 다 고정** 필수 — 하나라도 빠지면 비결정 판정으로 거부. *라이브 채점기*(프로필을
 > 실제 실행해 status를 도출)는 컴파일된 런타임이 필요한 별개 작업이며, 이 게이트는 그 전제인
 > **기록이 자기 루브릭과 거짓말하지 않음**을 보장합니다.
 

@@ -174,18 +174,21 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
                 "— 임계 0 은 score=0 도 통과시켜 채점을 무의미하게 만듭니다"
             )
 
-        # (d) llm_judge 결정성 — model+temperature 고정 없으면 재현 불가한 판정.
+        # (d) llm_judge 결정성 — model·temperature·prompt(=prompt_id) 셋 다 고정해야 재현 가능
+        #     (spec/05 §2 ④와 동기화). 셋 중 하나라도 빠지면 비결정 판정.
         judge = rubric.get("judge")
         jc = rubric.get("judge_config")
-        has_cfg = isinstance(jc, dict) and bool(jc.get("model")) and ("temperature" in jc)
-        if judge == "llm_judge" and not has_cfg:
+        jc_dict = jc if isinstance(jc, dict) else {}
+        has_model_temp = bool(jc_dict.get("model")) and ("temperature" in jc_dict)
+        has_prompt = bool(str(jc_dict.get("prompt_id", "")).strip())
+        if judge == "llm_judge" and not (has_model_temp and has_prompt):
             res.errors.append(
-                "[EVAL] judge=llm_judge 인데 judge_config(model+temperature) 가 없습니다 "
-                "— 순수 기계 판정이 비결정적(재현 불가). model·temperature·prompt 를 고정하세요"
+                "[EVAL] judge=llm_judge 인데 judge_config 가 불완전합니다(model·temperature·prompt_id 셋 다 필요) "
+                "— 순수 기계 판정이 비결정적(재현 불가)"
             )
         # mixed(사람+기계 혼합)는 기계 부분이 비결정적일 수 있으므로 judge_config 를 권한다(경고).
         # 스키마(user.evaluation_cases) 설명과 동기화: "warns when judge=mixed".
-        if judge == "mixed" and not has_cfg:
+        if judge == "mixed" and not has_model_temp:
             res.warnings.append(
                 "[EVAL] judge=mixed 인데 judge_config(model+temperature) 가 없습니다 "
                 "— 혼합 판정의 기계 부분이 재현 불가할 수 있습니다. judge_config 를 고정하세요"

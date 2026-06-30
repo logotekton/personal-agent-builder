@@ -21,6 +21,21 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.9 (메타-체커 false-green + 신규자-문서 과대주장)
+> dedup_check·CI·체커도구·초기스킬·미공개과대주장 5렌즈로 7 확인 / 0 기각. 발견이 *체커 자신*(모든
+> "0 broken" 주장을 떠받치는 도구)과 신규자 문서로 이동 — 진짜 새 영역.
+- **[Fixed] check_anchors false-green.** 확장자 화이트리스트(.md/.json/.yaml/.yml/.py/.txt)만 존재검사해
+  `.codex/config.toml`·`.sh`·디렉터리 링크는 검증 안 됐음 → *모든* 상대 링크(파일+디렉터리) 존재검사로 강화.
+  독스트링도 "inline-style 링크만 스캔"으로 정직하게 한정(reference-style·autolink·HTML href 미스캔 명시).
+- **[Fixed] check_commands 가 pab_merge 미실행.** RUNNABLE_TOOLS 에서 pab_merge.py 누락 → 추가(드리프트
+  방지). /tmp 입력(이전 --apply 산출물) 명령은 skip:transient-path 로 분리. ~~~ 펜스도 인식(``` 만 인식하던 비대칭 수정).
+  독스트링의 runnable 목록도 실제(6→7 도구)와 일치시킴.
+- **[Fixed] 신규자 문서 과대주장 (MEDIUM).** docs/build-your-personal-agent §단계1 이 앰비언트 포착을
+  "설치 후 할 일 없음/자동"으로 제시하나 STUB 공개 0 → README·hooks-setup 와 동일한 정직한-한계 주석 추가.
+- **[Fixed] llm_judge 결정성 강제 강화.** spec/05 ④는 "model·temperature·prompt 고정"이라는데 validate 는
+  model+temperature 만 확인 → prompt_id 까지 요구하도록 강화(스키마 prompt_id 필드와 일치). 테스트 갱신.
+- **0 기각.**
+
 ### 다중 에이전트 적대적 검증 스윕 — it.8 (미탐색 영역 심층 — 문서-정확성 4건)
 > 트리거스키마·context_select·후보라우팅·어댑터·전체스펙재독 5렌즈로 4 확인 / 2 기각. *새 영역*에서
 > 진짜 새 발견(전부 LOW 문서-정확성, 코드 버그 아님) — 도구는 정확, 문서가 약간 어긋났던 것.

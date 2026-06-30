@@ -353,7 +353,11 @@ class TestEvalIntegrity(unittest.TestCase):
         res = vp.validate_record(r, "t")
         self.assertFalse(res.ok)
         self.assertTrue(any("judge_config" in e for e in res.errors), res.errors)
+        # model+temperature alone is NOT enough — prompt_id must be pinned too (spec/05 §2 ④)
         r["scoring_rubric"]["judge_config"] = {"model": "claude-opus-4-8", "temperature": 0}
+        self.assertFalse(vp.validate_record(r, "t").ok)
+        # full determinism config (model · temperature · prompt_id) passes
+        r["scoring_rubric"]["judge_config"]["prompt_id"] = "judge-prompt-v1"
         self.assertTrue(vp.validate_record(r, "t").ok)
 
     def test_empty_criteria_rubric_fails(self):
