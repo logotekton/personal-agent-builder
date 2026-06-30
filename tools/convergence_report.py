@@ -550,8 +550,9 @@ def _eval_result_status(rec) -> str | None:
 def _correction_value(rec):
     """레코드에서 사용자 편집 비율(작업당)을 추출. 없으면 None.
 
-    인식하는 필드 (우선순위): correction_cost, edit_fraction, correction_fraction,
-    result.edit_fraction, result.correction_cost.
+    인식하는 필드 (우선순위): (top-level) correction_cost, edit_fraction, correction_fraction,
+    그리고 result.edit_fraction. result.correction_cost/correction_fraction 은 eval 스키마가
+    result.additionalProperties:false 라 무효이므로 읽지 않는다.
     """
     for fld in ("correction_cost", "edit_fraction", "correction_fraction"):
         v = rec.get(fld)
@@ -559,10 +560,11 @@ def _correction_value(rec):
             return float(v)
     result = rec.get("result")
     if isinstance(result, dict):
-        for fld in ("edit_fraction", "correction_cost", "correction_fraction"):
-            v = result.get(fld)
-            if isinstance(v, (int, float)):
-                return float(v)
+        # result.edit_fraction 만 읽는다 — eval 스키마의 result 는 additionalProperties:false 라
+        # result.correction_cost/correction_fraction 는 *스키마 무효*다(중첩 별칭은 top-level 에서만 유효).
+        v = result.get("edit_fraction")
+        if isinstance(v, (int, float)):
+            return float(v)
     return None
 
 

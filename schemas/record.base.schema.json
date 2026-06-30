@@ -53,7 +53,7 @@
     "review_status": {
       "type": "string",
       "enum": ["pending", "confirmed", "rejected", "narrowed", "sensitive", "deferred"],
-      "description": "Lifecycle state. Gate G3: only confirmed/narrowed/edited are runtime-active."
+      "description": "Lifecycle state. Gate G3: only confirmed/narrowed are runtime-active (an edit is logged via review_audit.decision=edit while review_status stays confirmed/narrowed)."
     },
     "sensitivity": {
       "type": "string",

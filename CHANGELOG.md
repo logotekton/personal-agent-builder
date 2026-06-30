@@ -21,6 +21,19 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.11 (프라이버시 E2E 무결 + 스키마-도구 잔여 정합)
+> 회귀·프라이버시E2E·심층스키마·EN/KR 4렌즈로 3 확인 / 0 기각. **프라이버시 E2E 렌즈 0 발견**(민감/제한
+> →런타임 경로 무결). 코드/설계 0 — 스키마-설명·중첩별칭·EN초록뿐.
+- **[Fixed] 스키마 설명의 유령 'edited' 상태.** record.base·candidate 가 "confirmed/narrowed/edited 가
+  런타임 활성"이라 적었으나 enum·도구엔 'edited' 없음(편집은 review_audit.decision=edit 로 기록, 상태는
+  confirmed/narrowed 유지) → 설명을 enum·도구와 일치시킴.
+- **[Fixed] result 중첩 별칭 스키마 무효.** convergence_report 가 result.correction_cost/correction_fraction
+  을 읽었으나 eval 스키마 result 는 additionalProperties:false → 그 두 중첩 읽기 제거(result.edit_fraction 만),
+  스키마 별칭 설명도 "top-level 에서만 유효"로 정정. 예제 0.0833 불변.
+- **[Fixed] EN 초록 T0/T2 혼선.** 라이브 도구 배치(L0)를 폭 미달(6<7)로 귀속했으나 라이브 T2 는 10팩(폭 통과)·
+  깊이만 미달 → 한글 ⚙️ 노트·라이브 도구와 일치(폭 통과, 깊이 vertical 0; 본문은 T0 베이스라인).
+- **0 기각. 프라이버시 경로 무결 확인.**
+
 ### 다중 에이전트 적대적 검증 스윕 — it.10 (최종 수렴 검사 — 잔여 false-green + stale 숫자)
 > 회귀·전수숫자감사·잔여-false-green·완결성 4렌즈로 5 확인 / 0 기각. 코드/설계 0 — 검증기 강건성·숫자뿐.
 - **[Fixed] compile_adapter false-green (MEDIUM).** 입력 경로가 없어도(혹은 0팩 로드) exit 0 →

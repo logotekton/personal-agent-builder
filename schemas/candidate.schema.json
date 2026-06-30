@@ -93,7 +93,7 @@
     "validation_status": {
       "type": "string",
       "enum": ["pending", "confirmed", "rejected", "narrowed", "sensitive", "deferred"],
-      "description": "Confirmation-gate state (skill 07), same value set as the base record `review_status` to keep one lifecycle vocabulary. pending = awaiting review; confirmed = approved (may promote); rejected = declined (retained for audit/drift); narrowed = approved with a tightened scope; sensitive = approved in principle but blocked on a BoundaryRule (Gate G5); deferred = revisit later. Only confirmed/narrowed/edited candidates may promote to a pack (Gate G3)."
+      "description": "Confirmation-gate state (skill 07), same value set as the base record `review_status` to keep one lifecycle vocabulary. pending = awaiting review; confirmed = approved (may promote); rejected = declined (retained for audit/drift); narrowed = approved with a tightened scope; sensitive = approved in principle but blocked on a BoundaryRule (Gate G5); deferred = revisit later. Only confirmed/narrowed candidates may promote to a pack (Gate G3); an edit is logged via review_audit.decision=edit while the status stays confirmed/narrowed."
     },
     "extraction_method": {
       "type": "string",

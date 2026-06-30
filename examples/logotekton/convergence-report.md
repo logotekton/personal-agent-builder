@@ -21,10 +21,12 @@
 > [`../../spec/06-convergence-model.md`](../../spec/06-convergence-model.md) from the
 > instance records in [`instance-records.yaml`](./instance-records.yaml) and the six
 > evaluation cases in [`evaluation-cases.yaml`](./evaluation-cases.yaml). It reports the six
-> convergence indices; the automated tool places this snapshot at **tier L0 Seed** — it has
-> outgrown L0's literal definition (6 packs, 6 eval cases, `traceability`=1.0) but misses L1 on
-> BOTH the ≥7-pack breadth gate (6<7) and the content depth-vertical (no content pack has ≥3
-> confirmed; the only ≥3 pack is the meta eval ledger) — and names the move that builds that depth.
+> convergence indices. Run on the live directory (T2), the automated tool places it at **tier
+> L0 Seed**: breadth is met (10 of 14 packs seeded, ≥7) but it misses L1 on the **content
+> depth-vertical** — no content pack has ≥3 confirmed records (the only ≥3 pack is the meta eval
+> ledger, which does not count). The body below preserves the original **T0 baseline** (6 packs,
+> where the gap was breadth, 6<7) — same L0 verdict, the blocker just moved breadth→depth. It
+> names the move that builds the missing depth.
 > Same output is reproducible via [`../../tools/`](../../tools) or OpenCrab's `opencrab_pack_qa`.
 
 이 문서는 logotekton 주체의 한 시점 **스냅샷**을 [수렴 모델](../../spec/06-convergence-model.md)의
