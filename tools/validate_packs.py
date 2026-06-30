@@ -172,6 +172,9 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
             if any(isinstance(w, (int, float)) and not isinstance(w, bool) and not math.isfinite(w)
                    for w in weights):
                 res.errors.append("[EVAL] scoring_rubric.criteria 의 weight 에 비유한값(NaN/inf) 이 있습니다")
+            # weight 는 스키마상 [0,1]. 범위 밖(예: 2.0 + (-1.0) = 1.0)은 합 게이트만으론 못 잡으므로 별도 강제(it.17).
+            if any(_num(w) and not (0.0 <= float(w) <= 1.0) for w in weights):
+                res.errors.append("[EVAL] scoring_rubric.criteria 의 weight 가 0..1 범위를 벗어났습니다")
             nums = [w for w in weights if _num(w)]
             if len(nums) == len(crit):  # 모든 criteria 에 숫자 weight 가 있을 때만 판정
                 s = sum(nums)
@@ -204,10 +207,11 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
                 "무조건 통과라 decision_fidelity 를 공허하게 부풀립니다(채점=기록 금지)"
             )
         thr0 = rubric.get("pass_threshold")
-        if not (_num(thr0) and float(thr0) > 0.0):
+        # 스키마상 (0,1]. 하한 0(score=0 도 통과 → 채점 무의미) + 상한 1(도달 불가능한 임계는 영구 fail)(it.17).
+        if not (_num(thr0) and 0.0 < float(thr0) <= 1.0):
             res.errors.append(
-                f"[EVAL] scoring_rubric.pass_threshold 는 0 보다 커야 합니다: {thr0!r} "
-                "— 임계 0 은 score=0 도 통과시켜 채점을 무의미하게 만듭니다"
+                f"[EVAL] scoring_rubric.pass_threshold 는 (0,1] 범위여야 합니다: {thr0!r} "
+                "— 임계 0 은 score=0 도 통과시켜 채점을 무의미하게, 임계>1 은 도달 불가능해 영구 fail"
             )
 
         # (d) llm_judge 결정성 — model·temperature·prompt(=prompt_id) 셋 다 고정해야 재현 가능
@@ -251,6 +255,15 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
         # score 가 숫자인데 비유한값(NaN/inf)이면 status↔score 정합 게이트가 조용히 통과하므로 거부.
         if isinstance(score, (int, float)) and not isinstance(score, bool) and not math.isfinite(score):
             res.errors.append(f"[EVAL] result.score 가 비유한값입니다(NaN/inf): {score!r}")
+        # score 는 스키마상 [0,1]. 범위 밖(예: 5.0)은 status↔score 정합 게이트(score≥thr)를 무의미하게
+        # 통과시켜 불가능한 점수가 'pass' 를 인증한다 — 스키마 선언 경계를 검증기도 강제(적대적 검증 it.17).
+        if _num(score) and not (0.0 <= float(score) <= 1.0):
+            res.errors.append(f"[EVAL] result.score 가 0..1 범위를 벗어났습니다: {score!r}")
+        # edit_fraction 은 스키마상 [0,1]. 범위 밖(예: 50.0·-5.0)은 correction_cost 평균을 오염시켜
+        # 성숙도 게이트를 헛되이 통과/실패시킨다(음수는 비용 과소→L3/L4 게이밍 벡터) — 경계 강제(it.17).
+        ef = result.get("edit_fraction")
+        if _num(ef) and not (0.0 <= float(ef) <= 1.0):
+            res.errors.append(f"[EVAL] result.edit_fraction 이 0..1 범위를 벗어났습니다: {ef!r}")
 
         # (c) 하드페일: unacceptable 이 발동하면 점수와 무관하게 status 는 fail (RLVR).
         if fired_any and status != "fail":

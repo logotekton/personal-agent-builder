@@ -561,7 +561,12 @@ def _correction_value(rec):
     # 오염돼 무효 JSON·NA-가장·성숙도 오강등을 부르고, bool 은 int 하위형이라 True 가 1.0 으로 셈된다
     # (적대적 검증 it.13). 미니-YAML 의 _SPECIAL_FLOAT_WORDS 방어와 같은 취지.
     def _finite_num(v):
-        return v if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) else None
+        # 유한 + [0,1] 분수만 받는다 — 유한이지만 범위 밖(예: 50.0·-5.0)인 값도 평균을 오염시킨다.
+        # 특히 음수는 correction_cost 를 과소평가해 L3/L4 성숙도 게이트를 헛되이 통과시키는 게이밍 벡터다
+        # (validate_packs 를 거치지 않은 원시 레코드 방어, 적대적 검증 it.17).
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and 0.0 <= v <= 1.0:
+            return v
+        return None
     for fld in ("correction_cost", "edit_fraction", "correction_fraction"):
         v = _finite_num(rec.get(fld))
         if v is not None:
