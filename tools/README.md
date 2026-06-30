@@ -22,6 +22,7 @@
 | [`pab_merge.py`](./pab_merge.py) | **dedup judge + upsert actuator** — novel/duplicate/refinement/conflict → insert/**merge**/**supersede**/surface. 멱등. *측정이 아니라 수행* | "이 후보를 새로 찍을까, 기존에 흡수할까?" | [10 중복 억제·병합](../spec/10-dedup-and-merge.md) · [07 확인 게이트](../skills/07-confirmation-gate.md) |
 | [`check_anchors.py`](./check_anchors.py) | **문서 링크 무결성** — 모든 교차문서 링크·`#앵커`가 실재 헤딩(GitHub 슬러그)으로 해소되는지. *게이트* | "끊긴 참조가 있는가?" | spec/skills/docs 전체 (GitHub 앵커 규약) |
 | [`check_commands.py`](./check_commands.py) | **문서 명령 무결성** — 문서에 적힌 안전·읽기전용 명령이 실제로 실행되는지. *게이트* | "적힌 명령이 진짜 도는가?" | "모든 figure는 명령으로 재현"([06](../spec/06-convergence-model.md)) |
+| [`check_schemas.py`](./check_schemas.py) | **스키마 무결성** — 모든 `schemas/*.json`이 잘 구성된 JSON(draft 2020-12)이고 per-pack 스키마가 `allOf`+`$ref`로 [베이스 레코드](../schemas/record.base.schema.json)를 확장하는지. *게이트* | "스키마 계약이 깨졌는가?" | [01 커널 스키마](../spec/01-kernel-schema.md) · [CONTRIBUTING](../CONTRIBUTING.md) |
 | [`context_select.py`](./context_select.py) | **결정론적 컨텍스트 조립**(참조 술어) — scope-overlap + salience(0.5·confidence + 0.3·recency + 0.2·repetition, 가중합) + 토큰 예산 + 탈락분 갭 로깅 | "이 작업에 어떤 슬라이스를 예산 안에서 켤까?" | [10 에이전트 컴파일러](../skills/10-agent-compiler.md) (#9; *라이브 컴파일러는 스텁 — 참조 구현*) |
 | [`compile_adapter.py`](./compile_adapter.py) | **결정론적 런타임 어댑터 컴파일**(참조 컴파일러) — G3 활성 필터 + reliability draft-only 제외 + supersession 제외 + 팩→8섹션 라우팅 + 경계 레이어 + 갭 로깅 | "확정 슬라이스를 어떤 어댑터로 조립할까?" | [10 에이전트 컴파일러 §3·§4](../skills/10-agent-compiler.md) (*라이브 컴파일러는 스텁 — 참조 구현*; T0→T1→T2 멤버십 재현) |
 
