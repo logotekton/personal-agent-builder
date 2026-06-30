@@ -1494,5 +1494,43 @@ class TestSchemaBoundParityIt17(unittest.TestCase):
         self.assertTrue(vp.validate_record(r2, "t").ok)
 
 
+class TestLifecycleAndCheckersIt19(unittest.TestCase):
+    """it.19: a base-shaped record carrying candidate provenance keys must NOT skip the base gates,
+    and the honesty-checkers must not false-negative (gh_slug must drop No/Nl like github-slugger;
+    check_commands must capture a shell-prompt-prefixed invocation)."""
+
+    def test_base_record_with_candidate_fields_is_not_skipped(self):
+        contaminated = {"id": "r", "record_type": "IdentityRole", "review_status": "confirmed",
+                        "sensitivity": "restricted", "evidence_refs": [], "scope": "",
+                        "confidence": 0.0, "created_at": "2026-01-01T00:00:00Z",
+                        "updated_at": "2026-01-01T00:00:00Z",
+                        "candidate_id": "c", "validation_status": "confirmed"}
+        self.assertFalse(vp._is_candidate(contaminated))            # base shape wins
+        self.assertFalse(vp.validate_record(contaminated, "t").ok)  # G1/G2/G5 fire, not skipped
+
+    def test_legit_candidate_still_recognized(self):
+        cand = {"candidate_id": "c", "candidate_type": "PreferenceCandidate",
+                "validation_status": "pending", "concise_claim": "x", "evidence_refs": ["e"],
+                "confidence": 0.8, "scope": "s", "sensitivity": "internal",
+                "proposed_target_pack": "user.persona_core", "extraction_method": "session"}
+        self.assertTrue(vp._is_candidate(cand))   # no base markers -> still a candidate (skipped)
+
+    def test_gh_slug_drops_number_other_and_letter_like_github(self):
+        self.assertEqual(ca.gh_slug("½ test"), "-test")        # No stripped
+        self.assertEqual(ca.gh_slug("S10½ x"), "s10-x")        # No stripped, digits kept
+        self.assertEqual(ca.gh_slug("stage 2 intro"), "stage-2-intro")  # Nd digits preserved
+        self.assertEqual(ca.gh_slug("한국어 규칙"), "한국어-규칙")        # Korean (Lo) preserved
+
+    def test_check_commands_captures_prompt_prefixed_invocation(self):
+        import check_commands as cc  # noqa: E402
+        self.assertEqual(cc.commands_in(["$ python3 tools/validate_packs.py examples/x"]),
+                         ["python3 tools/validate_packs.py examples/x"])
+        self.assertEqual(cc.commands_in(["> python tools/convergence_report.py d"]),
+                         ["python tools/convergence_report.py d"])
+        # a plain (unprefixed) invocation still captured
+        self.assertEqual(cc.commands_in(["python3 tools/dedup_check.py d"]),
+                         ["python3 tools/dedup_check.py d"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
