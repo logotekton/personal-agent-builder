@@ -21,6 +21,23 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.4 (게이밍 2라운드 + 정직한 한계 명시)
+> 게이밍 저항 2라운드·미구현 주장·OpenCrab 크로스워크·G6·회귀 5렌즈로 6 확인 / 1 기각. it.3 가 닫은
+> 게이밍 홀 *다음 층*을 채굴.
+- **[Fixed] 공허한 루브릭 (decision_fidelity 게이밍).** `criteria:[]` + `pass_threshold:0` + `status:pass`
+  가 검증 통과 후 decision_fidelity 를 1.0 으로 부풀림 — _eval_integrity 가 빈 criteria·임계0 을 막게 함.
+- **[Fixed] correction_cost 시딩 게이밍.** 임의 레코드에 `edit_fraction:0` 무더기로 평균을 0 으로 끌어내림 —
+  출처를 *평가 케이스*로 한정(임의 레코드 폴백 제거). 예제 0.0833 불변, 50× 시딩이 더는 안 통함.
+- **[Fixed] OpenCrab 9-space 크로스워크 완성.** "모든 노드 사상" 주장과 달리 4개 팩(ArtifactPolicy·
+  TacitHeuristic·ProjectMemory·DriftRecord) 누락 → 각각 policy·concept·resource·outcome 에 추가.
+  DriftRecord→outcome 은 skills/11 의 drift_history→outcome 인용도 참으로 만듦.
+- **[정직한 한계 명시] 섀도 캘리브레이션 (spec/12 §4.3).** 불일치율 측정→임계 보정 루프가 현재형으로
+  기술됐으나 미구현 → "설계 단계" 주석(spec/02 S10½ 와 동일 상태): 목표 행동의 명세이지 구현 아님.
+- **[정직한 한계 명시] 증거 해석 vs 존재.** G1·traceability 는 `evidence_refs` *존재*만 막고 실재
+  EvidenceItem 으로 *해석*하진 않음(레지스트리 미존재) → 날조 ref 가 traceability=1.0 을 통과. 스키마·spec/06
+  에 기계검사 범위 명시(해석은 향후/거버넌스 과제). 코드 미변경 — 잠금 숫자 불변.
+- **1 기각**: "drift 레코드 0개로 drift_stability 게이밍" 은 적대적 검증이 기각(0=정직한 무churn 상태).
+
 ### 다중 에이전트 적대적 검증 스윕 — it.3 (수렴 게이밍 홀 + 라이프사이클 정합)
 > 더 깊은 5렌즈(라이프사이클 상태기계·의미적 교차참조·예제 E2E·프라이버시 완전성·수렴 게이밍 저항)로
 > 7 확인 / 5 기각. **헤드라인은 실증된 게이밍 홀**: auto-confirm 무더기 + 사람 3건으로 L4 도달 가능했음.
