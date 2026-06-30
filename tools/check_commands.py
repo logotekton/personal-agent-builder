@@ -74,10 +74,15 @@ def commands_in(block):
     for ln in block:
         if acc:
             acc += ' ' + ln.strip()
-        elif TOOL_INVOCATION.match(ln):
-            acc = ln.strip()
         else:
-            continue
+            # 명령 시작 줄에서만 셸 프롬프트 마커($ 또는 >)를 떼고 매칭한다 — '$ python tools/…' 처럼
+            # 프롬프트가 붙은 호출이 추출조차 안 돼 실행성이 검증되지 않던 가짜 음성을 막는다(적대적 검증 it.19).
+            # 연속줄(redirect ' > out' 등)에는 적용하지 않는다.
+            start = re.sub(r'^\s*[$>]\s+', '', ln)
+            if TOOL_INVOCATION.match(start):
+                acc = start.strip()
+            else:
+                continue
         if acc.rstrip().endswith('\\'):
             acc = acc.rstrip()[:-1].strip()
         else:

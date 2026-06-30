@@ -28,7 +28,7 @@ Usage:
 Exit code 0 = every intra-repo link (file + anchor) resolves. Exit code 1 = at least one broken
 link, each printed as `file:line -> target#anchor  (reason)`. This is a gate, not a signal.
 """
-import sys, os, re, argparse, glob
+import sys, os, re, argparse, glob, unicodedata
 
 HEADING = re.compile(r'^(#{1,6})\s+(.*?)\s*#*\s*$')
 # an optional Markdown link title:  ](path "title")  or  ](path 'title')
@@ -46,6 +46,10 @@ def gh_slug(text):
     t = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', t)   # [label](url) -> label
     t = t.replace('`', '')                           # backticks are dropped anyway
     t = re.sub(r'[^\w\- ]', '', t, flags=re.UNICODE)  # keep word chars, hyphen, space
+    # github-slugger 는 No/Nl(½ ① ² ¼ Ⅻ 등 number-other/number-letter)도 제거하지만 Python \w 는
+    # 이들을 유지한다 — 그대로 두면 도구가 GitHub 이 안 만드는 슬러그를 인정해 그 #fragment 가 통과하고도
+    # 실제로는 404 가 된다(가짜 음성, 적대적 검증 it.19). 십진수(Nd)는 남기고 No/Nl 만 추가로 제거한다.
+    t = ''.join(ch for ch in t if unicodedata.category(ch) not in ('No', 'Nl'))
     return t.replace(' ', '-')                        # each space -> one hyphen (no collapse)
 
 
