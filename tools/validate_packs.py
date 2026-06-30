@@ -221,6 +221,17 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
         thr = rubric.get("pass_threshold") if isinstance(rubric, dict) else None
         fired = result.get("unacceptable_fired")
         fired_any = isinstance(fired, list) and any(isinstance(x, str) and x.strip() for x in fired)
+        # unacceptable_fired 가 존재하는데 list[비어있지않은 str] 형태가 아니면 — 발동한 하드페일이
+        # 조용히 무시되어(예: [{"rule":"leaked_pii"}] 같은 객체 리스트, 스칼라 문자열) RLVR 하드페일
+        # 게이트를 우회한다. 형태를 강제해, 가장 안전-결정적인 게이트가 가장 쉽게 뚫리지 않게 한다.
+        # (G1 evidence_refs 의 항목-품질 검사와 대칭; 스키마는 items:string 으로 선언.) (적대적 검증 it.15)
+        if fired not in (None, []) and not (
+            isinstance(fired, list) and all(isinstance(x, str) and x.strip() for x in fired)
+        ):
+            res.errors.append(
+                "[EVAL] result.unacceptable_fired 는 비어있지 않은 문자열의 리스트여야 합니다 "
+                f"— 발동한 하드페일이 조용히 무시되어선 안 됩니다: {fired!r}"
+            )
 
         # score 가 숫자인데 비유한값(NaN/inf)이면 status↔score 정합 게이트가 조용히 통과하므로 거부.
         if isinstance(score, (int, float)) and not isinstance(score, bool) and not math.isfinite(score):
@@ -355,6 +366,13 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
                 f"[G5] sensitivity={sens!r} 레코드는 exception_rules(≥1) 가 필요합니다 "
                 "— 민감/제한 레코드는 BoundaryRule(예외 규칙) 없이 승격 금지"
             )
+        elif any((not isinstance(x, str) or not x.strip()) for x in exc):
+            # 빈/널/비문자열 placeholder 로 G5 를 충족시키지 못하게 — G1 의 항목-품질 검사와 대칭.
+            # 스키마는 items:string 이므로 [None]/[123]/[''] 는 무효이고 빈 문자열은 어떤 층도 못 잡는다.
+            res.errors.append(
+                "[G5] exception_rules 에 비어있거나 문자열이 아닌 항목이 있습니다 "
+                "(placeholder BoundaryRule 로 민감/제한 레코드 승격 금지)"
+            )
 
     # 6b) reliability 채널 enum + self_reported 는 auto_confirm 금지 (claim-layer 분리, C/#1).
     #     self_reported = 자기서술(저신뢰 InterpretationClaim) → 사람 게이트 없이 승격 불가.
@@ -385,6 +403,12 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
             res.errors.append(
                 f"confidence={conf} < {COUNTEREXAMPLE_THRESHOLD} 이면 "
                 "counterexamples(≥1) 가 필요합니다"
+            )
+        elif any((not isinstance(x, str) or not x.strip()) for x in cx):
+            # 저신뢰 주장이 빈/널 placeholder 로 counterexamples 요건을 충족하지 못하게 — G1 과 대칭.
+            res.errors.append(
+                "counterexamples 에 비어있거나 문자열이 아닌 항목이 있습니다 "
+                "(저신뢰 주장은 실제 반례가 ≥1 필요)"
             )
 
     # 8) (경고) 런타임 활성(confirmed/narrowed) 인데 증거가 없으면 경고.
