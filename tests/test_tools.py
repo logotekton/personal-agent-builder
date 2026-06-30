@@ -1532,5 +1532,82 @@ class TestLifecycleAndCheckersIt19(unittest.TestCase):
                          ["python3 tools/dedup_check.py d"])
 
 
+class TestMaturityLadderGatesIt20(unittest.TestCase):
+    """it.20: the maturity-gate clauses (the whole de-averaging ladder) had NO boundary tests — a
+    regression weakening any L2/L3/L4 clause left all tests green. Lock each clause at its boundary
+    by driving maturity_tier(ix) directly across the threshold."""
+
+    def _l4_ix(self):
+        # a fully L4-Convergent index dict; each test knocks ONE clause below its threshold
+        return {"coverage": 1.0, "confirmation_ratio": 1.0, "human_confirmation_ratio": 1.0,
+                "decision_fidelity": 1.0, "correction_cost": 0.0, "drift_stability": 1.0,
+                "traceability": 1.0, "_seeded_packs": 14, "_content_packs_with_3": 12, "_n_eval": 5}
+
+    def _tier(self, **override):
+        ix = self._l4_ix(); ix.update(override)
+        return cr.maturity_tier(ix)[0]
+
+    def test_full_l4(self):
+        self.assertEqual(self._tier(), "L4")
+
+    def test_l3_drift_stability_boundary(self):                      # it.18 clause
+        self.assertEqual(self._tier(drift_stability=0.70, **{}), "L3")   # passes L3, fails L4 drift>=0.85
+        self.assertEqual(self._tier(drift_stability=0.69), "L2")        # fails L3 drift>=0.7
+
+    def test_l3_decision_fidelity_boundary(self):
+        self.assertEqual(self._tier(decision_fidelity=0.80), "L3")     # passes L3, fails L4 df>=0.9
+        self.assertEqual(self._tier(decision_fidelity=0.79), "L2")
+
+    def test_l3_correction_cost_boundary(self):
+        self.assertEqual(self._tier(correction_cost=0.30), "L3")       # passes L3, fails L4 cost<=0.15
+        self.assertEqual(self._tier(correction_cost=0.31), "L2")
+
+    def test_l3_coverage_boundary(self):
+        self.assertEqual(self._tier(coverage=0.80), "L3")              # passes L3, fails L4 coverage==1.0
+        self.assertEqual(self._tier(coverage=0.79), "L2")
+
+    def test_l4_drift_stability_boundary(self):
+        self.assertEqual(self._tier(drift_stability=0.85), "L4")
+        self.assertEqual(self._tier(drift_stability=0.84), "L3")
+
+    def test_l4_correction_cost_boundary(self):
+        self.assertEqual(self._tier(correction_cost=0.15), "L4")
+        self.assertEqual(self._tier(correction_cost=0.16), "L3")
+
+    def test_l2_coverage_and_df_boundaries(self):
+        self.assertEqual(self._tier(coverage=0.50, decision_fidelity=0.6,
+                                    correction_cost=0.9, drift_stability=0.0), "L2")
+        self.assertEqual(self._tier(coverage=0.49, decision_fidelity=0.6,
+                                    correction_cost=0.9, drift_stability=0.0), "L1")
+        self.assertEqual(self._tier(coverage=0.5, decision_fidelity=0.59,
+                                    correction_cost=0.9, drift_stability=0.0), "L1")
+
+    def test_l1_vertical_required(self):
+        self.assertEqual(self._tier(_content_packs_with_3=0, coverage=0.49,
+                                    decision_fidelity=0.0), "L0")   # no content depth -> cannot reach L1
+
+
+class TestPabMergeYamlRoundTripIt20(unittest.TestCase):
+    """it.20: pab_merge --out YAML must be readable by the SAME bundled mini-parser convergence and
+    compile use, or the documented merge->compile->converge pipeline silently zeroes the merged set."""
+
+    def test_apply_yaml_roundtrips_through_mini_parser(self):
+        inst = os.path.join(EXAMPLE, "instance-records.yaml")
+        if not os.path.exists(inst):
+            self.skipTest("example instance file absent")
+        with tempfile.TemporaryDirectory() as tmp:
+            empty = os.path.join(tmp, "incoming.json")
+            with open(empty, "w") as fh:
+                fh.write("[]")
+            out = os.path.join(tmp, "instance-records.yaml")
+            rc = subprocess.run([sys.executable, os.path.join(TOOLS, "pab_merge.py"),
+                                 inst, empty, "--apply", "--out", out], capture_output=True, text=True)
+            self.assertEqual(rc.returncode, 0, rc.stderr)
+            parsed = cr.load_structured(out)   # the bundled mini-parser, NOT PyYAML
+            self.assertIsNotNone(parsed, "pab_merge YAML output was unreadable by the mini-parser")
+            nrec = sum(len(v) for v in parsed.values() if isinstance(v, list))
+            self.assertGreater(nrec, 0, "round-trip produced zero records")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
