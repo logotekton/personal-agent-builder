@@ -21,6 +21,30 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.15 (게이트 우회 + 병합-정체성 — 실 버그 8건)
+> 5렌즈(수렴-수학 0-나눗셈/빈집합 · 게이트 타입혼동 우회 · it.14 가드 자체 공격 · 어댑터 라우팅 ·
+> 병합 분류 결정성)로 **8 확인 / 0 기각**. 이번엔 크래시가 아니라 *조용히 통과/오판하는* 게이트·정체성
+> 버그가 핵심. 잠금 숫자(예제 6지표·canonical_key·merge_rate)는 전부 불변.
+- **[Fixed] (HIGH) RLVR 하드페일 게이트 타입혼동 우회.** `unacceptable_fired` 가 list[비어있지않은 str]
+  가 *아니면*(예: `[{"rule":"leaked_pii"}]` 객체 리스트·스칼라 문자열) 발동한 하드페일이 조용히 무시되어
+  status='pass' 가 통과 → 가장 안전-결정적 게이트가 가장 쉽게 뚫림. 형태를 강제(G1 항목-품질 검사와 대칭).
+- **[Fixed] (HIGH) 병합 정체성에 stale canonical_key 신뢰.** classify 가 기존 레코드의 *저장된*
+  canonical_key 를 매칭에 쓰는데, 후보는 내용에서 재계산 → 비대칭. stale 키가 (a) 진짜 중복을 놓쳐 쌍둥이
+  삽입(G1 위반) 또는 (b) 무관한 레코드에 잘못 병합(조용한 손상). 항상 내용에서 재계산(spec/10 §2 불변식).
+- **[Fixed] (MEDIUM) G5 exception_rules placeholder 우회.** `[None]`/`['']`/`[123]` 같은 placeholder 가
+  BoundaryRule 요건을 충족 → 민감/제한 레코드가 빈 예외규칙으로 승격. 항목-품질 검사 추가(G1 대칭).
+- **[Fixed] (MEDIUM) counterexamples placeholder 우회.** 저신뢰(<0.7) 레코드가 빈/널 placeholder 로
+  반례 요건 충족 → 실제 반례 ≥1 강제(G1 대칭).
+- **[Fixed] (MEDIUM) apply_plan 무한 repetition_count 크래시.** `int(inf)` 는 OverflowError(it.14 가드는
+  TypeError·ValueError 만 잡음) → 무한값도 1 로 보고 진행하도록 except 확장.
+- **[Fixed] (MEDIUM) compile_adapter 가 applies_in 스코프 무시.** `--task` 필터가 `scope` 만 읽어
+  applies_in-스코프 레코드가 모든 작업류 어댑터에 새어듦 → context_select 와 갈라짐(runtime-active 불일치).
+  `scope or applies_in` 로 일치(두 결정론 도구 합의 불변식 유지).
+- **[Fixed] (MEDIUM) 충돌 분류가 untyped 레코드 누락.** conflict 패스가 bare `r.get('record_type')`(None)
+  를 후보 기본값 `''` 과 비교 → record_type 없는 레코드의 진짜 충돌을 'novel' 로 오판. 정규화(duplicate/
+  refinement 패스와 대칭).
+- **[Added] 회귀 테스트 7건**(`TestGateQualityIt15`). 총 127→134.
+
 ### 다중 에이전트 적대적 검증 스윕 — it.14 (2차 퍼징 — 실 코드버그 13건)
 > it.13 에 이어 *입출력·로더·병합 경계*를 집중 퍼징한 2차 스윕으로 **13 확인 / 1 기각**. 손상/비-UTF8/
 > 과중첩 입력 파일 하나가 디렉터리 전체 실행을 죽이거나, 비결정 정렬·비숫자 예산·중복-id 병합이 조용히
