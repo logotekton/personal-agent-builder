@@ -21,6 +21,23 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.20 (캡스톤: 통합 재감사 + 설계판단 종합 — 실 버그 2건)
+> 캡스톤 스윕: it.1–19 수정들의 상호 정합성 재감사 + 파이프라인-통합 버그헌트 + 테스트-주장 커버리지 감사 +
+> 9개 보고된 설계판단을 3 클러스터로 종합. **2 확인 / 0 기각**. 누적 수정 상호 모순·무회귀 0건 확인.
+- **[Fixed] (HIGH) pab_merge `--out *.yaml` 가 자기 리더가 못 읽는 YAML 을 출력.** PyYAML 기본 width=80
+  이 긴 스칼라를 다음 줄로 접는데(folded continuation), 번들 mini-YAML 파서(convergence_report·
+  compile_adapter)는 접힌 스칼라를 못 읽어 *그 파일을 통째로 None 으로 떨군다* → 머지→컴파일→수렴
+  파이프라인이 조용히 빈 인스턴스 집합이 됨(예: drift_stability 0.89→0.75, n_active_packs 8→0, 둘 다 exit 0).
+  `yaml.safe_dump(..., width=10**9)` 로 쓰는 쪽이 자기 리더가 읽을 수 있게 출력. (남은 'exit 0 while
+  dropping a file' 측면은 docs/open-design-decisions.md 클러스터 3 으로 보고.)
+- **[Fixed] (MEDIUM) 성숙도 게이트 절들에 경계 테스트 부재.** it.18 의 L3 `drift_stability≥0.7` 절(및 L2/L3/L4
+  의 다른 모든 절)을 mutation 으로 지워도 150 테스트 전부 통과 — 어떤 테스트도 티어를 L3/L4 로 몰지 않았음.
+  `TestMaturityLadderGatesIt20` 가 각 절을 경계에서 잠금(mutation 으로 FAIL 확인).
+- **[Added] docs/open-design-decisions.md** — it.16–20 에서 보고된 9개 설계판단을 3 클러스터(pab_merge
+  intra-batch 결정성 · convergence/maturity 게이밍 · CLI 종료코드 계약)로 종합. 각 클러스터에 핵심 의미
+  질문·권고 해소책·잠금 숫자 영향을 명시 — 메인테이너가 한 번에 결정할 수 있는 단일 결정 문서.
+- **[Added] 회귀 테스트 10건**(`TestMaturityLadderGatesIt20` 9 + `TestPabMergeYamlRoundTripIt20` 1). 총 150→160.
+
 ### 다중 에이전트 적대적 검증 스윕 — it.19 (라이프사이클·체커 자기정합·게이밍 — 실 버그 3건 + 설계판단 2건)
 > 5렌즈(candidate 라이프사이클 · reliability 클레임계층 · 체커 자기정합 · salience 수치 · 게이밍 v2)로
 > **5 확인 / 0 기각**. 검증기 라이프사이클 구멍 1건과 정직성-체커 가짜음성 2건을 닫음. 잠금 숫자 불변.

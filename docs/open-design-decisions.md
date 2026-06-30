@@ -1,0 +1,127 @@
+# 미해결 설계 결정 (Open design decisions)
+
+> **EN:** Design judgments surfaced by the multi-agent adversarial verification sweeps (CHANGELOG
+> [Unreleased], it.16–it.20) that were **reported, not applied**, because each turns on a semantic
+> choice the maintainer must make rather than a mechanical correction. They are grouped into three
+> coherent clusters so all can be resolved with a few decisions instead of one-by-one. Every cluster
+> notes its impact on the locked example numbers; **none has been applied**, so the locked invariants
+> (6 indices, `canonical_key 3cabb5142158`, `merge_rate 0.095`, `supersessions 2`,
+> `drift_stability 0.8947`, L0 Seed) currently still hold.
+
+이 문서는 적대적 검증 스윕(it.16–it.20)이 **보고만 하고 적용하지 않은** 설계 판단들을 모은 것입니다. 각
+항목은 기계적 수정이 아니라 *의미적 선택*이 필요해 단독으로 적용하지 않았습니다. 세 클러스터로 묶었으니,
+클러스터별로 한 번씩 결정하면 모두 해소됩니다. 잠금 숫자에 미치는 영향을 각 클러스터에 명시했습니다.
+
+소스 추적: 각 항목의 `it.N` 표기는 [CHANGELOG.md](../CHANGELOG.md) `[Unreleased]` 의 해당 스윕 항목과
+대응합니다. 게이트·지표 정의의 정전(正典)은 [spec/06](../spec/06-convergence-model.md) ·
+[spec/10](../spec/10-dedup-and-merge.md) 입니다.
+
+---
+
+## 클러스터 1 — pab_merge intra-batch 결정성 (우선순위: MEDIUM)
+
+**증상.** 결정론 도구인 `pab_merge` 가 입력 *순서*에 의존하는 출력을 낸다 — "같은 입력 → 같은 출력"
+불변식과 모순.
+
+- **it.16** — 충돌밴드(Jaccard 0.5–0.85) intra-batch 순서 의존: 같은 배치의 두 후보가 충돌밴드에 들면
+  입력 순서에 따라 *다른* 후보가 `confirmed` 로 저장되고 다른 쪽은 `surface` 로 드롭됨.
+- **it.17** — supersede-chain 순서 의존: 같은 identity·다른 scope 클러스터가 한 배치에 오면 어느
+  레코드가 `narrowed`(은퇴)되고 어떤 `SupersessionRecord` 가 나오는지 입력 순서에 의존.
+
+**핵심 질문.** 충돌·체인 클러스터에서 *어느 후보가 권위(confirmed/생존)로 선택되는가*:
+(a) canonical 순서(`canonical_key` 또는 `(record_type, statement, scope, id)` 전순서)로 결정론적 단일
+생존자를 뽑는다, vs (b) 자동 해소하지 않고 *양쪽을 surface* 로 남겨 사람이 판단한다.
+
+**권고.** 두 사례를 **하나의 'intra-batch 결정성 정책'** 으로 묶는다.
+- **충돌밴드** → (b) 양쪽 surface(자동 `confirmed` 금지) + SURFACE 레코드의 primary 만 canonical 순서로
+  결정론화. (충돌밴드는 설계상 'never auto-applied' 카테고리라 자동 승격 자체가 의심스럽다.)
+- **supersede-chain** → (a) canonical 생존자 고정.
+- 어느 쪽이든 회귀 테스트로 **입력 순열 불변**(셔플해도 동일 plan)을 잠근다.
+
+**잠금 숫자 영향.** 예제 logotekton 에는 충돌밴드/동일-identity-다른-scope 다중 후보 클러스터가 없으므로
+(`merge_rate 0.095` · `supersessions 2` 는 깨끗한 1:1 경로에서 나옴) canonical tie-break 도입은 잠금값에
+영향이 없을 것으로 보임 — **수정 후 예제 재실행으로 확인 필수**. '양쪽 surface' 변형은 surface 카운트를
+늘릴 수 있으니 예제가 충돌밴드를 안 타는지 먼저 검증(현재 안 탐).
+
+---
+
+## 클러스터 2 — convergence/maturity 게이밍 벡터 (우선순위: HIGH)
+
+**증상.** 성숙도 지표가 *관찰된 행동의 실질(substance)* 이 아니라 *레코드/케이스의 형식적 존재* 를 세므로,
+흩뿌리기·패딩·선택적 누락으로 분모·분자를 조작해 성숙도를 부풀릴 수 있다. de-averaging 명제(spec/06 §8:
+흩뿌려 가짜 성숙도 따는 것 차단)와 정면 충돌.
+
+- **it.18(1)** — 교차-팩 id 중복집계: 같은 record `id` 를 12개 팩 키 아래 복사하면 각 팩에서 깊이로 세어
+  `coverage 0.14→0.93`, 성숙도 `L0→L3`(L4)로 부풀려짐(실 CLI 재현). `validate_packs` 에 전역 id-유일성
+  게이트 없음.
+- **it.18(2)** — `correction_cost` 선택적 누락: `edit_fraction` 이 있는 케이스만 평균에 들어가, 비용 큰
+  케이스에서 필드를 빼면 `correction_cost` 가 내려가 `L3→L4`.
+- **it.19(2)** — `decision_fidelity` 희석: 최소-비공허 always-pass 평가 케이스를 다량 넣으면 진짜 실패가
+  희석돼 df 가 오름(`0.6→0.92`, `L2→L3`).
+- **it.19(1)** *(HIGH)* — `drift_stability` 대체-카운트 비대칭: 대체수를 `user.drift_history` 의
+  supersedes 엣지/이벤트로만 세지만 레코드 은퇴(`_collect_superseded`)는 *모든 팩*의 supersedes 엣지로
+  일어남 → 반전을 콘텐츠-팩 supersedes 로 기재하면 레코드는 은퇴하되 대체수는 안 늘어 `drift_stability` 가
+  부풀려짐(`0.684→1.0`, `L2→L3`).
+
+**핵심 질문.** 네 벡터 모두 같은 메타-결함의 변종이다. 단일 원리 **"성숙도는 *고유한 실질적 행동 단위*
+위에서만 집계한다"** 를 채택하면 함께 닫힌다. 각 fix 의 의미 선택: (a) id 정체성 — 전역 id 유일성 강제 vs
+spec/10 `canonical_key` 가 `target_pack` 을 정체성에 포함하는 '(id,pack) 정체성' 해석, (b) '실질적 평가
+케이스'의 형식 경계, (c) 누락 `edit_fraction` 의 의미, (d) drift 대체수의 카운팅 모델(이벤트 vs id-타깃).
+
+**권고.** 한 PR 로 묶어 일관되게 적용.
+- **(it.18-1)** convergence 가 깊이/coverage 를 집계하기 전에 전역 `canonical_key` 단위로 dedup — 같은
+  내용 정체성이 여러 팩에 나타나면 1회만 카운트. spec/10 의 (id,pack) 저장 키는 유지하되 *성숙도 집계*는
+  내용 정체성으로 통일한다고 spec/06 §8 에 명문화(흩뿌리기 차단이 de-averaging 의 핵심).
+- **(it.18-2 · it.19-2)** `correction_cost` · `decision_fidelity` 분모를 평가 케이스 셋에 고정하고,
+  평가 케이스에 `edit_fraction` *필수*화(누락=검증 실패) + '실질적 평가 케이스' 하한 정의(criteria≥N · 서로
+  다른 statement · non-trivial pass_threshold)를 `validate_packs` 게이트로 강제. trivial-항등 케이스는 df 에서 제외.
+- **(it.19-1)** drift 대체수를 `_collect_superseded` 와 동일 소스(모든 팩 supersedes 엣지 + drift_history
+  이벤트)에서 세되, **'대상 id 집합의 합집합 크기'로 중복없이 합치는 단일 카운팅 모델**을 정의.
+
+**잠금 숫자 영향.** 예제는 깨끗(id 중복 없음, behavioral-only, trivial 케이스 없음)하므로 (it.18-1)·
+(it.18-2)·(it.19-2) fix 는 잠금 6지표·`coverage`·`merge_rate` 에 영향 없을 가능성이 높음 — 단 재실행 필수.
+**(it.19-1) 은 위험**: 예제의 `DriftRecord` 2건이 supersedes 필드가 없어 *이벤트*로 세어져
+`supersessions=2`, `drift_stability=0.8947` 이 나오는데, 단순히 `_collect_superseded` 로 전환하면 대체수가
+달라져 **`0.8947→1.0` 으로 잠금값이 깨진다**. 따라서 '이벤트 + id-타깃 합집합' 카운팅 모델을 설계할 때
+반드시 예제에서 `supersessions 2` · `drift_stability 0.8947` 이 보존되도록 캘리브레이트해야 한다(이것이
+it.19-1 이 HIGH 이면서도 단순 적용 불가인 이유).
+
+---
+
+## 클러스터 3 — CLI 종료코드·로더 신호 계약 (우선순위: MEDIUM)
+
+**증상.** 도구가 입력의 '부재/손상/빈 콘텐츠'를 종료코드와 결과에 일관되게 사상하지 못한다.
+
+- **it.17(2)** — `dedup_check` 멀티문서 YAML 오파싱: `---` 분리 다문서를 한 'unknown' 팩으로 뭉개
+  `id=None`·유령 redundancy 생성, `--strict` 종료코드 0→1 뒤집힘.
+- **it.17(3)** — `dedup_check` 누락/손상 경로에 `--strict` 여도 exit 0: I/O 오류를 삼켜(`except: pass`)
+  형제 도구와 종료코드 계약 불일치.
+- **it.17(4)** — `convergence_report` null-파싱 파일에 exit 2: 주석만 있는(파싱=None) 파일을 '읽기불가'와
+  혼동해 '읽을 파일 없음'으로 중단. (it.20 의 pab_merge YAML-fold 발견에서도 이 'exit 0 while silently
+  dropping a file' 가 재확인됨 — 같은 계약 결함.)
+
+**핵심 질문.** (a) 다문서 YAML 을 *문서별 분리 파싱* vs *거부(에러)*, (b) '파일 부재/손상'을 `--strict`
+에서 nonzero 로 할지(형제 도구 `validate_packs`·`compile_adapter` 의 'path 부재→2, 0레코드→1' 계약과
+정합), (c) '읽었으나 파싱=None(빈/주석-only)'을 '읽을 파일 없음'(exit 2)과 *다른* 상태로 분리.
+
+**권고.** 프로젝트 전역 **'CLI 종료코드·로더 신호 계약'** 을 하나로 정의(it.10 의 compile_adapter
+false-green 강건화가 세운 'path 부재→2, 0레코드→1' 패턴을 표준으로 승격)하고 세 사례를 일괄 정합.
+- **(it.17-2)** `dedup_check` 로더가 `---` 다문서를 *문서별로 분리* 적재(한 'unknown' 팩으로 안 뭉갬).
+- **(it.17-3)** 광역 `except: pass` 제거 → I/O·디코드 오류는 `--strict` 에서 nonzero, 비-strict 에서는
+  경고-스킵(it.14 per-file 봉쇄 패턴과 일치).
+- **(it.17-4)** `convergence_report.load_structured` 가 '읽기 실패(예외)'와 '읽었으나 파싱=None'을 *별도
+  sentinel* 로 반환 → None-파싱 파일은 빈 집계로 정상 스킵, exit 2 는 진짜 '읽을 파일 없음'에만 예약.
+- tools/README 의 종료코드 표에 단일 계약으로 명문화.
+
+**잠금 숫자 영향.** 세 사례 전부 *퇴화/비정상 입력* 경로에만 작용하며 예제 logotekton 의 정상 입력에는
+다문서 YAML·누락 경로·주석-only 파일이 없으므로 잠금 숫자에 영향 없음. 새 회귀 테스트만 추가됨.
+
+---
+
+## 참고 — 같은 스윕에서 *적용된* 항목
+
+이 문서는 *미적용* 항목만 모읍니다. 같은 스윕에서 기계적·안전하다고 판단해 *적용된* 약 40건의 수정은
+[CHANGELOG.md](../CHANGELOG.md) `[Unreleased]` 의 it.14–it.20 항목에 있습니다(스키마 경계 강제, 게이트
+항목-품질 검사, stale-key·정렬·로더 견고성, pab_merge YAML round-trip 등). it.20 의
+`pab_merge --out` YAML width-fold(파이프라인이 조용히 빈 집합이 되던 HIGH 버그)는 writer 측 최소 수정으로
+*적용* 되었습니다 — 위 클러스터 3 의 'exit 0 while dropping a file' 측면만 설계 결정으로 남습니다.
