@@ -103,8 +103,9 @@ python tools/convergence_report.py examples/logotekton  # 예제 인스턴스에
 #   (도구를 바꿨다면) python -m unittest discover -s tests   # 모든 숫자를 잠근 회귀 스위트
 ```
 
-`tools/validate_packs.py`는 게이트(G1·G2·G3·G6)와 정식 이름, 베이스 레코드 적합성을
-기계적으로 검사합니다. **빨간불인 PR은 머지하지 않습니다.** OpenCrab을 쓴다면 동일 검사를
+`tools/validate_packs.py`는 게이트(G1·G2·G5 를 FAIL 강제; G3 은 경고)와 정식 이름, 베이스
+레코드 적합성을 기계적으로 검사합니다(G3 의 FAIL 강제는 컴파일 시 `compile_adapter.py`; G4·G6 은
+사람·거버넌스 차원). **빨간불인 PR은 머지하지 않습니다.** OpenCrab을 쓴다면 동일 검사를
 `opencrab_pack_qa`로 재현할 수 있습니다.
 
 ---

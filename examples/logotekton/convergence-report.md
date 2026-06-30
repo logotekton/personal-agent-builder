@@ -211,8 +211,8 @@ L1의 정량 조건 **"≥7개 팩 시드"를 아직 통과하지 못했으므�
 
 - 스크립트: [`../../tools/convergence_report.py`](../../tools/convergence_report.py) — 인스턴스
   레코드 + `user.evaluation_cases` + `user.drift_history`를 읽어 6개 지표와 성숙도 단계를 출력.
-- 검증: [`../../tools/validate_packs.py`](../../tools/validate_packs.py) — 게이트 G1~G6와
-  베이스 스키마 적합성을 먼저 확인(traceability=1.0의 전제).
+- 검증: [`../../tools/validate_packs.py`](../../tools/validate_packs.py) — 게이트 G1·G2·G5(FAIL)·
+  G3(경고)와 베이스 스키마 적합성을 먼저 확인(traceability=1.0의 전제).
 - OpenCrab: `opencrab_pack_qa` / `opencrab_project_run`으로 동일 지표를 산출
   ([수렴 모델 §5](../../spec/06-convergence-model.md)).
 

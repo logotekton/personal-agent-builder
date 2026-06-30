@@ -47,14 +47,16 @@
 | `confidence` 가 `0..1` 범위의 숫자 | — | FAIL |
 | `review_status` ∈ {pending, confirmed, rejected, narrowed, sensitive, deferred} | — | FAIL |
 | `sensitivity` ∈ {public, internal, sensitive, restricted} | — | FAIL |
+| `sensitivity` ∈ {sensitive, restricted} 이면 `exception_rules`(≥1) 필수 | **G5** (BoundaryRule 없이 민감/제한 승격 금지) | FAIL |
 | `confidence < 0.7` 이면 `counterexamples`(≥1) 필수 | — | FAIL |
 | 런타임 활성(`confirmed`/`narrowed`)인데 `evidence_refs` 가 빔 | **G1·G3** (대기 후보의 런타임 활성 금지) | WARN |
 | (평가 케이스) 루브릭 무결성 — `criteria` 가중치 합=1 · `status=pass`면 `score≥pass_threshold` · `unacceptable_fired`면 status=`fail` · `judge=llm_judge`면 `judge_config` 필수 | **검증자 검증(#3)** | FAIL |
 | `review_audit` 형태(reviewer_id·decision enum) · `--require-audit` 시 런타임활성 레코드에 감사흔적 강제 | **감사 흔적(#8)** | FAIL |
 
-> G4(행동 언어), G5(승격 전 프라이버시 경계), G6(템플릿/인스턴스 분리)는 사람·리뷰·구조 차원의
-> 게이트라 이 스크립트만으로 완전 자동화되지 않습니다. 이 검증기는 **G1·G2·G3와 베이스 필드
-> 계약**을 기계적으로 막는 역할입니다.
+> 이 검증기는 **G1·G2·G5와 베이스 필드 계약**(+ 평가 루브릭·감사 흔적)을 FAIL 로 기계적으로 막습니다.
+> **G3**(런타임 활성 = `confirmed`/`narrowed`)은 여기선 *경고*만 내고, FAIL 강제는 *컴파일 시점*에
+> [`compile_adapter.py`](./compile_adapter.py)(비활성 레코드 드롭)에서 일어납니다. **G4**(행동 언어),
+> **G6**(템플릿/인스턴스 분리)는 사람·리뷰·구조 차원의 게이트라 이 스크립트로 자동화되지 않습니다.
 
 입력은 세 가지 모양을 모두 허용합니다 (JSON 또는 YAML):
 1. 팩 이름을 키로 하는 매핑 — `{"user.identity_roles": [rec, …], …}` (예제 파일 형태)
