@@ -1381,5 +1381,72 @@ class TestGateQualityIt15(unittest.TestCase):
         self.assertEqual(selected, [])
 
 
+class TestSystemicConsistencyIt16(unittest.TestCase):
+    """it.16: generalize the it.15 families — the last list-shaped gate (criteria), the merge_rate
+    provenance source, cross-tool superseded-id normalization parity, and dup-id sort total order."""
+
+    def _eval(self, crit):
+        r = _good_eval()
+        r["scoring_rubric"] = {"criteria": crit, "pass_threshold": 0.5}
+        r["result"] = {"status": "pass", "score": 0.95}
+        return r
+
+    def test_criteria_junk_element_cannot_disable_weight_sum_gate(self):
+        # weight 5.0 alone fails; appending a non-dict element must NOT make it pass
+        self.assertFalse(vp.validate_record(self._eval([{"check": "a", "weight": 5.0}]), "t").ok)
+        self.assertFalse(vp.validate_record(self._eval([{"check": "a", "weight": 5.0}, "JUNK"]), "t").ok)
+        self.assertFalse(vp.validate_record(self._eval([{"check": "a", "weight": 0.5}] * 3 + [None]), "t").ok)
+
+    def test_criteria_rejects_malformed_elements(self):
+        for crit in ([{"weight": 1.0}], [{"check": "", "weight": 1.0}],
+                     [{"check": 99, "weight": 1.0}], [[["a"]]]):
+            self.assertFalse(vp.validate_record(self._eval(crit), "t").ok, f"accepted {crit!r}")
+        self.assertTrue(vp.validate_record(self._eval([{"check": "a", "weight": 1.0}]), "t").ok)
+
+    def test_superseded_id_normalization_matches_compile_adapter(self):
+        # cr._id_set must agree with compile_adapter._as_id_set element-for-element, or the two tools
+        # split the runtime-active set on malformed supersedes values
+        for val in (["r.real", None], 1024, "r.x", ["a", "", "b"], None, []):
+            self.assertEqual(cr._id_set(val), comp._as_id_set(val), f"diverged on {val!r}")
+
+    def test_merge_rate_uses_provenance_not_just_counter(self):
+        # merge_history recording 3 merges with no bumped counter must NOT report 0 merges
+        import json as _json
+        with tempfile.TemporaryDirectory() as tmp:
+            p = os.path.join(tmp, "mh.json")
+            with open(p, "w") as fh:
+                _json.dump({"user.tacit_heuristics": [
+                    {"id": "a", "statement": "x", "scope": "s", "merge_history": ["m1", "m2", "m3"]},
+                    {"id": "b", "statement": "y", "scope": "s"}]}, fh)
+            out = subprocess.run([sys.executable, os.path.join(TOOLS, "dedup_check.py"), p],
+                                 capture_output=True, text=True)
+        # 3 merges in the trail / (3 + 2 records) = 0.6; pre-fix (counter only) would be 0.0
+        merge_line = [ln for ln in out.stdout.splitlines() if "merge_rate" in ln][0]
+        self.assertIn("0.6", merge_line)
+
+    def test_merge_rate_example_locked_unchanged(self):
+        # the provenance-aware count must still reproduce the locked 0.095 on the clean example
+        out = subprocess.run([sys.executable, os.path.join(TOOLS, "dedup_check.py"), EXAMPLE],
+                             capture_output=True, text=True)
+        self.assertIn("0.095", out.stdout)
+
+    def test_compile_adapter_dup_id_statement_diff_scope_is_total_order(self):
+        recs = {"user.identity_roles": [
+            {"id": "x", "statement": "s", "scope": "beta", "review_status": "confirmed"},
+            {"id": "x", "statement": "s", "scope": "alpha", "review_status": "confirmed"}]}
+        rev = {"user.identity_roles": list(reversed(recs["user.identity_roles"]))}
+        a = [r.get("scope") for r in comp.compile_adapter(recs, {})["sections"][comp.SECTION_NAMES[1]]]
+        b = [r.get("scope") for r in comp.compile_adapter(rev, {})["sections"][comp.SECTION_NAMES[1]]]
+        self.assertEqual(a, b)
+        self.assertEqual(a, ["alpha", "beta"])
+
+    def test_context_select_dup_id_statement_diff_tokens_is_total_order(self):
+        big = {"id": "x", "statement": "s", "scope": "a", "confidence": 0.9, "label": "L" * 60}
+        small = {"id": "x", "statement": "s", "scope": "a", "confidence": 0.9}
+        sel1, _ = cs.select_context([big, small], token_budget=18)
+        sel2, _ = cs.select_context([small, big], token_budget=18)
+        self.assertEqual([r.get("label", "") for r in sel1], [r.get("label", "") for r in sel2])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
