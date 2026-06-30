@@ -21,6 +21,26 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.3 (수렴 게이밍 홀 + 라이프사이클 정합)
+> 더 깊은 5렌즈(라이프사이클 상태기계·의미적 교차참조·예제 E2E·프라이버시 완전성·수렴 게이밍 저항)로
+> 7 확인 / 5 기각. **헤드라인은 실증된 게이밍 홀**: auto-confirm 무더기 + 사람 3건으로 L4 도달 가능했음.
+- **[Fixed] auto-confirm 게이밍 홀 (HIGH).** auto_confirmed 를 `human_confirmation_ratio` 에서만 제외하고
+  coverage 깊이·`decision_fidelity`·`correction_cost` 에선 안 했음 → 14팩×3 auto + 5 auto 평가 + 사람 3건이
+  **L4 Convergent** 산출(검증자 실증). spec/12 §4.4 의 "게이트는 auto-confirm 이 건드릴 수 없다" 약속 위반.
+  coverage 깊이·평가셋에서 auto_confirmed 제외 → 같은 공격이 이제 L0. 예제는 auto_confirmed 0건이라 잠금
+  숫자 불변. 회귀 테스트 3개.
+- **[Fixed] 폐기 레코드 활성 불일치 (convergence↔compiler).** compile_adapter 는 superseded 레코드를 활성에서
+  빼는데 convergence 는 confirmed/active 로 세어 coverage·confirmation_ratio·traceability·drift 가 어긋남.
+  `_collect_superseded`(동일 규칙) 추가로 두 도구가 '런타임 활성'을 동일 정의. 예제 supersession 0건 → 숫자 불변.
+- **[Fixed] 예제 팩 수.** README "9개 팩" → instance-records.yaml 은 8팩, 수렴 기준 10팩(+eval·drift). 3곳 정정.
+- **[Fixed] 깨진 교차참조.** spec/05·eval 스키마가 "01 커널 스키마 §10" 인용(스펙01 은 §9 까지) → 실제 계약 위치
+  (spec/05 §1–2·spec/02 S11·커널 §3)로 재지정. "계약 §10" 라벨 자체는 프로젝트 전역 안정 명칭이라 유지.
+- **[Fixed] G5 기계검사 범위.** 검증기는 레코드 적재 `exception_rules`(≥1)만 막음 — "BoundaryRule 존재"는
+  거버넌스 단계임을 스키마 필드·spec/01 §2 에 명시(과대주장 제거).
+- **[보고만/설계판단] `narrowed` 상태 과부하.** `narrowed` 가 *활성 좁힘 규칙* 과 *대체되어 은퇴한 레코드* 둘 다를
+  의미(pab_merge 가 구 레코드를 `narrowed`로 은퇴시킴). 현재는 supersedes-엣지 제외로 동작하나 취약 — 별도
+  `superseded` 상태 신설은 스키마+전 도구+스펙 변경이라 사용자 판단 대기.
+
 ### 다중 에이전트 적대적 검증 스윕 — it.1 (13 확인 발견 → 도구 정합)
 > 사용자 요청으로 *오케스트레이터+다수 서브에이전트* 검증 루프를 돌려, 결정론적 도구와 스펙/스키마/문서
 > 사이의 모순을 채굴·적대적 확인했다. 확인된 발견은 작고 명백히 안전한 것만 수정(나머지는 보고). 잠금 숫자는
