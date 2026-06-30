@@ -3,12 +3,15 @@
 
 The repo's thesis is "every claim is enforced by a command." Cross-document links are claims
 too: "see spec/10 §3" only holds if that anchor still exists. This stdlib-only checker resolves
-every intra-repo Markdown link and fails if a target file is missing or an `#anchor` does not
-match any heading in the target — so a renamed heading can't silently strand a link.
+every intra-repo inline Markdown link and fails if a target file/dir is missing or an `#anchor`
+does not match any heading in the target — so a renamed heading/file can't silently strand a link.
 
-What it checks (intra-repo only; external http(s) links are ignored):
-  - relative links to local `.md` files resolve to a file that exists;
-  - any `#fragment` on such a link matches the GitHub-generated slug of some heading there.
+What it checks (intra-repo only; external http(s)/mailto links are ignored):
+  - every relative inline link `](path)` resolves to an existing file (any extension) or, for a
+    trailing-slash target, an existing directory;
+  - any `#fragment` on a `.md` link matches the GitHub-generated slug of some heading there.
+  Scope: inline-style `](...)` links only — reference-style `[id]: target` definitions,
+  angle-bracket autolinks, and HTML `href=` anchors are NOT scanned.
 
 Anchor slugs follow GitHub's algorithm (github-slugger): lowercase, drop every character that is
 not a Unicode word char / hyphen / space, then turn each space into one hyphen (consecutive
@@ -134,13 +137,14 @@ def main():
                 tgt = os.path.normpath(os.path.join(base, target))
 
             if frag is None:
-                # file-existence check only for relative links to repo files
+                # file-existence check for EVERY relative (non-external) link target — not just a
+                # hard-coded extension whitelist, so a renamed .toml/.sh/dir target can't slip past.
                 if target and not target.startswith(('http://', 'https://', 'mailto:', '#')):
-                    # only check links that point at files (have an extension or end in /)
-                    low = target.lower()
-                    if low.endswith(('.md', '.json', '.yaml', '.yml', '.py', '.txt')):
-                        if not os.path.exists(tgt):
-                            broken.append((f, ln, target, 'target file missing'))
+                    if target.endswith('/'):                       # directory link
+                        if not os.path.isdir(tgt):
+                            broken.append((f, ln, target, 'target directory missing'))
+                    elif not os.path.exists(tgt):
+                        broken.append((f, ln, target, 'target file missing'))
                 continue
 
             # anchor check applies to .md targets we can read

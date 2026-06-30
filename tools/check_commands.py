@@ -9,12 +9,15 @@ convergence_report form that silently broke) can't survive in the docs.
 
 Scope — it runs only SAFE, READ-ONLY invocations of THIS REPO'S TOOLS (whose CLI could drift) and
 reports the rest as skipped:
-  - runs:  python tools/<validate_packs|convergence_report|dedup_check|check_anchors>.py <args>.
+  - runs:  python tools/<validate_packs|convergence_report|dedup_check|check_anchors|
+           context_select|compile_adapter|pab_merge>.py <args>.
   - skips: anything with a placeholder (<...>, "당신", path/to, ...), a write/side-effect flag
-           (--apply, --out, output redirection >), the test suite itself (unittest / test_tools.py,
-           to avoid recursion when this guard is in turn exercised by that suite), and `python -c`
-           env/config one-liners (which may rely on version-specific stdlib like tomllib and are
-           not a tool CLI). Backslash line-continuations are joined before running.
+           (--apply, --out, output redirection >), a transient /tmp/ path (an output of a prior
+           --apply step, absent in a clean checkout), the test suite itself (unittest /
+           test_tools.py, to avoid recursion when this guard is in turn exercised by that suite),
+           and `python -c` env/config one-liners (which may rely on version-specific stdlib like
+           tomllib and are not a tool CLI). Both ``` and ~~~ fences are scanned. Backslash
+           line-continuations are joined before running.
 
 Usage:
   python tools/check_commands.py                 # scan the repo (cwd) recursively
@@ -26,26 +29,35 @@ as `FAIL exit=N: <cmd>  (<file>)`). This is a gate, not a signal.
 import sys, os, re, glob, subprocess, argparse, shlex
 
 TOOL_INVOCATION = re.compile(r'^\s*(python3?|python3? -m)\s+\S')
+FENCE = re.compile(r'^\s*(```|~~~)')
 PLACEHOLDER = ('<', '당신', 'path/to', '...', '--subject')
 SIDE_EFFECT = ('--apply', '--out', '>', '|')
+# transient scratch paths — outputs of prior --apply steps, absent in a clean checkout
+TRANSIENT = ('/tmp/',)
 # self-referential / covered directly by CI's own test step — skip to avoid recursion
 RECURSIVE = ('unittest', 'test_tools.py')
 # only these repo tools are auto-run; anything else is skipped as out-of-scope
 RUNNABLE_TOOLS = ('validate_packs.py', 'convergence_report.py', 'dedup_check.py',
-                  'check_anchors.py', 'context_select.py', 'compile_adapter.py')
+                  'check_anchors.py', 'context_select.py', 'compile_adapter.py',
+                  'pab_merge.py')
 
 
 def fenced_blocks(path):
-    in_fence = False
-    buf = []
+    """Yield the line-lists of fenced code blocks (both ``` and ~~~ fences)."""
+    in_fence, fence, buf = False, None, []
     with open(path, encoding='utf-8') as fh:
         for line in fh:
-            if line.strip().startswith('```'):
-                if in_fence:
+            m = FENCE.match(line)
+            if m:
+                if not in_fence:
+                    in_fence, fence = True, m.group(1)
+                    continue
+                elif line.strip().startswith(fence):   # matching closing fence
+                    in_fence, fence = False, None
                     yield buf
                     buf = []
-                in_fence = not in_fence
-                continue
+                    continue
+                # a different fence delimiter inside an open block → treat as content
             if in_fence:
                 buf.append(line.rstrip('\n'))
     if buf:
@@ -78,6 +90,8 @@ def classify(cmd):
         return 'skip:placeholder'
     if any(s in cmd for s in SIDE_EFFECT):
         return 'skip:side-effect'
+    if any(t in cmd for t in TRANSIENT):
+        return 'skip:transient-path'
     if any(r in cmd for r in RECURSIVE):
         return 'skip:test-suite'
     if cmd.startswith(('python -c', 'python3 -c')):
