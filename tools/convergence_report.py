@@ -63,6 +63,7 @@ import json
 import math
 import os
 import sys
+import unicodedata
 
 # 정식 14 user 온톨로지 팩 이름 — spec/01-kernel-schema.md §5, CANONICAL_CONTRACT §5.
 # 순서 = 카탈로그 번호. 구 코드명(pa.t03, t06, x12, .ba 등)은 폐기됨.
@@ -588,18 +589,27 @@ def _has_evidence(rec) -> bool:
     )
 
 
+def _norm_id(v):
+    """id/supersedes 토큰을 NFC 정규화 + strip — 유니코드 정규형 차이로 매칭이 갈리지 않게(it.21)."""
+    return unicodedata.normalize("NFC", str(v)).strip()
+
+
 def _id_set(value):
     """supersedes 필드(문자열·리스트·스칼라)를 id 집합으로 정규화.
 
     compile_adapter._as_id_set 와 *원소 단위로 동일* 해야 한다 — 두 도구가 'superseded' 집합을 다르게
     정규화하면(리스트 속 None 을 한쪽은 'None' 으로 살리고 한쪽은 버림; 비-리스트 스칼라를 한쪽만 문자열화)
     같은 입력에서 runtime-active/LIVE 집합이 갈라진다(적대적 검증 it.16). compile_adapter 가 이 모듈을
-    import 하므로(역방향 import 는 순환) 로직을 복제해 일치시킨다."""
+    import 하므로(역방향 import 는 순환) 로직을 복제해 일치시킨다.
+
+    id 는 NFC 로 정규화한다 — supersedes 참조가 NFD, 대상 레코드 id 가 NFC(또는 그 반대)면 시각적으로 같은
+    id 가 매칭에 실패해 *은퇴한 레코드가 LIVE 로 남고 이중집계*된다. 비교 양쪽(집합·조회)을 NFC 로 통일한다
+    (적대적 검증 it.21; pab_merge canonical_key 의 NFC 정규화 it.13 과 같은 취지)."""
     out = set()
     if isinstance(value, list):
-        out |= {str(v).strip() for v in value if v is not None and str(v).strip()}
-    elif value is not None and str(value).strip():
-        out.add(str(value).strip())
+        out |= {_norm_id(v) for v in value if v is not None and _norm_id(v)}
+    elif value is not None and _norm_id(value):
+        out.add(_norm_id(value))
     return out
 
 
@@ -636,7 +646,7 @@ def compute_indices(pack_records, eval_cases, drift_records):
     n_self_reported = 0
     for pack in CANONICAL_PACKS:
         recs = [r for r in pack_records.get(pack, [])
-                if str(r.get("id", "")).strip() not in superseded_ids]
+                if _norm_id(r.get("id", "")) not in superseded_ids]
         c = sum(1 for r in recs if _status_of(r) in CONFIRMED_STATES)
         bc = sum(1 for r in recs
                  if _status_of(r) in CONFIRMED_STATES
@@ -758,7 +768,7 @@ def compute_indices(pack_records, eval_cases, drift_records):
     # self_reported 는 draft-only(런타임 활성 규칙이 아님)라 활성 집합에서 제외 (C1 백도어 차단).
     active = [r for recs in pack_records.values() for r in recs
               if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r)
-              and str(r.get("id", "")).strip() not in superseded_ids]
+              and _norm_id(r.get("id", "")) not in superseded_ids]
     if active:
         with_ev = sum(1 for r in active if _has_evidence(r))
         traceability = with_ev / len(active)

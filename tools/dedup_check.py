@@ -112,6 +112,7 @@ def main():
     if os.path.isdir(args.path):
         for ext in ("*.yaml", "*.yml", "*.json"):
             files += glob.glob(os.path.join(args.path, ext))
+        files = sorted(files)  # 결정론: glob 은 파일시스템 순서라 정렬해야 pair 목록·방향이 안 흔들린다(it.21)
     else:
         files = [args.path]
 

@@ -23,6 +23,7 @@ Usage (demo on a tiny built-in fixture):
 """
 import math
 import re
+import unicodedata
 
 # Controlled task_type vocabulary (#9): a task is classified into exactly one of these.
 TASK_TYPES = (
@@ -55,7 +56,10 @@ def normalize_tags(value):
         parts = [str(x) for x in value]
     else:
         parts = [str(value)]
-    return {p.strip().lower() for p in parts if p and p.strip()}
+    # NFC 정규화 후 비교 — 시각적으로 같은 NFC 작업 태그와 NFD 레코드 스코프가 서로 달라 보여 in-scope
+    # 레코드가 선택에서 누락되지 않게(적대적 검증 it.21; convergence/compile 의 id NFC 정규화와 같은 취지).
+    return {unicodedata.normalize("NFC", p).strip().lower()
+            for p in parts if p and p.strip()}
 
 
 def scope_overlap(record_scope, task_tags):

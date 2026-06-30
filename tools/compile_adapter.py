@@ -30,6 +30,7 @@ Usage:
 import json
 import os
 import sys
+import unicodedata
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import convergence_report as cr   # loader (collect/load_structured) + CANONICAL_PACKS  # noqa: E402
@@ -72,13 +73,19 @@ SECTION_NAMES = {
 SECTION8_INPUT_PACKS = ("user.communication_style", "user.boundary_authority", "user.artifact_policy")
 
 
+def _norm_id(v):
+    """id/supersedes 토큰을 NFC 정규화 + strip — convergence_report._norm_id 와 동일(it.21).
+    유니코드 정규형(NFC/NFD) 차이로 supersedes 참조와 대상 id 매칭이 갈려 은퇴 레코드가 LIVE 로 남지 않게."""
+    return unicodedata.normalize("NFC", str(v)).strip()
+
+
 def _as_id_set(value):
-    """supersedes 값(리스트/문자열/None)을 id 집합으로."""
+    """supersedes 값(리스트/문자열/None)을 id 집합으로 (NFC 정규화)."""
     out = set()
     if isinstance(value, list):
-        out |= {str(v).strip() for v in value if v is not None and str(v).strip()}
-    elif value is not None and str(value).strip():
-        out.add(str(value).strip())
+        out |= {_norm_id(v) for v in value if v is not None and _norm_id(v)}
+    elif value is not None and _norm_id(value):
+        out.add(_norm_id(value))
     return out
 
 
@@ -114,7 +121,7 @@ def is_runtime_active(rec, superseded_ids):
         return False
     if _is_self_reported(rec):
         return False
-    if str(rec.get("id", "")).strip() in superseded_ids:
+    if _norm_id(rec.get("id", "")) in superseded_ids:
         return False
     return True
 
