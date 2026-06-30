@@ -191,7 +191,11 @@ v0.3에서 **수정**됩니다. 정체성·역할이 빠지면 어댑터의 [§4
   *피연산자(operand)*로 들어오지 *당신이 누구인가*로 섞이지 않는다. 페르소나(identity_roles·persona_core)는
   *판단 방식*을 주고, 프로젝트 맥락은 *그 판단이 작용하는 사실*을 준다 — 어댑터는 둘을 **명시적으로
   구분된 하위블록**(`persona:` vs `project_context:`)으로 적재하고 섞지 않는다. 프로젝트가 끝나면
-  `project_context` 는 교체되지만 페르소나는 남는다. 이것이 카탈로그의 "[§12 는 *당신이 누구인가*가
+  `project_context` 는 교체되지만 페르소나는 남는다. (참조 컴파일러
+  [`tools/compile_adapter.py`](../tools/compile_adapter.py)는 이 분리를 *기계 어댑터*에서
+  최상위 `project_context` 필드로 구현한다 — `sections.identity_role` 에는 페르소나만 담기고,
+  `memory_project_graph` 의 섹션-1 몫은 그 분리된 필드로 나간다. 위 사람-가독 렌더는 같은 분리를
+  중첩 하위블록으로 보여줄 뿐, 기계 형태는 최상위 필드다.) 이것이 카탈로그의 "[§12 는 *당신이 누구인가*가
   아니다](../spec/03-pack-catalog.md#12-usermemory_project_graph)"를 컴파일 시점에 지키는 방법이다 —
   프로젝트 사실은 페르소나 팩에서 *추출 단계에* 걸러졌고([전이성](./02-session-mining.md#11-전이성-테스트--주체를-캐고-주제를-캐지-마라-mine-the-decider-not-the-topic)),
   *컴파일 단계에선* 페르소나와 섞이지 않는 별도 피연산자로만 합류한다.
