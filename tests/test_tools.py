@@ -31,6 +31,7 @@ import math
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1164,6 +1165,125 @@ class TestRobustnessFuzzing(unittest.TestCase):
     def test_mini_yaml_unclosed_bracket_raises_clean_error(self):
         with self.assertRaises(cr.MiniYAMLError):
             cr.mini_yaml_load("x: [a, b")       # not RecursionError
+
+
+class TestRobustnessFuzzingIt14(unittest.TestCase):
+    """it.14: a second fuzzing pass — non-string ids in summaries, non-deterministic sort on
+    duplicate ids, non-numeric token budgets, corrupt/non-UTF8/over-nested input files, and
+    malformed merge payloads must each be contained at the tool boundary, never crashing a whole
+    directory run nor silently corrupting data."""
+
+    def _confirmed(self, pack, **extra):
+        r = {"id": "r1", "pack": pack, "record_type": "StylePreference",
+             "statement": "prefer subprocess.run over os.system",
+             "review_status": "confirmed", "scope": "context.global"}
+        r.update(extra)
+        return {pack: [r]}
+
+    def test_render_summary_tolerates_nonstring_section_ids(self):
+        recs = {"user.identity_roles": [
+            {"id": 999, "statement": "primary self-map author",
+             "review_status": "confirmed", "scope": "context.global"}]}
+        out = comp.render_summary(comp.compile_adapter(recs, {}), ".")  # must not raise
+        self.assertIn("999", out)
+
+    def test_render_summary_tolerates_nonstring_project_context_ids(self):
+        recs = {"user.memory_project_graph": [
+            {"id": 777, "statement": "repo uses pytest",
+             "review_status": "confirmed", "scope": "context.global"}]}
+        out = comp.render_summary(comp.compile_adapter(recs, {}), ".")  # must not raise
+        self.assertIn("777", out)
+
+    def test_compile_adapter_sort_is_total_order_on_duplicate_ids(self):
+        # same id, different statement → ordering must be input-independent (statement as tiebreak)
+        a = comp.compile_adapter({"user.identity_roles": [
+            {"id": "x", "statement": "zeta", "review_status": "confirmed", "scope": "context.global"},
+            {"id": "x", "statement": "alpha", "review_status": "confirmed", "scope": "context.global"}]}, {})
+        b = comp.compile_adapter({"user.identity_roles": [
+            {"id": "x", "statement": "alpha", "review_status": "confirmed", "scope": "context.global"},
+            {"id": "x", "statement": "zeta", "review_status": "confirmed", "scope": "context.global"}]}, {})
+        order_a = [r["statement"] for r in a["sections"][comp.SECTION_NAMES[1]]]
+        order_b = [r["statement"] for r in b["sections"][comp.SECTION_NAMES[1]]]
+        self.assertEqual(order_a, ["alpha", "zeta"])
+        self.assertEqual(order_a, order_b)      # reordered input → identical adapter
+
+    def test_select_context_rejects_nonnumeric_or_nonfinite_budget(self):
+        for bad in (None, "28", float("nan"), float("inf")):
+            with self.assertRaises((TypeError, ValueError)):
+                cs.select_context(cs._DEMO, token_budget=bad)
+        with self.assertRaises(TypeError):
+            cs.select_context(cs._DEMO, token_budget=True)   # bool is not a budget
+
+    def _write(self, tmp, name, data, binary=False):
+        path = os.path.join(tmp, name)
+        mode = "wb" if binary else "w"
+        with open(path, mode) as fh:
+            fh.write(data)
+        return path
+
+    def test_loaders_contain_nonutf8_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = self._write(tmp, "bad.json", b"\xff\xfe\x00bad", binary=True)
+            payload, err = vp.load_file(p)
+            self.assertIsNone(payload); self.assertTrue(err)        # validate: clean error
+            self.assertIsNone(cr.load_structured(p))                # convergence: warn+skip
+            with self.assertRaises(SystemExit):                     # merge: clean exit
+                pab_merge._load(p)
+
+    def test_loaders_contain_overnested_json(self):
+        deep = "[" * 60000 + "]" * 60000
+        with tempfile.TemporaryDirectory() as tmp:
+            p = self._write(tmp, "deep.json", deep)
+            payload, err = vp.load_file(p)
+            self.assertIsNone(payload); self.assertTrue(err)        # validate: clean error
+            self.assertIsNone(cr.load_structured(p))                # convergence: warn+skip
+            with self.assertRaises(SystemExit):                     # merge: clean exit
+                pab_merge._load(p)
+
+    def test_apply_plan_tolerates_nonint_repetition_count(self):
+        pack = "user.style_preferences"
+        existing = self._confirmed(pack, id="r1", repetition_count="oops",
+                                   record_type="StylePreference")
+        cands = [{"id": "c1", "pack": pack, "record_type": "StylePreference",
+                  "statement": "prefer subprocess.run over os.system", "scope": "context.global"}]
+        plans = pab_merge.plan_batch(existing, cands)
+        self.assertEqual(plans[0]["action"], "merge")   # same scope+statement → dedup-merge
+        merged, _ = pab_merge.apply_plan(existing, cands, plans, "1970-01-01T00:00:00Z")
+        r1 = [r for r in merged[pack] if r["id"] == "r1"][0]
+        self.assertEqual(r1["repetition_count"], 2)     # "oops" treated as 1, then +1
+
+    def test_apply_plan_string_evidence_refs_does_not_char_explode(self):
+        pack = "user.style_preferences"
+        existing = self._confirmed(pack, id="r1", evidence_refs="single-ref",
+                                   record_type="StylePreference")
+        cands = [{"id": "c1", "pack": pack, "record_type": "StylePreference",
+                  "statement": "prefer subprocess.run over os.system",
+                  "scope": "context.global", "evidence_refs": "incoming-ref"}]
+        plans = pab_merge.plan_batch(existing, cands)
+        self.assertEqual(plans[0]["action"], "merge")   # same scope+statement → dedup-merge
+        merged, _ = pab_merge.apply_plan(existing, cands, plans, "1970-01-01T00:00:00Z")
+        refs = [r for r in merged[pack] if r["id"] == "r1"][0]["evidence_refs"]
+        self.assertIn("single-ref", refs)
+        self.assertIn("incoming-ref", refs)
+        self.assertTrue(all(len(x) > 1 for x in refs))   # no 's','i','n','g'... fragments
+
+    def test_apply_plan_duplicate_candidate_ids_preserved_positionally(self):
+        # two distinct candidates sharing an id must NOT collapse to one (id-keyed dict data loss)
+        pack = "user.style_preferences"
+        cands = [
+            {"id": "dup", "pack": pack, "record_type": "StylePreference",
+             "statement": "first unique claim alpha"},
+            {"id": "dup", "pack": pack, "record_type": "StylePreference",
+             "statement": "second unique claim beta"}]
+        plans = pab_merge.plan_batch({}, cands)
+        merged, _ = pab_merge.apply_plan({}, cands, plans, "1970-01-01T00:00:00Z")
+        stmts = sorted(r["statement"] for r in merged.get(pack, []))
+        self.assertEqual(stmts, ["first unique claim alpha", "second unique claim beta"])
+
+    def test_apply_plan_length_mismatch_is_explicit_error(self):
+        cands = [{"id": "a", "pack": "user.style_preferences", "statement": "x"}]
+        with self.assertRaises(ValueError):
+            pab_merge.apply_plan({}, cands, [], "1970-01-01T00:00:00Z")  # plans != candidates
 
 
 if __name__ == "__main__":
