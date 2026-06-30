@@ -345,10 +345,12 @@ def load_structured(path: str):
     try:
         with open(path, "r", encoding="utf-8") as fh:
             text = fh.read()
-    except OSError as exc:  # noqa: BLE001
+    except (OSError, UnicodeDecodeError) as exc:  # 비-UTF8 파일도 한 파일만 건너뛰고 전체는 계속
         sys.stderr.write(f"[warn] 읽기 실패 {path}: {exc}\n")
         return None
     ext = os.path.splitext(path)[1].lower()
+    # 파싱 실패(JSON 오류·깊은중첩 RecursionError·미니YAML 실패)는 *그 파일만* None 으로 건너뛴다 —
+    # 한 손상 파일이 디렉터리 전체 수렴/검증 실행을 죽이면 안 된다(적대적 검증 it.14).
     try:
         if ext == ".json":
             return json.loads(text)
@@ -357,12 +359,9 @@ def load_structured(path: str):
             return mini_yaml_load(text)
         except MiniYAMLError as exc:
             sys.stderr.write(f"[warn] YAML 부분집합 파싱 실패 {path}: {exc}\n")
-            try:
-                return json.loads(text)
-            except json.JSONDecodeError:
-                return None
-    except json.JSONDecodeError as exc:
-        sys.stderr.write(f"[warn] JSON 파싱 실패 {path}: {exc}\n")
+            return json.loads(text)
+    except (json.JSONDecodeError, RecursionError, ValueError) as exc:
+        sys.stderr.write(f"[warn] 파싱 실패 {path}: {exc}\n")
         return None
 
 

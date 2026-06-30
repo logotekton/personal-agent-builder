@@ -144,8 +144,12 @@ def compile_adapter(pack_records, drift_records, task_tags=None):
             if is_runtime_active(r, superseded)
             and (task_tags is None or cs.scope_overlap(r.get("scope"), task_tags))
         ]
-        # 결정론: id 로 정렬 (동일 입력 → 동일 어댑터).
-        active_by_pack[pack] = sorted(active, key=lambda r: str(r.get("id", "")))
+        # 결정론: (id, statement) 전순서로 정렬 (동일 입력 → 동일 어댑터).
+        # id 만으로는 동일-id 레코드(예: 충돌/중복)에서 안정정렬이 입력순서에 의존 — statement 를
+        # 보조키로 더해 입력순서와 무관한 전순서를 보장한다(적대적 검증 it.14).
+        active_by_pack[pack] = sorted(
+            active, key=lambda r: (str(r.get("id", "")), str(r.get("statement", "")))
+        )
 
     sections = {n: [] for n in range(1, 9)}
     # 섹션 1 경계(전이성): memory_project_graph 는 섹션 1 에 *피연산자*로 들어오지만
@@ -248,14 +252,14 @@ def render_summary(adapter, directory):
         name = SECTION_NAMES[s]
         refs = adapter["sections"][name]
         if refs:
-            ids = ", ".join(r["id"] for r in refs)
+            ids = ", ".join(str(r["id"]) for r in refs)
             lines.append(f"  {s}. {name:<20} {len(refs)}개: {ids}")
         else:
             extra = " (기본 안전 정책)" if s == 7 and adapter["boundary_source"] == "default_safe_policy" else ""
             lines.append(f"  {s}. {name:<20} (공백 — 갭){extra}")
     pc = adapter.get("project_context") or []
     if pc:
-        ids = ", ".join(r["id"] for r in pc)
+        ids = ", ".join(str(r["id"]) for r in pc)
         lines.append(f"  1+ project_context     {len(pc)}개: {ids}  (페르소나 아님 — 프로젝트 맥락)")
     lines.append("")
     lines.append("[갭 로그] 빈/저커버리지 슬롯 — 다음 채굴 라운드 신호 (추측으로 메우지 않음, G1)")

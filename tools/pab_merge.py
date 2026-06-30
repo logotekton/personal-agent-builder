@@ -123,13 +123,34 @@ def identity_key(pack, record_type, statement):
     return hashlib.sha1("\x1f".join(parts).encode("utf-8")).hexdigest()[:12]
 
 
+def _as_ref_list(v):
+    """evidence_refs 를 항상 리스트로 정규화 — 문자열 하나는 [그 문자열](문자 단위 분해 방지),
+    리스트는 복사, 그 외(None·숫자 등)는 빈 리스트(적대적 검증 it.14)."""
+    if isinstance(v, str):
+        return [v]
+    if isinstance(v, list):
+        return list(v)
+    return []
+
+
 def _load(path):
-    text = open(path, encoding="utf-8").read()
-    if path.endswith((".yaml", ".yml")):
-        if not _HAVE_YAML:
-            raise SystemExit(f"PyYAML required to read {path} (pip install pyyaml)")
-        return yaml.safe_load(text)
-    return json.loads(text)
+    # 손상/비-UTF8/과중첩 입력은 추적역추적 대신 깔끔한 SystemExit 으로 보고한다(적대적 검증 it.14).
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise SystemExit(f"cannot read {path}: {exc}")
+    parse_errors = (json.JSONDecodeError, RecursionError, ValueError)
+    if _HAVE_YAML:
+        parse_errors = parse_errors + (yaml.YAMLError,)
+    try:
+        if path.endswith((".yaml", ".yml")):
+            if not _HAVE_YAML:
+                raise SystemExit(f"PyYAML required to read {path} (pip install pyyaml)")
+            return yaml.safe_load(text)
+        return json.loads(text)
+    except parse_errors as exc:
+        raise SystemExit(f"cannot parse {path}: {exc}")
 
 
 def _records_by_pack(data):
@@ -232,19 +253,32 @@ def plan_batch(existing_by_pack, candidates):
 
 
 def apply_plan(existing_by_pack, candidates, plans, stamp):
-    """Apply non-conflict plans, returning a new {pack:[records]} and a list of DriftRecords."""
+    """Apply non-conflict plans, returning a new {pack:[records]} and a list of DriftRecords.
+
+    plans 는 plan_batch 가 candidates 와 1:1·동순서로 만든다 — 따라서 위치(zip)로 짝짓는다.
+    id 사전 매핑은 동일-id 후보(중복)에서 한쪽을 덮어써 데이터를 잃으므로 쓰지 않는다(적대적 검증 it.14).
+    """
     out = {p: [dict(r) for r in recs] for p, recs in existing_by_pack.items()}
-    cand_by_id = {c.get("id"): c for c in candidates}
+    if len(plans) != len(candidates):
+        raise ValueError(
+            f"plans/candidates length mismatch ({len(plans)} vs {len(candidates)}); "
+            "apply_plan expects the plan_batch output for exactly these candidates"
+        )
     drifts = []
-    for plan in plans:
+    for plan, cand in zip(plans, candidates):
         pack, cid = plan["pack"], plan["candidate"]
-        cand = cand_by_id.get(cid, {})
+        if not isinstance(cand, dict):
+            cand = {}
         if plan["action"] == "merge":
             for r in out.get(pack, []):
                 if r.get("id") == plan["target"]:
-                    r["repetition_count"] = int(r.get("repetition_count", 1)) + 1
-                    refs = list(r.get("evidence_refs", []))
-                    for ev in cand.get("evidence_refs", []):
+                    try:
+                        base = int(r.get("repetition_count", 1))
+                    except (TypeError, ValueError):
+                        base = 1  # 비정수 repetition_count 도 1 로 보고 진행(적대적 검증 it.14)
+                    r["repetition_count"] = base + 1
+                    refs = _as_ref_list(r.get("evidence_refs"))
+                    for ev in _as_ref_list(cand.get("evidence_refs")):
                         if ev not in refs:
                             refs.append(ev)
                     r["evidence_refs"] = refs

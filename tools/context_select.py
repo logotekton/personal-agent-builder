@@ -100,6 +100,12 @@ def select_context(records, token_budget, task_tags=None):
     the identical slice. `dropped` is the in-scope tail that did not fit the budget — log it as a
     coverage gap (#9) rather than silently truncating.
     """
+    # token_budget 는 비교(used + t <= token_budget)에 쓰이므로 숫자여야 한다 — None·문자열·NaN·bool 은
+    # 조용한 오작동(전부 드롭/전부 선택)이나 TypeError 로 번지기 전에 입력 단계에서 막는다(적대적 검증 it.14).
+    if isinstance(token_budget, bool) or not isinstance(token_budget, (int, float)):
+        raise TypeError(f"token_budget must be a number, got {type(token_budget).__name__}")
+    if not math.isfinite(token_budget):
+        raise ValueError(f"token_budget must be finite, got {token_budget!r}")
     eligible = [
         r for r in records
         if isinstance(r, dict)

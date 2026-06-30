@@ -451,7 +451,7 @@ def load_file(path: str) -> Tuple[Optional[Any], Optional[str]]:
     try:
         with open(path, "r", encoding="utf-8") as fh:
             text = fh.read()
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:  # 비-UTF8 파일도 그 파일만 오류로 보고(적대적 검증 it.14)
         return None, f"파일 열기 실패: {exc}"
 
     if ext in YAML_EXTS:
@@ -464,12 +464,16 @@ def load_file(path: str) -> Tuple[Optional[Any], Optional[str]]:
             return yaml.safe_load(text), None
         except yaml.YAMLError as exc:  # type: ignore[attr-defined]
             return None, f"YAML 파싱 오류: {exc}"
+        except RecursionError as exc:  # 과도하게 중첩된 YAML 도 그 파일만 오류로(전체 실행 보호)
+            return None, f"YAML 파싱 오류(중첩 과다): {exc}"
     else:
         # .json (및 확장자 미지정) 은 JSON 으로 시도.
         try:
             return json.loads(text), None
         except json.JSONDecodeError as exc:
             return None, f"JSON 파싱 오류: {exc}"
+        except RecursionError as exc:  # 과도하게 중첩된 JSON 도 그 파일만 오류로(전체 실행 보호)
+            return None, f"JSON 파싱 오류(중첩 과다): {exc}"
 
 
 # ── 경로 수집 ───────────────────────────────────────────────────────────────────
