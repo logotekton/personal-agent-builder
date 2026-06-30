@@ -182,12 +182,13 @@ G3 미확인 항목의 런타임 활성화 금지 · G4 행동 언어만 · G5 �
 `correction_cost`(교정 비용, ↓) · `drift_stability`(안정) · `traceability`(증거 결속, =1.0 필수).
 
 그리고 5단계 사다리를 오릅니다:
-- **L0 Seed** → **L1 Sketch**(7팩 시드 + 깊이 한 칸: ≥1 팩이 behavioral 확정 ≥3) →
+- **L0 Seed** → **L1 Sketch**(7팩 시드 + ≥3 평가 케이스 + traceability=1.0 + 깊이 한 칸:
+  ≥1 *콘텐츠* 팩이 behavioral 확정 ≥3, 메타 팩 제외) →
   **L2 Working**(coverage≥0.5, 충실도≥0.6) →
   **L3 Reliable** → **L4 Convergent**(유지 상태).
 
 처음엔 `identity_roles` → `persona_core` → `communication_style` 세 팩만 채워도 L1로 가는
-첫발입니다. 실제 한 사람의 스냅샷(L0→L1, 다음 한 수까지 숫자로)은
+첫발입니다. 실제 한 사람의 스냅샷(현재 **L0** — 다음 한 수=L1 조건을 숫자로 지목)은
 [수렴 리포트 예제](../examples/logotekton/convergence-report.md)에서 볼 수 있습니다.
 
 ---
