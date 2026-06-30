@@ -567,8 +567,35 @@ def _has_evidence(rec) -> bool:
     )
 
 
+def _id_set(value):
+    """supersedes 필드(문자열 또는 리스트)를 id 집합으로 정규화."""
+    if isinstance(value, str):
+        return {value.strip()} if value.strip() else set()
+    if isinstance(value, list):
+        return {str(v).strip() for v in value if str(v).strip()}
+    return set()
+
+
+def _collect_superseded(pack_records, drift_records):
+    """폐기된(=대체된) 레코드 id 집합 — compile_adapter.collect_superseded 와 동일 규칙
+    (drift_history 의 supersedes + 각 레코드 자체의 supersedes 대상). 두 도구가 '런타임 활성'
+    슬라이스를 동일하게 정의하도록, convergence 도 폐기된(은퇴한) 레코드를 LIVE 집계에서 제외한다
+    — 안 그러면 compile_adapter 는 빼는 레코드를 convergence 는 confirmed/active 로 세어
+    coverage·confirmation_ratio·traceability·drift 가 불일치한다 (적대적 검증 it.3)."""
+    ids = set()
+    for d in drift_records:
+        ids |= _id_set(d.get("supersedes"))
+    for recs in pack_records.values():
+        for r in recs:
+            if isinstance(r, dict):
+                ids |= _id_set(r.get("supersedes"))
+    return ids
+
+
 def compute_indices(pack_records, eval_cases, drift_records):
     """6개 지표 + 보조 카운트를 dict 로 반환."""
+    # 폐기(supersede)된 레코드는 LIVE 자기지도에서 은퇴했으므로 활성 집계에서 제외 (compile_adapter 와 동일).
+    superseded_ids = _collect_superseded(pack_records, drift_records)
     # 팩별 확인 레코드 수
     confirmed_by_pack = {}
     # 깊이(coverage)는 behavioral *그리고* 사람이 직접 게이트한(=auto-confirm 아닌) confirmed 만 센다.
@@ -581,7 +608,8 @@ def compute_indices(pack_records, eval_cases, drift_records):
     n_auto_confirmed = 0
     n_self_reported = 0
     for pack in CANONICAL_PACKS:
-        recs = pack_records.get(pack, [])
+        recs = [r for r in pack_records.get(pack, [])
+                if str(r.get("id", "")).strip() not in superseded_ids]
         c = sum(1 for r in recs if _status_of(r) in CONFIRMED_STATES)
         bc = sum(1 for r in recs
                  if _status_of(r) in CONFIRMED_STATES
@@ -702,7 +730,8 @@ def compute_indices(pack_records, eval_cases, drift_records):
     # traceability = 증거 보유 활성(confirmed) 규칙 / 활성 규칙. 활성 규칙 0이면 1.0.
     # self_reported 는 draft-only(런타임 활성 규칙이 아님)라 활성 집합에서 제외 (C1 백도어 차단).
     active = [r for recs in pack_records.values() for r in recs
-              if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r)]
+              if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r)
+              and str(r.get("id", "")).strip() not in superseded_ids]
     if active:
         with_ev = sum(1 for r in active if _has_evidence(r))
         traceability = with_ev / len(active)
@@ -733,6 +762,7 @@ def compute_indices(pack_records, eval_cases, drift_records):
         "_eval_partial": n_partial,
         "_eval_fail": n_fail,
         "_supersessions": supersessions,
+        "_n_superseded_excluded": len(superseded_ids),
         "_n_active": len(active),
         "_confirmed_by_pack": confirmed_by_pack,
         "_behavioral_confirmed_by_pack": behavioral_confirmed_by_pack,

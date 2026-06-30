@@ -634,6 +634,41 @@ class TestReliabilityTier(unittest.TestCase):
         self.assertEqual(ix["_n_self_reported"], 0)
 
 
+class TestSupersededExclusionConsistency(unittest.TestCase):
+    """it.3 lifecycle: a superseded (retired) record must be excluded from the LIVE slice by
+    BOTH compile_adapter and convergence_report — else the two tools disagree on runtime-active."""
+
+    def _recs(self):
+        return {"user.persona_core": [
+            {"id": "R1", "review_status": "narrowed", "statement": "old", "scope": "s",
+             "evidence_refs": ["e"]},
+            {"id": "R2", "review_status": "confirmed", "statement": "new", "scope": "s",
+             "supersedes": ["R1"], "evidence_refs": ["e"]},
+        ]}
+
+    def test_convergence_excludes_superseded(self):
+        ix = cr.compute_indices(self._recs(), [], [])
+        self.assertEqual(ix["_n_confirmed"], 1)             # only R2 (R1 retired)
+        self.assertEqual(ix["_n_superseded_excluded"], 1)
+        self.assertEqual(ix["_n_active"], 1)                # traceability active set excludes R1
+
+    def test_both_tools_agree_on_superseded(self):
+        recs = self._recs()
+        sup = comp.collect_superseded(recs, [])
+        ix = cr.compute_indices(recs, [], [])
+        self.assertEqual(sup, {"R1"})
+        self.assertEqual(ix["_n_superseded_excluded"], len(sup))   # same retired set
+        a = comp.compile_adapter(recs, [])
+        compiled_ids = {r["id"] for r in a["sections"]["identity_role"]}
+        self.assertNotIn("R1", compiled_ids)                # compiler also excludes R1
+
+    def test_example_has_no_supersessions(self):
+        # locks that the worked example is supersession-free, so this change preserves every number
+        pr, ev, dr, _ = cr.collect(EXAMPLE)
+        ix = cr.compute_indices(pr, ev, dr)
+        self.assertEqual(ix["_n_superseded_excluded"], 0)
+
+
 class TestAutoConfirmGateImmunity(unittest.TestCase):
     """spec/12 §4.4 순환 차단: auto-confirm 은 성숙도 게이트 신호를 '건드릴 수 없다'. hcr 뿐 아니라
     coverage 깊이·decision_fidelity·correction_cost 도 auto-confirm 면역이어야 한다 (it.3 게이밍 홀)."""
