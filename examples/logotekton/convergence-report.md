@@ -144,7 +144,7 @@
 |------|-----------|-----------|:---:|
 | **L0 Seed** | 3개 미만 팩 시드, 평가 케이스 없음 | 6개 팩 시드 + 6 평가 케이스 | **현재(도구)\*** |
 | L1 Sketch | **≥7개 팩 시드**, ≥3개 평가 케이스, `traceability`=1.0 | 6개 팩 시드, 6 평가, traceability=1.0 | 팩 1개 미달 |
-| L2 Working | `coverage`≥0.5, `decision_fidelity`≥0.6, `confirmation_ratio`≥0.6 | 0.43 / 0.75 / 1.00 | coverage 미달 |
+| L2 Working | `coverage`≥0.5, `decision_fidelity`≥0.6, `human_confirmation_ratio`≥0.6 | 0.43 / 0.75 / 1.00 | coverage 미달 |
 | L3 Reliable | coverage≥0.8, fidelity≥0.8, correction_cost≤0.3, drift_stability≥0.7 | 0.43 / 0.75 / ~0.21\*\* / 1.0\* | coverage·fidelity 미달 |
 | L4 Convergent | coverage=1.0, fidelity≥0.9, cost≤0.15, drift≥0.85, trace=1.0, N기간 지속 | — | 미달 |
 
@@ -158,7 +158,7 @@ L1의 정량 조건 **"≥7개 팩 시드"를 아직 통과하지 못했으므�
 보고합니다. 아래 §2.1의 0.21은 관측 편집 비율에서의 **수동 추정**입니다.
 
 요약: **도구 판정 L0 Seed, 그러나 L1·L2를 동시에 정조준.** L2의 세 조건 중
-`decision_fidelity`(0.75≥0.6)와 `confirmation_ratio`(1.00≥0.6)는 이미 통과했고, **남은 병목은
+`decision_fidelity`(0.75≥0.6)와 `human_confirmation_ratio`(1.00≥0.6)는 이미 통과했고, **남은 병목은
 `coverage`**(0.43, 목표 0.5) 하나뿐 — 그리고 그 한 칸이 L1의 7번째 팩과 정확히 같은 작업입니다.
 
 ---

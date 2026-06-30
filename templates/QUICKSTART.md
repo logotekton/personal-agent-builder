@@ -168,7 +168,7 @@
 |------|------|-----------|---------|
 | **L0** | Seed | 3개 미만 팩 시드, 평가 케이스 없음 | 출발점 |
 | **L1** | **Sketch** | **≥7개 팩 시드, ≥3개 평가 케이스, `traceability`=1.0** | ← 목표 |
-| L2 | Working | `coverage`≥0.5, `decision_fidelity`≥0.6, `confirmation_ratio`≥0.6 | 다음 |
+| L2 | Working | `coverage`≥0.5, `decision_fidelity`≥0.6, `human_confirmation_ratio`≥0.6 | 다음 |
 | L3 | Reliable | `coverage`≥0.8, `decision_fidelity`≥0.8, `correction_cost`≤0.3 … | 이후 |
 | L4 | Convergent | 전 지표 충족 + N기간 지속 (도달이 아니라 *유지*) | 장기 |
 
