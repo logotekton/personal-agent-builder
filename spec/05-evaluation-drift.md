@@ -6,8 +6,10 @@
 > correction_cost, drift_score) score the compiled AssistantProfile against reproducible
 > EvaluationCases. The QA flow runs the cases, classifies each failure, converts it into a
 > new candidate, boundary rule, or DriftRecord, and re-runs. The same numbers feed the
-> [convergence model](./06-convergence-model.md), so "my agent is becoming me" stays a
-> measurement, not a vibe. Procedure (the skill): [`../skills/11-evaluation-drift.md`](../skills/11-evaluation-drift.md).
+> **delegate layer** of the [convergence model](./06-convergence-model.md) (L2+) — this step runs
+> the *compiled* agent, so it measures delegate-fidelity, the optional layer on top of the
+> self-map (06 §1/§3). So "my agent is becoming me" stays a measurement, not a vibe.
+> Procedure (the skill): [`../skills/11-evaluation-drift.md`](../skills/11-evaluation-drift.md).
 
 평가·드리프트는 파이프라인의 **마지막 단계이자 루프를 닫는 단계**입니다. 컴파일된
 AssistantProfile이 *주체가 승인했을 방식*대로 판단·작성·행동하는지를 재현 가능한 테스트로
