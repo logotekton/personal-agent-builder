@@ -10,8 +10,9 @@
 >                                refinement/conflict → insert/merge/supersede/surface), idempotence,
 >                                and the safety invariant (conflict is NEVER auto-applied).
 >   - tools/convergence_report.py — the six indices + maturity tier on the logotekton example
->                                (L2; coverage 0.714; decision_fidelity 1.0; correction_cost 0.0833;
->                                drift_stability 0.8947; traceability 1.0).
+>                                (L0 Seed; coverage 0.0714 gate/strict, seeded-breadth 0.714;
+>                                decision_fidelity 1.0; correction_cost 0.0833; drift_stability
+>                                0.8947; traceability 1.0).
 >   - tools/validate_packs.py  — gate checks (G1 evidence, G2 scope, confidence range,
 >                                counterexamples<0.7) accept good records and reject bad ones.
 >   - tools/dedup_check.py     — merge_rate on the example (0.095).
@@ -26,6 +27,7 @@ Run:  python3 -m unittest discover -s tests   (또는)  python3 tests/test_tools
 """
 from __future__ import annotations
 
+import math
 import os
 import subprocess
 import sys
@@ -907,6 +909,18 @@ class TestContextSelect(unittest.TestCase):
         sel, dropped = cs.select_context(recs, token_budget=2 * per)
         self.assertEqual([r["id"] for r in sel], ["hi", "mid"])
         self.assertEqual([r["id"] for r in dropped], ["lo"])  # the dropped tail is returned, not silent
+
+    def test_nonfinite_confidence_keeps_slice_deterministic(self):
+        # it.12: a NaN/inf confidence must not make salience NaN — NaN comparisons are all False,
+        # so the sort would depend on input order, breaking the "same input → same slice" guarantee.
+        nan = float("nan")
+        r1 = {"id": "a", "statement": "x" * 5, "confidence": nan}
+        r2 = {"id": "b", "statement": "y" * 5, "confidence": 0.5}
+        self.assertTrue(math.isfinite(cs.salience(r1)))   # finite, not NaN
+        budget = cs.est_tokens(r2)                         # fits exactly one record
+        sel_ab, _ = cs.select_context([r1, r2], token_budget=budget)
+        sel_ba, _ = cs.select_context([r2, r1], token_budget=budget)
+        self.assertEqual([r["id"] for r in sel_ab], [r["id"] for r in sel_ba])  # order-independent
 
     def test_scope_overlap_filters_off_task_records(self):
         recs = self._recs() + [{"id": "other", "statement": "w", "confidence": 1.0, "scope": "context.task.writing"}]

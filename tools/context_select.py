@@ -21,6 +21,7 @@ yet — that is the remaining body-work. What is real here is the deterministic,
 Usage (demo on a tiny built-in fixture):
   python tools/context_select.py            # prints a selected/dropped split for a sample budget
 """
+import math
 import re
 
 # Controlled task_type vocabulary (#9): a task is classified into exactly one of these.
@@ -36,7 +37,12 @@ REP_CAP = 5
 
 
 def _num(v, default=0.0):
-    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else default
+    # 비유한값(NaN/inf)은 default 로 둔다 — NaN salience 는 비교가 전부 False 라 정렬이
+    # 입력 순서에 의존(비결정)해져 "동일 입력 → 동일 슬라이스" 보장을 깬다(적대적 검증 it.12).
+    # validate_packs 가 이미 NaN confidence 를 범위검사로 거부하는 것과 같은 방어.
+    if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v):
+        return float(v)
+    return default
 
 
 def normalize_tags(value):
