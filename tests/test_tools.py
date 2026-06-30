@@ -1448,5 +1448,51 @@ class TestSystemicConsistencyIt16(unittest.TestCase):
         self.assertEqual([r.get("label", "") for r in sel1], [r.get("label", "") for r in sel2])
 
 
+class TestSchemaBoundParityIt17(unittest.TestCase):
+    """it.17: schema-declared numeric bounds ([0,1] score/edit_fraction/weight, (0,1] pass_threshold)
+    must be enforced by the standalone validator, and a finite out-of-range edit_fraction must not
+    poison the averaged correction_cost (the negative direction is an L3/L4 gaming vector)."""
+
+    def _ev(self, **result):
+        r = _good_eval()
+        r["scoring_rubric"] = {"criteria": [{"check": "a", "weight": 1.0}], "pass_threshold": 0.7}
+        r["result"] = result
+        return r
+
+    def test_score_out_of_range_fails(self):
+        self.assertFalse(vp.validate_record(self._ev(status="pass", score=5.0), "t").ok)
+        self.assertFalse(vp.validate_record(self._ev(status="fail", score=-3.0), "t").ok)
+        self.assertTrue(vp.validate_record(self._ev(status="pass", score=0.9), "t").ok)
+
+    def test_edit_fraction_out_of_range_fails(self):
+        self.assertFalse(vp.validate_record(self._ev(status="pass", score=0.9, edit_fraction=50.0), "t").ok)
+        self.assertFalse(vp.validate_record(self._ev(status="pass", score=0.9, edit_fraction=-5.0), "t").ok)
+        self.assertTrue(vp.validate_record(self._ev(status="pass", score=0.9, edit_fraction=0.08), "t").ok)
+
+    def test_out_of_range_edit_fraction_does_not_poison_correction_cost(self):
+        for bad in (50.0, -5.0, 1.5):
+            ev = [{"record_type": "EvaluationCaseRecord", "id": "e", "review_status": "confirmed",
+                   "result": {"status": "pass", "edit_fraction": bad}}]
+            cc = cr.compute_indices({}, ev, [])["correction_cost"]
+            self.assertIsNone(cc, f"out-of-range {bad} leaked into correction_cost: {cc}")
+        # a valid in-range value still counts
+        ev = [{"record_type": "EvaluationCaseRecord", "id": "e", "review_status": "confirmed",
+               "result": {"status": "pass", "edit_fraction": 0.08}}]
+        self.assertAlmostEqual(cr.compute_indices({}, ev, [])["correction_cost"], 0.08)
+
+    def test_criteria_weight_out_of_range_fails_even_if_sum_is_one(self):
+        r = self._ev(status="pass", score=0.9)
+        r["scoring_rubric"]["criteria"] = [{"check": "a", "weight": 2.0}, {"check": "b", "weight": -1.0}]
+        self.assertFalse(vp.validate_record(r, "t").ok)   # sums to 1.0 but weights out of [0,1]
+
+    def test_pass_threshold_above_one_fails(self):
+        r = self._ev(status="pass", score=0.9)
+        r["scoring_rubric"]["pass_threshold"] = 1.5
+        self.assertFalse(vp.validate_record(r, "t").ok)
+        r2 = self._ev(status="pass", score=1.0)
+        r2["scoring_rubric"]["pass_threshold"] = 1.0   # inclusive upper bound stays valid
+        self.assertTrue(vp.validate_record(r2, "t").ok)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
