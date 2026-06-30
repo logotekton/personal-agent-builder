@@ -21,6 +21,29 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.16 (it.15 패턴 일반화 — 실 버그 6건 + 설계판단 1건)
+> it.15 가 드러낸 두 패턴(리스트형 게이트의 항목-품질 누락 · 저장된 파생값 신뢰)을 *체계적으로* 추적한
+> 5렌즈 스윕으로 **6 확인 / 0 기각**. 잠금 숫자(6지표·canonical_key·merge_rate 0.095·supersessions 2)는
+> 전부 불변. + 적용하지 않고 사용자에게 보고한 설계판단 1건(아래 NOTE).
+- **[Fixed] (MEDIUM) scoring_rubric.criteria 항목-품질 누락 + 가중치합 게이트 무력화.** criteria 에 비-dict
+  원소 하나만 끼우면 `weights` 리스트에서 조용히 빠져 `len(nums)==len(crit)` 가드가 무너지고 합 5.0 짜리
+  쓰레기 루브릭이 통과(decision_fidelity 공허하게 부풀림). 항목-품질 검사 추가(it.15 게이트 패밀리의 마지막).
+- **[Fixed] (MEDIUM) dedup_check merge_rate 가 provenance 무시.** merge_rate 가 저장된 repetition_count
+  카운터만 보고 merge_history(출처 추적)를 안 읽어, 카운터가 stale 면 수렴을 0 으로 오보·inflated 면 과대보고.
+  `max(len(merge_history), repetition_count-1)` 로 둘 중 큰 값 사용(clean 예제에선 둘이 일치 → 0.095 불변).
+- **[Fixed] (MEDIUM) superseded-id 정규화가 두 도구에서 갈림.** convergence._id_set 과 compile_adapter._as_id_set
+  가 비문자열 supersedes 원소(리스트 속 None·비-리스트 스칼라)를 다르게 정규화 → 같은 입력에서 runtime-active
+  집합이 갈라짐(docstring 은 '동일 규칙'이라 주장). _id_set 을 _as_id_set 와 원소-단위로 일치.
+- **[Fixed] (LOW) compile_adapter 정렬이 id+statement 동률에서 입력순서 의존.** it.14 의 (id,statement) 키도
+  scope 만 다른 동일-id+statement 레코드에서 동률 → scope 를 보조키로 추가(전순서).
+- **[Fixed] (LOW) context_select 정렬이 id+statement 동률에서 입력순서 의존.** selected/dropped 분할이 입력순서로
+  뒤집힘 → (-salience,id,statement,scope,est_tokens) 전순서.
+- **[Added] 회귀 테스트 7건**(`TestSystemicConsistencyIt16`). 총 134→141.
+- **[NOTE] (보고만·미적용) pab_merge 충돌밴드 intra-batch 순서 의존.** 같은 배치의 두 후보가 충돌밴드(0.5~0.85)
+  에 들면 입력 순서에 따라 *다른* 후보가 confirmed 로 저장되고 다른 쪽은 surface 로 드롭됨 — 결정론 도구가
+  순서 의존 출력을 내는 모순. 수정에 의미적 선택(canonical-순서 생존 vs 양쪽 surface)이 걸려 있어 설계 판단으로
+  사용자에게 보고(미적용).
+
 ### 다중 에이전트 적대적 검증 스윕 — it.15 (게이트 우회 + 병합-정체성 — 실 버그 8건)
 > 5렌즈(수렴-수학 0-나눗셈/빈집합 · 게이트 타입혼동 우회 · it.14 가드 자체 공격 · 어댑터 라우팅 ·
 > 병합 분류 결정성)로 **8 확인 / 0 기각**. 이번엔 크래시가 아니라 *조용히 통과/오판하는* 게이트·정체성
