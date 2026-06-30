@@ -328,6 +328,18 @@ class TestEvalIntegrity(unittest.TestCase):
         r["scoring_rubric"]["judge_config"] = {"model": "claude-opus-4-8", "temperature": 0}
         self.assertTrue(vp.validate_record(r, "t").ok)
 
+    def test_mixed_judge_warns_without_config(self):
+        # 스키마 설명("warns when judge=mixed")이 실제 동작과 일치해야 한다 (적대적 검증 F7).
+        # mixed 는 error 가 아니라 warning — 레코드는 통과하되 재현성 경고를 남긴다.
+        r = _good_eval(); r["scoring_rubric"]["judge"] = "mixed"
+        res = vp.validate_record(r, "t")
+        self.assertTrue(res.ok, res.errors)  # warning, not error
+        self.assertTrue(any("judge=mixed" in w for w in res.warnings), res.warnings)
+        # judge_config 를 고정하면 경고가 사라진다.
+        r["scoring_rubric"]["judge_config"] = {"model": "claude-opus-4-8", "temperature": 0}
+        res2 = vp.validate_record(r, "t")
+        self.assertFalse(any("judge=mixed" in w for w in res2.warnings), res2.warnings)
+
 
 class TestReviewAudit(unittest.TestCase):
     """#8: review_audit makes a real review mechanically distinguishable from a rubber-stamp."""

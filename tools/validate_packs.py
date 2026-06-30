@@ -168,6 +168,13 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
                 "[EVAL] judge=llm_judge 인데 judge_config(model+temperature) 가 없습니다 "
                 "— 순수 기계 판정이 비결정적(재현 불가). model·temperature·prompt 를 고정하세요"
             )
+        # mixed(사람+기계 혼합)는 기계 부분이 비결정적일 수 있으므로 judge_config 를 권한다(경고).
+        # 스키마(user.evaluation_cases) 설명과 동기화: "warns when judge=mixed".
+        if judge == "mixed" and not has_cfg:
+            res.warnings.append(
+                "[EVAL] judge=mixed 인데 judge_config(model+temperature) 가 없습니다 "
+                "— 혼합 판정의 기계 부분이 재현 불가할 수 있습니다. judge_config 를 고정하세요"
+            )
 
     if isinstance(result, dict):
         status = str(result.get("status", "")).strip().lower()
