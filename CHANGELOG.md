@@ -21,6 +21,28 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.1 (13 확인 발견 → 도구 정합)
+> 사용자 요청으로 *오케스트레이터+다수 서브에이전트* 검증 루프를 돌려, 결정론적 도구와 스펙/스키마/문서
+> 사이의 모순을 채굴·적대적 확인했다. 확인된 발견은 작고 명백히 안전한 것만 수정(나머지는 보고). 잠금 숫자는
+> 불변, 테스트만 추가(88 → 98).
+- **[Fixed] G5 강제 구멍 (validate_packs).** `sensitivity ∈ {sensitive, restricted}` 면 `exception_rules`
+  필수(record.base allOf)인데 validate_packs 가 다른 allOf 규칙은 다 강제하면서 이것만 누락 — 스키마 검증기
+  없이 단독 실행 시 G5 구멍. 검사 추가 + 테스트 2개.
+- **[Fixed] 미니 YAML 의 NaN/inf 주입 (convergence_report).** 폴백 파서가 bare `nan`/`inf` 를 float 로
+  강제(PyYAML 은 문자열)해 평균·비율에 조용히 NaN 이 스밀 수 있었음 — PyYAML 1.1 규칙에 맞춰 문자열로.
+- **[Fixed] 배치 내부 중복 미제거 (pab_merge).** `classify` 를 정적 스냅샷에 매핑해 *같은 배치의* 동일 후보
+  둘이 모두 novel→insert(쌍둥이). `plan_batch` 로 배치-내부 인지 추가 — 둘째가 첫째로 merge(멱등성 회복).
+- **[Fixed] persona ↔ project_context 혼입 (compile_adapter).** `memory_project_graph` 가 섹션 1 의
+  persona list 에 평면 병합되어 전이성 경계(skills/10 §4) 위반 — 별도 `project_context` 하위블록으로 분리.
+- **[Fixed] eval 스키마 거짓 주장 (judge=mixed 경고).** 스키마가 "validate_packs warns when judge=mixed"
+  라 적었으나 그런 경고가 없었음 — 경고를 실제 구현해 주장과 일치.
+- **[Fixed] drift_stability '최근 기간' 과대주장.** 정의·주석·예제가 *최근 기간* 윈도우를 적었으나 구현은
+  전 기간 누적 — 정의를 구현(전 기간)에 맞추고 윈도우는 *계획된 정련*으로 명시.
+- **[Fixed] 표시 버그 (pab_merge "(none)").** 연산자 우선순위로 빈 배치의 `verdicts: (none)` 폴백이 사문화 —
+  그룹화 수정.
+- **[Fixed] 문서 드리프트.** L2 게이트 지표명 `confirmation_ratio`→`human_confirmation_ratio`(spec/06 §3
+  정합) — skills/11·QUICKSTART·예제. README 테스트 수 88→98.
+
 ### 텔로스 정렬 후 논리-빈틈 봉합 (수렴 = 거울 층 + 대리인 층)
 > 텔로스 재구성을 *프로세스 전수 논리 검토*한 결과, 진짜 구멍 하나가 드러남: 수렴을 "자기지도 충실도"로
 > 재서술했는데 `decision_fidelity`·`correction_cost`(L2+ 게이트)는 *컴파일된 에이전트 행동*을 재므로,
