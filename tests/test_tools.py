@@ -1108,5 +1108,63 @@ class TestCommandGuard(unittest.TestCase):
         self.assertIn("1 broken", r.stdout)
 
 
+class TestRobustnessFuzzing(unittest.TestCase):
+    """it.13: malformed/edge inputs must not crash, leak NaN/inf into indices, silently pass a
+    gate, collide dedup keys, or recurse forever — robustness of the deterministic tools."""
+
+    def _evalcase(self, **result):
+        return {"id": "x.evalcase.1", "record_type": "EvaluationCaseRecord", "label": "l",
+                "statement": "s", "evidence_refs": ["e"], "confidence": 0.9, "scope": "w",
+                "review_status": "confirmed", "sensitivity": "internal",
+                "created_at": "2026-01-01T00:00:00Z", "updated_at": "2026-01-01T00:00:00Z",
+                "scoring_rubric": {"criteria": [{"check": "a", "weight": 1.0}], "pass_threshold": 0.8},
+                "result": result}
+
+    def test_nan_inf_edit_fraction_does_not_poison_correction_cost(self):
+        for bad in (float("nan"), float("inf"), float("-inf")):
+            ev = [{"record_type": "EvaluationCaseRecord", "id": "e", "review_status": "confirmed",
+                   "result": {"status": "pass", "edit_fraction": bad}}]
+            cc = cr.compute_indices({}, ev, [])["correction_cost"]
+            self.assertTrue(cc is None or math.isfinite(cc), f"{bad} leaked: {cc}")
+
+    def test_bool_edit_fraction_ignored(self):
+        ev = [{"record_type": "EvaluationCaseRecord", "id": "e", "review_status": "confirmed",
+               "result": {"status": "pass", "edit_fraction": True}}]
+        self.assertIsNone(cr.compute_indices({}, ev, [])["correction_cost"])
+
+    def test_nan_weight_and_score_are_rejected(self):
+        r = self._evalcase(status="pass", score=0.9)
+        r["scoring_rubric"]["criteria"] = [{"check": "a", "weight": float("nan")}]
+        self.assertFalse(vp.validate_record(r, "t").ok)
+        r2 = self._evalcase(status="pass", score=float("nan"))
+        self.assertFalse(vp.validate_record(r2, "t").ok)
+
+    def test_unhashable_enum_value_does_not_crash(self):
+        for fld, val in [("sensitivity", ["public"]), ("review_status", ["pending"]),
+                         ("reliability", ["behavioral"]), ("sensitivity", {"a": 1})]:
+            r = _good(); r[fld] = val
+            res = vp.validate_record(r, "t")   # must not raise
+            self.assertFalse(res.ok)           # and must be flagged, not accepted
+
+    def test_pab_merge_nonstring_fields_do_not_crash(self):
+        for bad in (["list"], 5, {"k": "v"}):
+            cand = {"id": "a", "record_type": "HeuristicRecord", "statement": "x", "scope": bad}
+            pab_merge.classify({}, cand)       # must not raise
+        # non-string statement also tolerated
+        pab_merge.canonical_key("p", "T", ["a", "b"], "s")
+
+    def test_canonical_key_nfc_nfd_equivalent_and_no_collision(self):
+        import unicodedata as ud
+        k_nfc = pab_merge.canonical_key("p", "T", ud.normalize("NFC", "한국어 규칙"), "s")
+        k_nfd = pab_merge.canonical_key("p", "T", ud.normalize("NFD", "한국어 규칙"), "s")
+        self.assertEqual(k_nfc, k_nfd)         # same statement, any norm form → same key
+        other = pab_merge.canonical_key("p", "T", ud.normalize("NFD", "전혀 다른 문장"), "s")
+        self.assertNotEqual(k_nfd, other)      # distinct NFD statements must NOT collide
+
+    def test_mini_yaml_unclosed_bracket_raises_clean_error(self):
+        with self.assertRaises(cr.MiniYAMLError):
+            cr.mini_yaml_load("x: [a, b")       # not RecursionError
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

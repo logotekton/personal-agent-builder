@@ -44,6 +44,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import sys
 from typing import Any, Iterable, List, Optional, Tuple
@@ -105,6 +106,21 @@ def _truthy_auto_confirm(v) -> bool:
         return v.strip().lower() in ("true", "auto", "yes", "1")
     return False
 
+def _not_in_enum(v, enum):
+    """enum 미포함 여부 — unhashable(list/dict) 값은 enum 멤버가 될 수 없으므로 TypeError 크래시
+    대신 '미포함'(True)으로 본다(적대적 검증 it.13: 악성 list/dict 값이 검증 전체를 중단시키지 않게)."""
+    try:
+        return v not in enum
+    except TypeError:
+        return True
+
+def _in_enum(v, enum):
+    """포함 여부 — unhashable 값은 멤버가 아니므로 False (TypeError 크래시 방지)."""
+    try:
+        return v in enum
+    except TypeError:
+        return False
+
 # 런타임 활성 상태: 이 상태의 레코드는 증거가 비면 안 됩니다 (G1 + G3).
 RUNTIME_ACTIVE_STATUS = {"confirmed", "narrowed"}
 
@@ -144,13 +160,18 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
         return  # 평가 케이스가 아님 (rubric/result 둘 다 없음)
 
     def _num(v):
-        return isinstance(v, (int, float)) and not isinstance(v, bool)
+        # NaN/inf 는 숫자로 보지 않는다 — NaN 비교가 전부 False 라 가중치합·점수 게이트를 조용히
+        # 통과시켜 쓰레기 값이 합법 pass 로 받아들여진다(적대적 검증 it.13).
+        return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
     if isinstance(rubric, dict):
         # (a) criteria 가중치 합 ≈ 1.0 — 가중 평균 score 가 의미를 가지려면.
         crit = rubric.get("criteria")
         if isinstance(crit, list) and crit:
             weights = [c.get("weight") for c in crit if isinstance(c, dict)]
+            if any(isinstance(w, (int, float)) and not isinstance(w, bool) and not math.isfinite(w)
+                   for w in weights):
+                res.errors.append("[EVAL] scoring_rubric.criteria 의 weight 에 비유한값(NaN/inf) 이 있습니다")
             nums = [w for w in weights if _num(w)]
             if len(nums) == len(crit):  # 모든 criteria 에 숫자 weight 가 있을 때만 판정
                 s = sum(nums)
@@ -201,6 +222,10 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
         fired = result.get("unacceptable_fired")
         fired_any = isinstance(fired, list) and any(isinstance(x, str) and x.strip() for x in fired)
 
+        # score 가 숫자인데 비유한값(NaN/inf)이면 status↔score 정합 게이트가 조용히 통과하므로 거부.
+        if isinstance(score, (int, float)) and not isinstance(score, bool) and not math.isfinite(score):
+            res.errors.append(f"[EVAL] result.score 가 비유한값입니다(NaN/inf): {score!r}")
+
         # (c) 하드페일: unacceptable 이 발동하면 점수와 무관하게 status 는 fail (RLVR).
         if fired_any and status != "fail":
             res.errors.append(
@@ -250,7 +275,7 @@ def _review_audit_check(record: Any, res: "RecordResult", require_audit: bool) -
             )
     elif ra is not None:
         res.errors.append(f"[#8] review_audit 는 객체여야 합니다: got {type(ra).__name__}")
-    elif require_audit and rs in RUNTIME_ACTIVE_STATUS:
+    elif require_audit and _in_enum(rs, RUNTIME_ACTIVE_STATUS):
         res.errors.append(
             "[#8] 런타임 활성 레코드에 review_audit(reviewer_id·decision·diff) 가 없습니다 "
             "— 고무도장과 구별 불가, edit_rate 계산 불능 (--require-audit)"
@@ -306,7 +331,7 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
 
     # 5) review_status enum.
     rs = record.get("review_status")
-    if "review_status" in record and rs not in REVIEW_STATUS_ENUM:
+    if "review_status" in record and _not_in_enum(rs, REVIEW_STATUS_ENUM):
         res.errors.append(
             f"review_status 가 enum 에 없습니다: {rs!r} "
             f"(허용: {sorted(REVIEW_STATUS_ENUM)})"
@@ -314,7 +339,7 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
 
     # 6) sensitivity enum.
     sens = record.get("sensitivity")
-    if "sensitivity" in record and sens not in SENSITIVITY_ENUM:
+    if "sensitivity" in record and _not_in_enum(sens, SENSITIVITY_ENUM):
         res.errors.append(
             f"sensitivity 가 enum 에 없습니다: {sens!r} "
             f"(허용: {sorted(SENSITIVITY_ENUM)})"
@@ -323,7 +348,7 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
     # 6a) [G5] sensitive/restricted 는 exception_rules(≥1) 필수 (BoundaryRule 없이 승격 금지).
     #     record.base.schema.json allOf 가 같은 규칙을 강제하지만, validate_packs 가
     #     단독으로(스키마 검증기 없이) 돌 때도 G5 구멍이 안 생기도록 여기서도 강제한다.
-    if sens in SENSITIVITY_REQUIRES_EXCEPTION:
+    if _in_enum(sens, SENSITIVITY_REQUIRES_EXCEPTION):
         exc = record.get("exception_rules")
         if not isinstance(exc, list) or len(exc) < 1:
             res.errors.append(
@@ -334,7 +359,7 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
     # 6b) reliability 채널 enum + self_reported 는 auto_confirm 금지 (claim-layer 분리, C/#1).
     #     self_reported = 자기서술(저신뢰 InterpretationClaim) → 사람 게이트 없이 승격 불가.
     rel = record.get("reliability")
-    if "reliability" in record and rel not in RELIABILITY_ENUM:
+    if "reliability" in record and _not_in_enum(rel, RELIABILITY_ENUM):
         res.errors.append(
             f"reliability 가 enum 에 없습니다: {rel!r} "
             f"(허용: {sorted(RELIABILITY_ENUM)})"
@@ -365,7 +390,7 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
     # 8) (경고) 런타임 활성(confirmed/narrowed) 인데 증거가 없으면 경고.
     #    필수-필드 검사에서 이미 error 가 났을 수 있으나, 증거 부재는 런타임 활성
     #    레코드에서 특히 위험하므로 별도로 환기합니다 (G1 + G3).
-    if rs in RUNTIME_ACTIVE_STATUS:
+    if _in_enum(rs, RUNTIME_ACTIVE_STATUS):
         if not isinstance(ev, list) or len(ev) < 1:
             res.warnings.append(
                 f"런타임 활성(review_status={rs}) 레코드인데 evidence_refs 가 "

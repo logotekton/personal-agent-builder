@@ -47,6 +47,7 @@ import json
 import os
 import re
 import sys
+import unicodedata
 
 try:
     import yaml  # optional; needed for YAML in/out
@@ -89,7 +90,12 @@ CONF_CAP = 0.99       # capped (counterexamples set the true ceiling; see spec/1
 
 
 def _norm_tokens(s):
-    s = (s or "").lower()
+    # NFC 정규화 — 분해형(NFD) 한글/악센트는 결합 자모(가-힣 밖)라 그대로 두면 토큰이 통째로 사라져
+    # 서로 다른 진술이 *빈 토큰셋*으로 충돌(같은 canonical_key → 잘못된 병합)한다(적대적 검증 it.13 HIGH).
+    # 또 비문자열 입력에 .lower() 가 터지지 않게 str 로 강제한다.
+    if not isinstance(s, str):
+        s = "" if s is None else str(s)
+    s = unicodedata.normalize("NFC", s).lower()
     s = re.sub(r"[^a-z0-9가-힣\s]", " ", s)
     return [t for t in s.split() if t]
 
@@ -107,13 +113,13 @@ def _jaccard(a, b):
 
 def canonical_key(pack, record_type, statement, scope):
     """sha1( pack · record_type · normalize(statement) · normalize(scope) )[:12] (spec/10 §2)."""
-    parts = [pack or "", record_type or "", " ".join(_norm_tokens(statement)), _norm_scope(scope)]
+    parts = [str(pack or ""), str(record_type or ""), " ".join(_norm_tokens(statement)), _norm_scope(scope)]
     return hashlib.sha1("\x1f".join(parts).encode("utf-8")).hexdigest()[:12]
 
 
 def identity_key(pack, record_type, statement):
     """Identity WITHOUT scope — same identity, different scope = refinement (spec/10 §5)."""
-    parts = [pack or "", record_type or "", " ".join(_norm_tokens(statement))]
+    parts = [str(pack or ""), str(record_type or ""), " ".join(_norm_tokens(statement))]
     return hashlib.sha1("\x1f".join(parts).encode("utf-8")).hexdigest()[:12]
 
 

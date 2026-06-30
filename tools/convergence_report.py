@@ -238,6 +238,10 @@ def _parse_inline(tok: str):
             k, v = p.split(":", 1)
             out[_parse_scalar(k)] = _parse_scalar(v)
         return out
+    # 시작이 브래킷인데 짝이 안 맞으면 깨끗한 에러 — 안 그러면 _parse_scalar↔_parse_inline 가
+    # 무한 재귀해 RecursionError 로 죽는다(적대적 검증 it.13).
+    if tok.startswith(("[", "{")):
+        raise MiniYAMLError(f"불완전한 인라인 컬렉션(닫는 괄호 없음): {tok!r}")
     return _parse_scalar(tok)
 
 
@@ -554,16 +558,21 @@ def _correction_value(rec):
     그리고 result.edit_fraction. result.correction_cost/correction_fraction 은 eval 스키마가
     result.additionalProperties:false 라 무효이므로 읽지 않는다.
     """
+    # 유한 숫자(bool 아님, NaN/inf 아님)만 받는다 — NaN/inf 가 새면 correction_cost 가 NaN/inf 로
+    # 오염돼 무효 JSON·NA-가장·성숙도 오강등을 부르고, bool 은 int 하위형이라 True 가 1.0 으로 셈된다
+    # (적대적 검증 it.13). 미니-YAML 의 _SPECIAL_FLOAT_WORDS 방어와 같은 취지.
+    def _finite_num(v):
+        return v if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) else None
     for fld in ("correction_cost", "edit_fraction", "correction_fraction"):
-        v = rec.get(fld)
-        if isinstance(v, (int, float)):
+        v = _finite_num(rec.get(fld))
+        if v is not None:
             return float(v)
     result = rec.get("result")
     if isinstance(result, dict):
         # result.edit_fraction 만 읽는다 — eval 스키마의 result 는 additionalProperties:false 라
         # result.correction_cost/correction_fraction 는 *스키마 무효*다(중첩 별칭은 top-level 에서만 유효).
-        v = result.get("edit_fraction")
-        if isinstance(v, (int, float)):
+        v = _finite_num(result.get("edit_fraction"))
+        if v is not None:
             return float(v)
     return None
 
