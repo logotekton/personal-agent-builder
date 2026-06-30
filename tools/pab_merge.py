@@ -190,6 +190,41 @@ def classify(existing_by_pack, candidate):
             "target": None, "canonical_key": ck}
 
 
+def _project_candidate(working, plan, candidate):
+    """Make a candidate that will land in the set visible to *later* candidates in
+    the same batch, so the batch dedups against itself — not just against the
+    pre-existing snapshot."""
+    if plan["action"] not in ("insert", "supersede"):
+        return  # merge → target already visible; conflict/noop → intentionally not added
+    pack = plan["pack"]
+    working.setdefault(pack, []).append({
+        "id": candidate.get("id"),
+        "record_type": candidate.get("record_type", ""),
+        "statement": candidate.get("statement", ""),
+        "scope": candidate.get("scope", ""),
+        "canonical_key": plan["canonical_key"],
+        "merge_history": [],
+    })
+
+
+def plan_batch(existing_by_pack, candidates):
+    """Classify a whole incoming batch with intra-batch awareness.
+
+    classify() compares one candidate against a fixed existing-set. Mapping it over
+    a batch against the *static* snapshot is blind to duplicates *within* the batch:
+    two identical incoming candidates both score 'novel' and get inserted as twins,
+    breaking the dedup/idempotency guarantee (spec/10). Here each candidate is
+    classified against the snapshot PLUS the records projected by earlier candidates
+    in the same batch, so the second of a pair dedups (merge) into the first."""
+    working = {p: [dict(r) for r in recs] for p, recs in existing_by_pack.items()}
+    plans = []
+    for c in candidates:
+        plan = classify(working, c)
+        plans.append(plan)
+        _project_candidate(working, plan, c)
+    return plans
+
+
 def apply_plan(existing_by_pack, candidates, plans, stamp):
     """Apply non-conflict plans, returning a new {pack:[records]} and a list of DriftRecords."""
     out = {p: [dict(r) for r in recs] for p, recs in existing_by_pack.items()}
@@ -258,7 +293,7 @@ def main(argv=None):
     incoming_raw = _load(args.incoming)
     candidates = [r for recs in _records_by_pack(incoming_raw).values() for r in recs]
 
-    plans = [classify(existing_by_pack, c) for c in candidates]
+    plans = plan_batch(existing_by_pack, candidates)
     counts = {}
     for p in plans:
         counts[p["verdict"]] = counts.get(p["verdict"], 0) + 1

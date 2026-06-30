@@ -215,6 +215,34 @@ class TestApplyPlan(unittest.TestCase):
         p2 = pab_merge.classify(merged, cands[0])
         self.assertEqual(p2["verdict"], "already_merged")
 
+    def test_intra_batch_duplicates_dedup_not_twin(self):
+        # Two identical incoming candidates (distinct ids) in ONE batch, against an
+        # EMPTY existing set. Static-snapshot classification would call both 'novel'
+        # and insert twins. plan_batch must dedup: first inserts, second merges.
+        ex = {}
+        cands = [_cand(id="x.h.910"), _cand(id="x.h.911")]
+        plans = pab_merge.plan_batch(ex, cands)
+        self.assertEqual(plans[0]["verdict"], "novel")
+        self.assertEqual(plans[1]["verdict"], "duplicate")     # sees the first in-batch
+        self.assertEqual(plans[1]["target"], "x.h.910")
+        out, _ = pab_merge.apply_plan(ex, cands, plans, "2026-01-01T00:00:00Z")
+        recs = out["user.tacit_heuristics"]
+        self.assertEqual(len(recs), 1)                         # ONE record, not twins
+        self.assertEqual(recs[0]["id"], "x.h.910")
+        self.assertEqual(recs[0]["repetition_count"], 2)       # the merge accumulated
+        self.assertIn("x.h.911", recs[0]["merge_history"])
+
+    def test_intra_batch_dedup_still_inserts_distinct(self):
+        # Two DIFFERENT candidates in one batch both insert (no false dedup).
+        ex = {}
+        cands = [_cand(id="x.h.920"),
+                 _cand(id="x.h.921", statement="prefer ripgrep over grep for repo search", scope="search")]
+        plans = pab_merge.plan_batch(ex, cands)
+        self.assertEqual(plans[0]["verdict"], "novel")
+        self.assertEqual(plans[1]["verdict"], "novel")
+        out, _ = pab_merge.apply_plan(ex, cands, plans, "2026-01-01T00:00:00Z")
+        self.assertEqual(len(out["user.tacit_heuristics"]), 2)
+
 
 # ───────────────────────── validate_packs: gates ───────────────────────────
 def _good():
