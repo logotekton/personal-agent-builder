@@ -21,6 +21,30 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.19 (라이프사이클·체커 자기정합·게이밍 — 실 버그 3건 + 설계판단 2건)
+> 5렌즈(candidate 라이프사이클 · reliability 클레임계층 · 체커 자기정합 · salience 수치 · 게이밍 v2)로
+> **5 확인 / 0 기각**. 검증기 라이프사이클 구멍 1건과 정직성-체커 가짜음성 2건을 닫음. 잠금 숫자 불변.
+- **[Fixed] (MEDIUM) 베이스 레코드가 후보로 오분류돼 모든 게이트 우회.** `_is_candidate` 가 후보-필드
+  *존재*만으로 판정해, 승격 시 감사용 candidate_id/validation_status 를 보존한(또는 candidate_type 이 끼어든)
+  베이스 레코드가 후보로 분류돼 SKIP → G1/G2/G5/반례 게이트를 *전부* 건너뜀(민감·무증거·무스코프 confirmed
+  레코드가 조용히 통과). 베이스 형태(record_type·review_status·id+statement)면 후보로 보지 않도록 부정게이트.
+- **[Fixed] (LOW) check_anchors gh_slug 가짜음성.** Python `\w` 가 No/Nl(½ ① ² Ⅻ 등)을 유지하는데
+  github-slugger 는 제거 → 도구가 GitHub 이 안 만드는 슬러그를 인정해 그 #fragment 가 통과하고도 실제 404.
+  (저장소에 실제 `S10½` 헤딩 존재.) No/Nl 만 추가 제거(Nd 십진수·한글 유지).
+- **[Fixed] (LOW) check_commands 가짜음성.** TOOL_INVOCATION 이 줄 시작만 매칭해 `$ python …`/`> python …`
+  프롬프트 붙은 호출은 추출조차 안 돼 실행성 미검증 → 명령 시작 줄의 셸 프롬프트 마커를 떼고 매칭(연속줄 제외).
+- **[Added] 회귀 테스트 4건**(`TestLifecycleAndCheckersIt19`). 총 146→150.
+- **[NOTE] (보고만·미적용 — 설계판단 2건):**
+  (1) **(HIGH) drift_stability 대체-카운트 비대칭 게이밍.** drift_stability 는 대체수를 user.drift_history
+  레코드에서만 세지만, 레코드 은퇴(_collect_superseded)는 *모든 팩*의 supersedes 엣지로 일어난다 — 반전을
+  DriftRecord 대신 콘텐츠-팩 supersedes 엣지로 기재하면 동일 런타임 효과로 레코드는 은퇴하되 대체수는 안 늘어
+  drift_stability 가 부풀려짐(0.684→1.0, L2→L3). 단, 예제의 DriftRecord 2건은 supersedes 필드가 없어
+  *이벤트*로 세어지므로(supersessions 2), 단순히 _collect_superseded 로 바꾸면 잠금값 0.8947→1.0 로 깨진다 —
+  이벤트와 id-타깃을 중복없이 합치는 *카운팅 모델 설계*가 필요해 보고.
+  (2) **(MEDIUM) decision_fidelity 희석.** 최소-비공허 always-pass 평가 케이스를 다량 넣으면 진짜 실패가
+  희석돼 df 가 오름(0.6→0.92, L2→L3; trivial 케이스 edit_fraction=0 이라 correction_cost 도 동반 하락).
+  it.4 공허-루브릭 방어를 우회 — '충분히 실질적'의 경계가 모호해 의미적 선택이라 보고.
+
 ### 다중 에이전트 적대적 검증 스윕 — it.18 (성숙도 사다리 red-team + 문서 정합 — 문서수정 2건 + 설계판단 2건)
 > 5렌즈(성숙도 사다리 합성 게이밍 · 지표별 조작 · 스키마/스펙 내부 정합 · 어댑터 충실도)로 **4 확인 / 1 기각**.
 > 이번엔 개별 게이트가 아니라 *사다리 전체*를 red-team — 핵심 게이밍 벡터 2건은 정체성/분모 의미가 걸려
