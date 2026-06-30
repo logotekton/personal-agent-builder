@@ -232,6 +232,23 @@ class TestValidateGates(unittest.TestCase):
         r = _good(); r["review_status"] = "approved"  # not in enum
         self.assertFalse(vp.validate_record(r, "t").ok)
 
+    def test_g5_sensitive_requires_exception_rules(self):
+        # 민감/제한 레코드는 exception_rules(BoundaryRule) 없이 통과하면 안 된다 (G5).
+        # 스키마 allOf 와 동기화 — validate_packs 단독 실행에서도 구멍이 없어야.
+        for sens in ("sensitive", "restricted"):
+            r = _good(); r["sensitivity"] = sens
+            self.assertFalse(vp.validate_record(r, "t").ok,
+                             f"{sens} without exception_rules should fail")
+            r["exception_rules"] = ["only with explicit consent"]
+            self.assertTrue(vp.validate_record(r, "t").ok,
+                            f"{sens} with exception_rules should pass")
+
+    def test_g5_public_internal_need_no_exception_rules(self):
+        # public/internal 은 exception_rules 가 없어도 통과해야 한다 (과도강제 방지).
+        for sens in ("public", "internal"):
+            r = _good(); r["sensitivity"] = sens
+            self.assertTrue(vp.validate_record(r, "t").ok)
+
 
 def _good_eval():
     r = _good()

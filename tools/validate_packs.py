@@ -84,6 +84,10 @@ REVIEW_STATUS_ENUM = {
 
 SENSITIVITY_ENUM = {"public", "internal", "sensitive", "restricted"}
 
+# [G5] 이 민감도는 exception_rules(BoundaryRule) 없이 승격할 수 없다
+# (record.base.schema.json allOf 와 동기화).
+SENSITIVITY_REQUIRES_EXCEPTION = {"sensitive", "restricted"}
+
 # reliability 채널 — 증거 계층 (record.base.schema.json §7.1, spec/00 클레임-계층).
 # behavioral = 관찰된 행동/산출물/교정 (G4, 신뢰 기본값). self_reported = 자기서술 (저신뢰).
 RELIABILITY_ENUM = {"behavioral", "self_reported"}
@@ -290,6 +294,17 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
             f"sensitivity 가 enum 에 없습니다: {sens!r} "
             f"(허용: {sorted(SENSITIVITY_ENUM)})"
         )
+
+    # 6a) [G5] sensitive/restricted 는 exception_rules(≥1) 필수 (BoundaryRule 없이 승격 금지).
+    #     record.base.schema.json allOf 가 같은 규칙을 강제하지만, validate_packs 가
+    #     단독으로(스키마 검증기 없이) 돌 때도 G5 구멍이 안 생기도록 여기서도 강제한다.
+    if sens in SENSITIVITY_REQUIRES_EXCEPTION:
+        exc = record.get("exception_rules")
+        if not isinstance(exc, list) or len(exc) < 1:
+            res.errors.append(
+                f"[G5] sensitivity={sens!r} 레코드는 exception_rules(≥1) 가 필요합니다 "
+                "— 민감/제한 레코드는 BoundaryRule(예외 규칙) 없이 승격 금지"
+            )
 
     # 6b) reliability 채널 enum + self_reported 는 auto_confirm 금지 (claim-layer 분리, C/#1).
     #     self_reported = 자기서술(저신뢰 InterpretationClaim) → 사람 게이트 없이 승격 불가.
