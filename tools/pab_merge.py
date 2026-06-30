@@ -372,7 +372,12 @@ def main(argv=None):
                 if args.out.endswith((".yaml", ".yml")):
                     if not _HAVE_YAML:
                         raise SystemExit("PyYAML required to write YAML output")
-                    yaml.safe_dump(payload, fh, allow_unicode=True, sort_keys=False, default_flow_style=False)
+                    # width=10**9: PyYAML 기본 width=80 은 긴 스칼라를 다음 줄로 접는데(folded
+                    # continuation), 이 프로젝트의 번들 mini-YAML 파서(convergence_report/compile_adapter)는
+                    # 접힌 스칼라를 못 읽어 그 파일을 통째로 None 으로 떨군다 → 머지→컴파일→수렴 파이프라인이
+                    # 조용히 빈 인스턴스 집합이 된다. 쓰는 쪽이 자기 리더가 읽을 수 있는 형태로 내보낸다(it.20).
+                    yaml.safe_dump(payload, fh, allow_unicode=True, sort_keys=False,
+                                   default_flow_style=False, width=10**9)
                 else:
                     json.dump(payload, fh, ensure_ascii=False, indent=2)
             print(f"applied -> {args.out}")
