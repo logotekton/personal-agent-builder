@@ -64,6 +64,10 @@
   때문이다. *최근 기간* 윈도우(예: 최근 N건·N일만 분자로)는 수렴의 *시간적* 회복을 더 직접 보여주는
   계획된 정련이며, 기간 필드가 추가될 때 도입한다. 그 전까지 정의=구현=전 기간 비율로 일치시킨다.
 - `traceability`는 **타협 불가** — 항상 1.0. 증거 없는 활성 규칙은 존재해선 안 됨(게이트 G1·G3).
+  **기계검사 범위 주의:** 도구는 `evidence_refs` 가 *비어 있지 않은지*(존재)만 막는다. 각 ref 가 실재
+  `EvidenceItem` 에 해석(resolve)되는지 — 즉 날조된 dangling id 를 거르는 것 — 는 파일 기반 모델에 아직
+  EvidenceItem 레지스트리가 없어 *미구현(거버넌스/향후 과제)*이다. 따라서 현재 traceability=1.0 은
+  '증거 *해석*'이 아니라 '증거 *존재*'를 인증한다.
 - **self_reported 전면 제외(여섯 지표 *전부*).** 위 표·식의 `confirmed`·`확인 레코드수`·`활성 규칙`·
   `평가 케이스`는 모두 *behavioral* 만 센다 — `reliability: self_reported`(자기서술)는 draft-only 라
   **여섯 지표 전부**(coverage·`confirmation_ratio`·`decision_fidelity`·`correction_cost`·

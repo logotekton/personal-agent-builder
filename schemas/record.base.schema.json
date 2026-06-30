@@ -37,7 +37,7 @@
       "type": "array",
       "minItems": 1,
       "items": { "type": "string" },
-      "description": "≥1 EvidenceItem id/ref. Gate G1: no evidence-free claim."
+      "description": "≥1 EvidenceItem id/ref. Gate G1: no evidence-free claim. NOTE on machine-check scope: validate_packs / convergence_report verify that this list is present and contains ≥1 non-empty string (G1 presence). Resolving each ref to a real EvidenceItem (rejecting a dangling/fabricated id) requires an EvidenceItem registry the file-based model does not yet carry — that resolution is future work / a governance step, so traceability=1.0 currently certifies presence, not resolution."
     },
     "confidence": {
       "type": "number",
