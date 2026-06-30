@@ -21,8 +21,9 @@
 > = Seed — see the ⚙️ note above), after the data-engine wheel was
 > turned **twice** on real records: `revolution-01` (merge actuator + the eval.004 correction →
 > `decision_fidelity` 0.75→0.92) and `revolution-02` (a second turn → `decision_fidelity`
-> 0.92→**1.00**, `coverage` 0.57→0.71, `merge_rate` 0.059→0.095 — and, honestly, the tier *held*
-> at L2, with the report naming the two remaining L3 blockers). See
+> 0.92→**1.00**, `coverage` 0.57→0.71, `merge_rate` 0.059→0.095 — and, honestly, the maturity tier
+> did *not* advance: under the corrected depth-gate it stays **L0 Seed** (as above), the remaining
+> L1 blocker being content-pack depth, not breadth). See
 > [`revolution-01/README.md`](./revolution-01/README.md) and
 > [`revolution-02/README.md`](./revolution-02/README.md). Spec ground truth:
 > [`../../spec/01-kernel-schema.md`](../../spec/01-kernel-schema.md) and

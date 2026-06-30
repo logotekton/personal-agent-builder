@@ -153,7 +153,8 @@ raw_signal → evidence_bound_candidate → scoped_candidate → user_reviewed
 `confidence(0..1)` · `scope` · `review_status` · `sensitivity` · `created_at` · `updated_at`
 **선택:** `aliases` · `priority_weight` · `counterexamples` · `exception_rules` ·
 `related_records` · `supersedes` · `linked_projects` · `linked_domains` · `examples` · `anti_examples` ·
-`canonical_key` · `repetition_count` · `merge_history`
+`canonical_key` · `repetition_count` · `merge_history` · `auto_confirmed` · `review_audit` ·
+`reliability`(§7.1)
 
 - `review_status` ∈ {`pending`, `confirmed`, `rejected`, `narrowed`, `sensitive`, `deferred`}
 - `sensitivity` ∈ {`public`, `internal`, `sensitive`, `restricted`}

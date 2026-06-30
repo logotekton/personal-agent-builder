@@ -21,6 +21,23 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.22 (스킬문서·픽스처·트리거·이중언어 — 문서수정 2건 + 설계판단 2건)
+> it.14–21 이 안 건드린 표면(스킬문서↔도구 정합 · 예제 픽스처 유효성 · 트리거 스키마 · EN-요약 정합 ·
+> 라이프사이클 모델 일관성)을 5렌즈로 스윕. **6 확인 / 1 기각**. 잠금 숫자 전부 불변.
+- **[Fixed] (LOW·문서) skills/13 §7 선택-필드 목록 누락.** 한 화면 요약의 선택 필드 목록이 `auto_confirmed`·
+  `review_audit`·`reliability`(§7.1)를 빠뜨려, 자기가 정전이라 선언한 spec/01 §7·record.base.schema.json
+  (16 필드)과 불일치 — §9 가 이 목록을 *닫힌 어휘*로 쓰므로 reliability:self_reported 같은 정당한 필드를
+  거짓-거부할 소지. 세 필드 추가로 정합.
+- **[Fixed] (LOW·문서) examples/logotekton README EN 요약 자기모순.** 같은 EN 초록이 'L0 Seed'(헤드라인)와
+  'tier held at L2 / 남은 L3 빗장'(revolution-02 서술)을 동시에 주장 — 상단 ⚙️ 노트·convergence-report·
+  라이브 도구(전부 L0)와 충돌. 'tier 는 advance 안 함, 보정 깊이-게이트로 L0 Seed 유지, 남은 L1 빗장은
+  콘텐츠 깊이'로 정정(내부·도구 정합).
+- **[NOTE] (보고만·미적용 — 설계판단 2건, docs/open-design-decisions.md 클러스터 5):** (1) **host_hook
+  스키마↔문서 계약 갭** — `trigger.schema.json` host_hook 단일-토큰 enum 이 11개 스킬 트리거 블록 중 7개의
+  `·`-복합값을 못 담아 jsonschema 검증 실패(재현); spec/09 §2 표 signal/cadence 도 동일. 배열-enum 모델링
+  vs 단일토큰+산문 선택 필요. (2) **confirmation_trigger 과대표현** — spec/04 가 스키마 enum 처럼 기술하나
+  user.boundary_authority.schema.json 은 무제약 문자열 배열.
+
 ### 다중 에이전트 적대적 검증 스윕 — it.21 (운영·온보딩 레이어 — 실 버그 7건 + 설계판단 2건)
 > it.14–20 이 안 건드린 운영/온보딩 레이어(CI 커버리지 · 튜토리얼 정확성 · governance 정합 · traversal
 > 결정성 · 교차-도구 유니코드 정규화)를 5렌즈로 스윕. **9 확인 / 0 기각**. 잠금 숫자 전부 불변.

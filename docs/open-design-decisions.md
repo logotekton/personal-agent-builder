@@ -140,6 +140,36 @@ false-green 강건화가 세운 'path 부재→2, 0레코드→1' 패턴을 표�
 
 ---
 
+## 클러스터 5 — 스키마↔문서 트리거/경계 계약 (우선순위: MEDIUM)
+
+**증상.** 머신 스키마가 *자기 문서가 선언하는 값을 표현하지 못하거나*, 문서가 *스키마에 없는 강제를
+주장한다*.
+
+- **it.22 (host_hook)** — `trigger.schema.json` 의 `host_hook` 은 단일-토큰 enum(9개)인데, 11개 스킬
+  트리거 블록 중 **7개**가 `'UserPromptSubmit · PostToolUse'` 같은 `·`-결합 복합값을 싣고(각 스킬은
+  "머신 스키마는 ../schemas/trigger.schema.json" 이라 명시), spec/09 §2 정식 표의 signal/cadence 열도 동일.
+  jsonschema 로 7/11 블록이 **검증 실패**(재현). 즉 정식 머신 계약이 자기 문서가 싣는 값을 못 담는다.
+  추가로 *임베디드 트리거 블록을 검증하는 도구가 없다*(check_schemas 는 스키마 *파일* 만 검사) — 이 결정
+  후 트리거-블록 검증기를 추가하면 좋다.
+- **it.22 (confirmation_trigger)** — spec/04 가 `confirmation_trigger` 를 스키마 enum 인 것처럼 기술하나
+  `user.boundary_authority.schema.json` 은 제약 없는 문자열 배열로 둠 → 머신 강제를 과대표현.
+
+**핵심 질문.** (a) `host_hook`/signal/cadence 를 *enum-토큰 배열*(`type:array, items:{enum:[…]}`)로
+모델링해 복합값을 표현할 것인가, vs 각 문서 값을 단일 토큰 + 산문으로 축약할 것인가. (b)
+`confirmation_trigger` 에 실제 enum 을 *추가*(스키마 강화)할 것인가 vs 문서 주장을 *완화*(enum 아님 명시)할
+것인가. (b)에서 enum 추가는 기존 예제 boundary 레코드 값이 enum 밖이면 validate 를 깰 수 있으니 예제값 먼저
+점검 필요.
+
+**권고.** `host_hook` 등은 (a) 배열-enum 으로 — 다중-훅 바인딩(skills/14 §2: turn→UserPromptSubmit,
+tool_result→PostToolUse)이 실재 의미라 단일 토큰으로 못 담기 때문. 스키마·11 스킬 블록·spec/09 표를 YAML
+리스트로 한 PR 에 맞춘다. `confirmation_trigger` 는 예제값을 점검해 enum 으로 좁히거나(전부 포함되면)
+문서를 완화. 임베디드 트리거 블록 검증기(check_triggers)를 함께 추가해 회귀를 잠근다.
+
+**잠금 숫자 영향.** 없음 — `host_hook`/`confirmation_trigger` 는 잠금 지표·예제 validate(42 PASS, logotekton
+은 트리거 블록·boundary enum 경로를 안 탐)와 무관. 단 confirmation_trigger enum 추가 시 boundary 예제 재검증.
+
+---
+
 ## 참고 — 같은 스윕에서 *적용된* 항목
 
 이 문서는 *미적용* 항목만 모읍니다. 같은 스윕에서 기계적·안전하다고 판단해 *적용된* 약 40건의 수정은
