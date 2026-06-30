@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """check_commands.py — documented-command integrity guard.
 
-The repo's thesis is "every figure is reproduced by the commands." A command printed in a doc is
-a promise that it runs; this guard keeps that promise executable. It scans every Markdown file for
-fenced shell blocks, extracts each invocation of this repo's tools / test suite, and runs it,
-failing if any exits nonzero. So a renamed flag or a changed CLI signature (e.g. the two-file
-convergence_report form that silently broke) can't survive in the docs.
+A command printed in a doc is a promise that it RUNS; this guard keeps that promise executable. It
+scans every Markdown file for fenced shell blocks, extracts each invocation of this repo's tools /
+test suite, and runs it, failing if any exits nonzero. So a renamed flag or a changed CLI signature
+(e.g. the two-file convergence_report form that silently broke) can't survive in the docs.
+
+SCOPE NOTE — this verifies *runnability* (exit 0), not the *figures* a doc prints. The numeric
+results (coverage 0.07, merge_rate 0.095, 42 PASS, ...) are locked separately by the test suite
+(tests/test_tools.py), which asserts the exact tool output. A doc comment like `# merge_rate 0.095`
+is NOT compared against stdout here; if you change a locked number, a test breaks, not this guard.
 
 Scope — it runs only SAFE, READ-ONLY invocations of THIS REPO'S TOOLS (whose CLI could drift) and
 reports the rest as skipped:

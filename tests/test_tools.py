@@ -824,6 +824,15 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("0 broken", r.stdout)
 
+    def test_compile_adapter_fails_loudly_on_missing_input(self):
+        # it.10: compile_adapter must NOT exit 0 on a missing/unreadable input — else the
+        # check_commands exit-code gate would stay green even if the example were deleted/renamed.
+        r = _run("tools/compile_adapter.py", "examples/does-not-exist-dir")
+        self.assertNotEqual(r.returncode, 0, r.stdout + r.stderr)
+        # the real example still compiles and exits 0
+        ok = _run("tools/compile_adapter.py", "examples/logotekton")
+        self.assertEqual(ok.returncode, 0, ok.stdout + ok.stderr)
+
     def test_rev02_pre_reproduces_four_verdicts(self):
         r = _run("tools/pab_merge.py",
                  "examples/logotekton/revolution-02/instance-records.pre.yaml",

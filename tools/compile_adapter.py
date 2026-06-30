@@ -283,7 +283,16 @@ def build_arg_parser():
 
 def main(argv=None):
     args = build_arg_parser().parse_args(argv)
+    # 존재하지 않거나 읽을 수 없는 입력에서 *조용히 성공*하지 않는다 — 그래야 문서-커맨드 가드
+    # (check_commands)의 exit-0 판정이 "예제가 실제로 해석된다"를 진짜로 증명한다(적대적 검증 it.10).
+    if not os.path.exists(args.directory):
+        print(f"error: 입력 경로가 없습니다: {args.directory}", file=sys.stderr)
+        return 2
     pack_records, drift_records = load(args.directory)
+    if not any(pack_records.get(p) for p in pack_records):
+        print(f"error: {args.directory} 에서 레코드를 하나도 로드하지 못했습니다 "
+              "(빈/파싱불가 입력 — 컴파일할 대상 없음)", file=sys.stderr)
+        return 1
     adapter = compile_adapter(pack_records, drift_records, task_tags=args.task)
     if args.json:
         print(json.dumps(adapter, ensure_ascii=False, indent=2, sort_keys=True))

@@ -31,10 +31,12 @@ link, each printed as `file:line -> target#anchor  (reason)`. This is a gate, no
 import sys, os, re, argparse, glob
 
 HEADING = re.compile(r'^(#{1,6})\s+(.*?)\s*#*\s*$')
-# inline link target with a fragment: ](  optional-path  #fragment )
-LINK = re.compile(r'\]\(\s*([^)\s#]*)\s*#([^)\s]+)\s*\)')
-# inline link target without a fragment (for file-existence checks): ](path)
-FILELINK = re.compile(r'\]\(\s*([^)\s#]+?)\s*\)')
+# an optional Markdown link title:  ](path "title")  or  ](path 'title')
+_TITLE = r'(?:\s+["\'][^"\']*["\'])?'
+# inline link target with a fragment: ](  optional-path  #fragment  ["title"] )
+LINK = re.compile(r'\]\(\s*([^)\s#]*)\s*#([^)\s]+?)' + _TITLE + r'\s*\)')
+# inline link target without a fragment (for file-existence checks): ](path ["title"])
+FILELINK = re.compile(r'\]\(\s*([^)\s#]+?)' + _TITLE + r'\s*\)')
 FENCE = re.compile(r'^\s*(```|~~~)')
 
 
