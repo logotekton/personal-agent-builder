@@ -150,14 +150,14 @@ correction_cost      0.08   (↓ 좋음 — #3 계측 후 NA→측정값)
 drift_stability      0.89
 traceability         1.00   (필수 충족)
 ──────────────────────────────────────────
-maturity tier        L1 Sketch   (L2까지 남은 빗장: coverage≥0.5 하나)
+maturity tier        L0 Seed     (L1 빗장: 콘텐츠 팩 ≥3 깊이 vertical = 0)
 ```
 
 이 숫자는 [`tests/`](../tests/README.md)가 회귀로 잠그고 있어, 도구를 바꾸면 테스트가 먼저 깨집니다.
 **성숙도 게이트는 `coverage`의 *엄격(≥3 깊이)* 값(spec §2 정의)을 씁니다** — 시드폭(0.71)으로 게이팅하면
 "Working"을 폭으로 따게 돼 de-averaging 명제(깊이=신뢰)와 모순되기 때문입니다(L2 게이트 결함 수정).
-그래서 logotekton 은 폭은 넓지만 깊은 팩이 1개뿐이라 정직하게 **L1 Sketch**입니다(시드폭으로 보면
-"L2처럼" 보이지만 그건 자기기만). 남은 L2 병목은 `coverage`(엄격 0.07→0.5) 하나 — 즉 *더 많은 팩을
+그래서 logotekton 은 폭은 넓지만 **콘텐츠 깊이 vertical 이 0**(유일한 ≥3 팩이 *메타* eval 장부)이라
+정직하게 **L0 Seed**입니다(시드폭으로 보면 "L2처럼" 보이지만 그건 자기기만). L1·L2 병목은 *콘텐츠 팩을
 ≥3 확인 레코드로 깊게 채우는 것*. T0 베이스라인은
 [`convergence-report.md`](../examples/logotekton/convergence-report.md), 전이는
 [`revolution-01`](../examples/logotekton/revolution-01/README.md)·[`revolution-02`](../examples/logotekton/revolution-02/README.md)가 추적합니다(그 문서들의 티어 표기는 결함 수정 *이전* 시드폭 게이트 기준 — 각 문서 상단 노트 참조).

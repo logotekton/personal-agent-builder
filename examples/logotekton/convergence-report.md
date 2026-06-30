@@ -139,33 +139,33 @@
 
 ---
 
-## 4. 성숙도 판정: **L0 Seed** (도구 판정 · 폭은 충분하나 콘텐츠 깊이 0 · L2 정조준)
+## 4. 성숙도 판정: **L0 Seed** (도구 판정 · L1까지 팩 하나 · L2 정조준)
 
-[수렴 모델 §3](../../spec/06-convergence-model.md)의 사다리에 라이브 T2 수치를 대입합니다(모두
-[`convergence_report.py`](../../tools/convergence_report.py) 재현).
+[수렴 모델 §3](../../spec/06-convergence-model.md)의 사다리에 대입합니다(이 §은 **T0 베이스라인** —
+상단 ⚙️ 노트대로 라이브 T2 도 **L0** 이지만 *빗장이 다릅니다*: T0=폭<7, T2=콘텐츠 깊이 0).
 
-| 단계 | 진입 조건 | 이 스냅샷 (라이브 T2) | 판정 |
+| 단계 | 진입 조건 | 이 스냅샷 (T0) | 판정 |
 |------|-----------|-----------|:---:|
-| **L0 Seed** | 3개 미만 팩 시드, 평가 케이스 없음 | 시드 10팩 · 6 평가 (L0 문자정의는 이미 벗어남) | **현재(도구)\*** |
-| L1 Sketch | **≥7팩 시드**, ≥3 평가, `traceability`=1.0, **콘텐츠 깊이 vertical ≥1** | 시드 10≥7 ✓, 평가 6 ✓, trace 1.0 ✓, **콘텐츠 깊이 0 ✗** | **콘텐츠 vertical 미달\*** |
-| L2 Working | `coverage`≥0.5, `decision_fidelity`≥0.6, `human_confirmation_ratio`≥0.6 | 0.07 / 1.00 / 1.00 | coverage 미달 |
-| L3 Reliable | coverage≥0.8, fidelity≥0.8, correction_cost≤0.3, drift_stability≥0.7 | 0.07 / 1.00 / 0.08 / 0.89 | coverage 미달 |
+| **L0 Seed** | 3개 미만 팩 시드, 평가 케이스 없음 | 6개 팩 시드 + 6 평가 케이스 | **현재(도구)\*** |
+| L1 Sketch | **≥7개 팩 시드**, ≥3개 평가 케이스, `traceability`=1.0, **콘텐츠 팩 ≥1개 ≥3 확인** | 6개 팩 시드, 6 평가, traceability=1.0 | 팩 1개 미달 |
+| L2 Working | `coverage`≥0.5, `decision_fidelity`≥0.6, `human_confirmation_ratio`≥0.6 | 0.43 / 0.75 / 1.00 | coverage 미달 |
+| L3 Reliable | coverage≥0.8, fidelity≥0.8, correction_cost≤0.3, drift_stability≥0.7 | 0.43 / 0.75 / ~0.21\*\* / 1.0\* | coverage·fidelity 미달 |
 | L4 Convergent | coverage=1.0, fidelity≥0.9, cost≤0.15, drift≥0.85, trace=1.0, N기간 지속 | — | 미달 |
 
-\* **왜 L0인가 (도구 판정).** 성숙도는 *완전히 충족한 가장 높은 단계*로 정합니다. 이 스냅샷은
-폭(시드 10팩 ≥7)·평가(6 ≥3)·`traceability`(1.0)는 충족하지만, L1 의 **콘텐츠 깊이 vertical**
-(콘텐츠 팩 ≥1개가 behavioral 확인 ≥3)을 충족하지 못합니다 — 유일한 ≥3 팩이 *메타* 팩
-`user.evaluation_cases`(평가 장부)이고, depth-vertical 은 *콘텐츠* 팩에서만 인정되기 때문입니다
-(it.5: 메타 팩이 vertical 을 채우면 'n_eval≥3' 게이트가 깊이까지 자동 충족시켜 깊이 요구가 공허해짐).
-따라서 도구는 **L0 Seed**로 판정합니다. 이는 de-averaging 명제의 산 예시입니다 — **폭은 넓되 콘텐츠
-깊이가 없으면 Seed**. §5의 **다음 한 수**(한 콘텐츠 팩을 ≥3 깊이로)면 L1 이 확정되고 동시에
-L2(coverage≥0.5)가 열립니다.
+\* **왜 L0인가 (도구 판정).** 성숙도는 *완전히 충족한 가장 높은 단계*로 정합니다. 이 **T0** 스냅샷은
+L1의 정량 조건 **"≥7개 팩 시드"를 아직 통과하지 못했으므로**(6팩<7), 자동 도구
+([`convergence_report.py`](../../tools/convergence_report.py))는 이를 **L0 Seed**로 판정합니다.
+다만 L0의 *문자적* 정의(<3팩·평가 0개)는 **이미 명백히 벗어났습니다**(6팩·6케이스·`traceability`=1.0).
+즉 "L0의 윗변에서 L1을 팩 하나 앞둔" 상태입니다. (**라이브 T2**는 폭 10팩으로 ≥7을 넘었지만 이번엔
+*콘텐츠 깊이 vertical 0*(유일한 ≥3 팩이 메타 eval)이라 여전히 **L0** — 같은 등급, 다른 빗장; 상단 ⚙️
+노트 참조.) §5의 **다음 한 수**가 (콘텐츠 깊이까지 채울 때) L1을 확정하고 동시에 L2(coverage≥0.5)를 엽니다.
+\*\* `correction_cost`는 (T0 스냅샷엔) 구조화된 작업별 교정 필드가 아직 비어 있어 **자동 도구는 NA**로
+보고합니다. 아래 §2.1의 0.21은 관측 편집 비율에서의 **수동 추정**입니다.
 
 요약: **도구 판정 L0 Seed, 그러나 L1·L2를 동시에 정조준.** L2의 세 조건 중
-`decision_fidelity`(1.00≥0.6)와 `human_confirmation_ratio`(1.00≥0.6)는 이미 통과했고, **남은 병목은
-`coverage`**(엄격 0.07, 목표 0.5) 하나뿐 — 그리고 그 한 칸이 L1의 **콘텐츠 깊이 vertical**(콘텐츠 팩
-하나를 ≥3 깊이로)과 정확히 같은 작업입니다: 한 콘텐츠 영역을 깊게 채우면 L1 vertical 이 서고
-coverage(깊이)도 함께 오릅니다.
+`decision_fidelity`(0.75≥0.6)와 `human_confirmation_ratio`(1.00≥0.6)는 이미 통과했고, **남은 병목은
+`coverage`**(0.43, 목표 0.5) 하나뿐 — 그리고 그 한 칸이 L1의 7번째 팩(+콘텐츠 깊이 vertical)과 정확히
+같은 작업입니다.
 
 ---
 
