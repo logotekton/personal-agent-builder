@@ -1609,5 +1609,67 @@ class TestPabMergeYamlRoundTripIt20(unittest.TestCase):
             self.assertGreater(nrec, 0, "round-trip produced zero records")
 
 
+class TestUnicodeAndOperationalIt21(unittest.TestCase):
+    """it.21: cross-tool NFC normalization (an NFD supersedes ref / scope tag must match its NFC
+    counterpart, or a retired record stays LIVE / an in-scope record is dropped), dedup determinism,
+    and the new schemas/ integrity gate."""
+
+    def _nfc_nfd(self):
+        import unicodedata as ud
+        return ud.normalize("NFC", "한국어 규칙"), ud.normalize("NFD", "한국어 규칙")
+
+    def test_nfd_supersedes_retires_nfc_target_in_both_tools(self):
+        nfc, nfd = self._nfc_nfd()
+        self.assertNotEqual(nfc, nfd)   # genuinely different byte sequences
+        pack = "user.persona_core"
+        recs = {pack: [
+            {"id": nfc, "pack": pack, "record_type": "PreferenceRecord", "statement": "old",
+             "review_status": "confirmed", "scope": "g"},
+            {"id": "new", "pack": pack, "record_type": "PreferenceRecord", "statement": "new",
+             "review_status": "confirmed", "scope": "g", "supersedes": [nfd]}]}
+        sup_cr = cr._collect_superseded(recs, [])
+        sup_ca = comp.collect_superseded(recs, [])
+        self.assertEqual(sup_cr, sup_ca)                       # tools agree
+        self.assertIn(cr._norm_id(nfc), sup_cr)                # NFD ref matched NFC target
+        self.assertFalse(comp.is_runtime_active(recs[pack][0], sup_ca))  # old record retired, not LIVE
+
+    def test_scope_overlap_matches_across_nfc_nfd(self):
+        nfc, nfd = self._nfc_nfd()
+        self.assertTrue(cs.scope_overlap([nfd], [nfc]))        # visually-identical tags overlap
+        self.assertEqual(cs.normalize_tags([nfd]), cs.normalize_tags([nfc]))
+
+    def test_dedup_check_output_is_deterministic(self):
+        import json as _json
+        with tempfile.TemporaryDirectory() as tmp:
+            for nm in ("z.json", "a.json", "m.json"):
+                with open(os.path.join(tmp, nm), "w") as fh:
+                    _json.dump({"user.tacit_heuristics": [
+                        {"id": nm[0], "statement": "always run the tests before committing code",
+                         "scope": "s"}]}, fh)
+            r1 = subprocess.run([sys.executable, os.path.join(TOOLS, "dedup_check.py"), tmp],
+                                capture_output=True, text=True).stdout
+            r2 = subprocess.run([sys.executable, os.path.join(TOOLS, "dedup_check.py"), tmp],
+                                capture_output=True, text=True).stdout
+            self.assertEqual(r1, r2)   # files are sorted before aggregation -> stable output
+
+    def test_check_schemas_passes_clean_and_catches_defects(self):
+        import json as _json
+        rc = subprocess.run([sys.executable, os.path.join(TOOLS, "check_schemas.py"),
+                             os.path.join(REPO, "schemas")], capture_output=True, text=True)
+        self.assertEqual(rc.returncode, 0, rc.stdout)          # the shipped schemas are clean
+        with tempfile.TemporaryDirectory() as tmp:
+            # a well-formed base + a per-pack schema with a broken $ref -> must FAIL
+            with open(os.path.join(tmp, "record.base.schema.json"), "w") as fh:
+                _json.dump({"$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "$id": "x", "title": "t", "description": "d", "type": "object"}, fh)
+            with open(os.path.join(tmp, "user.broken.schema.json"), "w") as fh:
+                _json.dump({"$schema": "https://json-schema.org/draft/2020-12/schema",
+                            "$id": "y", "title": "t", "description": "d",
+                            "allOf": [{"$ref": "./DELETED.schema.json"}]}, fh)
+            rc2 = subprocess.run([sys.executable, os.path.join(TOOLS, "check_schemas.py"), tmp],
+                                 capture_output=True, text=True)
+            self.assertEqual(rc2.returncode, 1, rc2.stdout)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

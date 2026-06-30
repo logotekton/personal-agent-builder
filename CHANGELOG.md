@@ -21,6 +21,33 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.21 (운영·온보딩 레이어 — 실 버그 7건 + 설계판단 2건)
+> it.14–20 이 안 건드린 운영/온보딩 레이어(CI 커버리지 · 튜토리얼 정확성 · governance 정합 · traversal
+> 결정성 · 교차-도구 유니코드 정규화)를 5렌즈로 스윕. **9 확인 / 0 기각**. 잠금 숫자 전부 불변.
+- **[Fixed] (MEDIUM) 교차-도구 NFC 정규화 누락 — 은퇴 레코드가 LIVE 로 남음.** convergence·compile 의
+  superseded-id 비교(집합 + 조회)와 context_select 스코프 매칭이 NFC 정규화를 안 해서, NFD supersedes 참조
+  vs NFC 대상 id(또는 NFD 스코프 vs NFC 작업 태그)가 시각적으로 같은데 매칭 실패 → 폐기 레코드가 활성으로
+  남아 이중집계되거나 in-scope 레코드가 선택에서 누락. 세 도구 모두 `unicodedata.normalize("NFC", …)` 통일
+  (pab_merge canonical_key NFC, it.13 과 같은 취지). 예제 id 는 ASCII 라 잠금값 불변.
+- **[Fixed] (MEDIUM) CI 가 schemas/*.json 을 전혀 검사 안 함.** 17개 스키마(레코드 계약의 root-of-truth)가
+  깨지거나 record.base 로의 `$ref` 가 끊겨도 CI 가 녹색으로 머지됨(주입 실험으로 재현). 새 `tools/check_schemas.py`
+  (stdlib: JSON 형식 + draft 2020-12 + `$ref` 해결성 + per-pack allOf+$ref-to-record.base 강제)를 추가하고
+  CI 게이트로 배선.
+- **[Fixed] (MEDIUM) dedup_check 비결정 출력.** 디렉터리 입력을 `glob`(파일시스템 순서) 그대로 집계해 near-dup
+  pair 목록·방향이 흔들림 → `sorted(files)` 로 결정론화.
+- **[Fixed] (LOW·문서) 튜토리얼 L1 정의 불완전.** build-your-personal-agent.md §7 의 L1 기준이 '≥3 평가
+  케이스'·'콘텐츠 팩(메타 제외)' 한정자를 빠뜨려 번들 예제가 거짓으로 L1 처럼 보였음 — spec/06·도구 게이트에 맞춤.
+- **[Fixed] (LOW·문서) 튜토리얼 'L0→L1' 과대표현.** 같은 §7 이 예제 스냅샷을 'L0→L1'이라 했으나 예제·도구는
+  내내 L0 → '현재 L0, 다음 한 수=L1 조건'으로 정정.
+- **[Fixed] (LOW·문서) GOVERNANCE 잘못된 섹션 참조.** 구 코드명 규칙을 `[08 §3]`(ID 형식)으로 가리켰으나 실제
+  규칙은 `08 §5`(코드명→정식이름 마이그레이션 표) → 정정.
+- **[Fixed] (LOW·문서) CI stdlib-only 주석 부정확.** 매트릭스가 'stdlib-only portability 를 보증'한다 했으나
+  모든 레그가 PyYAML 설치 → 버전 이식성만 커버하고 no-PyYAML 경로는 안 돈다고 정정.
+- **[Added] 회귀 테스트 4건**(`TestUnicodeAndOperationalIt21`) + `tools/check_schemas.py`. 총 160→164.
+- **[NOTE] (보고만·미적용 — 설계판단 2건):** (1) `validate_packs` 가 모든 파일 SKIP(레코드 0건 검증)시
+  `결과: PASS` exit 0 — 공허한 녹색(클러스터 3 합류). (2) `.gitignore` 가 CONTRIBUTING 이 약속한 개인 인스턴스
+  경로를 실제로 무시하지 않음 — 안전 약속이 거짓(docs/open-design-decisions.md 클러스터 4).
+
 ### 다중 에이전트 적대적 검증 스윕 — it.20 (캡스톤: 통합 재감사 + 설계판단 종합 — 실 버그 2건)
 > 캡스톤 스윕: it.1–19 수정들의 상호 정합성 재감사 + 파이프라인-통합 버그헌트 + 테스트-주장 커버리지 감사 +
 > 9개 보고된 설계판단을 3 클러스터로 종합. **2 확인 / 0 기각**. 누적 수정 상호 모순·무회귀 0건 확인.
