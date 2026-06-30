@@ -740,7 +740,9 @@ def compute_indices(pack_records, eval_cases, drift_records):
         v = _correction_value(ec)
         if v is not None:
             corr_vals.append(v)
-    correction_cost = (sum(corr_vals) / len(corr_vals)) if corr_vals else None
+    # math.fsum: 부동소수 합은 비결합적이라 plain sum 은 corr_vals 순서(=평가 케이스/파일 순서)에 따라
+    # 마지막 ULP 가 달라져 직렬화 JSON 의 byte-동일성(결정성 논제)을 깬다. fsum 은 순서무관 정확합산이다(it.23).
+    correction_cost = (math.fsum(corr_vals) / len(corr_vals)) if corr_vals else None
 
     # drift_stability = 1 − (전기간 대체수 / 확인 레코드수). 드리프트 없으면 1.0. (self_reported 드리프트 제외)
     # 주: 기간/타임스탬프 윈도우 모델이 아직 없어 *전 기간 누적* 대체수를 센다(spec/06 §1 표 주석).

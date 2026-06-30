@@ -1671,5 +1671,29 @@ class TestUnicodeAndOperationalIt21(unittest.TestCase):
             self.assertEqual(rc2.returncode, 1, rc2.stdout)
 
 
+class TestPropertyDeterminismIt23(unittest.TestCase):
+    """it.23 (property-based fuzzing follow-up): correction_cost must be order-independent. Plain
+    float sum is non-associative, so the same set of edit_fractions in a different order produced a
+    last-ULP-different value, breaking byte-identity of the serialized indices. math.fsum fixes it.
+    (The fuzzer's other finding — a merge non-fixpoint — did not reproduce against this tree's
+    plan_batch intra-batch dedup, so no change was warranted there.)"""
+
+    def _evcase(self, i, ef):
+        return {"id": f"x.evalcase.{i}", "record_type": "EvaluationCaseRecord",
+                "review_status": "confirmed", "result": {"status": "pass", "edit_fraction": ef}}
+
+    def _cc(self, order):
+        evs = [self._evcase(i, v) for i, v in enumerate(order)]
+        return cr.compute_indices({}, evs, [])["correction_cost"]
+
+    def test_correction_cost_is_order_independent(self):
+        a = self._cc([0.1, 0.1, 0.4])
+        b = self._cc([0.1, 0.4, 0.1])
+        c = self._cc([0.4, 0.1, 0.1])
+        self.assertEqual(a, b)
+        self.assertEqual(b, c)
+        self.assertAlmostEqual(a, 0.2, places=9)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
