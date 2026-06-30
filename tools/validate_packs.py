@@ -180,6 +180,21 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
                         f"[EVAL] scoring_rubric 가중치 합이 1.0 이 아닙니다: {s:.3f}"
                     )
 
+        # (a1) criteria 항목 품질 — 각 원소는 비어있지 않은 문자열 'check' 를 가진 dict 여야 한다.
+        #      비-dict 원소(None·문자열·중첩리스트)는 (1) 스키마 위반이고 (2) 위 weights 리스트에서 조용히
+        #      빠져 len(nums)==len(crit) 가드를 무너뜨려 가중치합 게이트 자체를 비활성화한다 — 한 원소만
+        #      끼워넣어 합 5.0 짜리 쓰레기 루브릭이 통과(적대적 검증 it.16). G1/G5 항목-품질 검사와 대칭.
+        def _bad_criterion(c):
+            if not isinstance(c, dict):
+                return True
+            ch = c.get("check")
+            return not (isinstance(ch, str) and ch.strip())
+        if isinstance(crit, list) and crit and any(_bad_criterion(c) for c in crit):
+            res.errors.append(
+                "[EVAL] scoring_rubric.criteria 에 dict 가 아니거나 'check'(비어있지 않은 문자열)가 없는 "
+                "항목이 있습니다 — 비-dict 항목은 가중치합 게이트까지 무력화합니다"
+            )
+
         # (a2) 공허한 루브릭 차단 — criteria 가 비었거나 pass_threshold≤0 이면 *항상 통과*하는 루브릭이라
         #      decision_fidelity 를 공짜로 1.0 으로 밀어올린다("보상이 검증이 아니라 기록", 카파시 #3,
         #      적대적 검증 it.4 VACUOUS-RUBRIC-DF). 채점 기준이 실재해야 통과가 의미를 가진다.

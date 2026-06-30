@@ -153,8 +153,19 @@ def main():
     distinct_packs = len(packs_seen) + len(noncanon)
     pack_cardinality = round(distinct_packs / 14.0, 3)
 
-    # merge_rate from repetition_count / merge_history if present
-    merges = sum(max(0, int(r.get("repetition_count", 1)) - 1) for _, r in pairs)
+    # merge_rate from the provenance trail (merge_history) OR the denormalized counter
+    # (repetition_count), whichever records MORE merges. Trusting the stored counter alone lets a
+    # stale/empty merge_history — or an inflated counter — misreport convergence (적대적 검증 it.16).
+    # spec/10 §4: repetition_count = 1 + len(merge_history), so on a clean set the two agree.
+    def _merge_count(r):
+        mh = r.get("merge_history")
+        n_mh = len(mh) if isinstance(mh, list) else 0
+        try:
+            rc = int(r.get("repetition_count", 1)) - 1
+        except (TypeError, ValueError, OverflowError):
+            rc = 0  # 비정수/무한 카운터는 무시하고 provenance(merge_history)에 맡긴다
+        return max(0, n_mh, rc)
+    merges = sum(_merge_count(r) for _, r in pairs)
     inserts = total
     merge_rate = round(merges / (merges + inserts), 3) if (merges + inserts) else 0.0
     has_merge_data = any(("repetition_count" in r or "merge_history" in r) for _, r in pairs)
@@ -165,7 +176,7 @@ def main():
     print(f"records scanned     : {total}  across {distinct_packs} pack(s)")
     print(f"redundancy_ratio    : {redundancy_ratio:>6}   (near-dup pairs {len(dup_pairs)} / {total}; lower→better)")
     print(f"pack_cardinality    : {pack_cardinality:>6}   (distinct packs {distinct_packs} / 14; =1.0 ideal, >1 sprawl)")
-    print(f"merge_rate          : {('  ' + str(merge_rate)) if has_merge_data else '    NA'}   (rising = convergence; from repetition_count)")
+    print(f"merge_rate          : {('  ' + str(merge_rate)) if has_merge_data else '    NA'}   (rising = convergence; from merge_history/repetition_count)")
     if noncanon:
         print(f"non-canonical packs : {noncanon}  <-- not one of the 14; fold into a canonical pack")
     if dup_pairs:

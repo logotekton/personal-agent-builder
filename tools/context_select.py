@@ -112,9 +112,12 @@ def select_context(records, token_budget, task_tags=None):
         and not _is_draft_only(r)  # self_reported is draft-only — never authoritative (decision C)
         and scope_overlap(r.get("scope") or r.get("applies_in"), task_tags)
     ]
+    # (-salience, id, statement, scope, est_tokens) 전순서 — id+statement 까지 같고 scope/크기만 다른
+    # 레코드도 입력순서에 의존하면 selected/dropped 분할이 입력순서로 뒤집힌다(적대적 검증 it.16).
     ranked = sorted(
         eligible,
-        key=lambda r: (-salience(r), str(r.get("id", "")), str(r.get("statement", ""))),
+        key=lambda r: (-salience(r), str(r.get("id", "")), str(r.get("statement", "")),
+                       str(r.get("scope", "")), est_tokens(r)),
     )
     selected, dropped, used = [], [], 0
     for r in ranked:

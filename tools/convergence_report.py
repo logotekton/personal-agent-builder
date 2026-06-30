@@ -584,12 +584,18 @@ def _has_evidence(rec) -> bool:
 
 
 def _id_set(value):
-    """supersedes 필드(문자열 또는 리스트)를 id 집합으로 정규화."""
-    if isinstance(value, str):
-        return {value.strip()} if value.strip() else set()
+    """supersedes 필드(문자열·리스트·스칼라)를 id 집합으로 정규화.
+
+    compile_adapter._as_id_set 와 *원소 단위로 동일* 해야 한다 — 두 도구가 'superseded' 집합을 다르게
+    정규화하면(리스트 속 None 을 한쪽은 'None' 으로 살리고 한쪽은 버림; 비-리스트 스칼라를 한쪽만 문자열화)
+    같은 입력에서 runtime-active/LIVE 집합이 갈라진다(적대적 검증 it.16). compile_adapter 가 이 모듈을
+    import 하므로(역방향 import 는 순환) 로직을 복제해 일치시킨다."""
+    out = set()
     if isinstance(value, list):
-        return {str(v).strip() for v in value if str(v).strip()}
-    return set()
+        out |= {str(v).strip() for v in value if v is not None and str(v).strip()}
+    elif value is not None and str(value).strip():
+        out.add(str(value).strip())
+    return out
 
 
 def _collect_superseded(pack_records, drift_records):

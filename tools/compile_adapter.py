@@ -148,11 +148,12 @@ def compile_adapter(pack_records, drift_records, task_tags=None):
             and (task_tags is None
                  or cs.scope_overlap(r.get("scope") or r.get("applies_in"), task_tags))
         ]
-        # 결정론: (id, statement) 전순서로 정렬 (동일 입력 → 동일 어댑터).
-        # id 만으로는 동일-id 레코드(예: 충돌/중복)에서 안정정렬이 입력순서에 의존 — statement 를
-        # 보조키로 더해 입력순서와 무관한 전순서를 보장한다(적대적 검증 it.14).
+        # 결정론: (id, statement, scope) 전순서로 정렬 (동일 입력 → 동일 어댑터).
+        # id 만으로는 동일-id 레코드에서 안정정렬이 입력순서에 의존(it.14) — 더 나아가 id+statement 까지
+        # 같고 scope 만 다른 레코드도 입력순서에 의존하므로 scope 를 보조키로 더한다(적대적 검증 it.16).
         active_by_pack[pack] = sorted(
-            active, key=lambda r: (str(r.get("id", "")), str(r.get("statement", "")))
+            active,
+            key=lambda r: (str(r.get("id", "")), str(r.get("statement", "")), str(r.get("scope", ""))),
         )
 
     sections = {n: [] for n in range(1, 9)}
