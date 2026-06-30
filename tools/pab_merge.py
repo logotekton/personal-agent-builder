@@ -272,7 +272,8 @@ def main(argv=None):
         print(f"existing records : {sum(len(v) for v in existing_by_pack.values())}  "
               f"across {len([p for p in existing_by_pack if existing_by_pack[p]])} pack(s)")
         print(f"incoming         : {len(candidates)} candidate(s)")
-        print(f"verdicts         : " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())) or "(none)")
+        verdict_summary = ", ".join(f"{k}={v}" for k, v in sorted(counts.items())) or "(none)"
+        print(f"verdicts         : {verdict_summary}")
         print("-" * 64)
         for p in plans:
             extra = f" sim={p['similarity']}" if "similarity" in p else ""
