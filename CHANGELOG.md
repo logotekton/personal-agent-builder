@@ -21,6 +21,19 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.10 (최종 수렴 검사 — 잔여 false-green + stale 숫자)
+> 회귀·전수숫자감사·잔여-false-green·완결성 4렌즈로 5 확인 / 0 기각. 코드/설계 0 — 검증기 강건성·숫자뿐.
+- **[Fixed] compile_adapter false-green (MEDIUM).** 입력 경로가 없어도(혹은 0팩 로드) exit 0 →
+  check_commands 의 exit-0 판정이 "예제가 실제 해석됨"을 증명 못 함. 경로 부재→exit 2, 0레코드 로드→exit 1
+  로 강건화(예제·revolution 픽스처는 그대로 0). 회귀 테스트 추가.
+- **[Fixed] check_commands 독스트링 과대주장.** "every figure is reproduced" 라 했으나 실제론 exit-0 만
+  검사 → *runnability* 만 보증하고 *숫자*는 test_tools 가 잠근다고 정직하게 한정.
+- **[Fixed] check_anchors 제목 링크 누락.** `[text](path "title")` 형식을 존재·앵커 검사 양쪽에서 건너뜀 →
+  정규식에 선택적 title 허용(현재 미사용이나 표준 형식 대비).
+- **[Fixed] stale 숫자 2건.** tests/README 98→108(현 109), CHANGELOG 앵커 "167개"는 문서 증가로 변하므로
+  고정 해제. README·tests/README 테스트 수 109 로 동기화.
+- **0 기각.**
+
 ### 다중 에이전트 적대적 검증 스윕 — it.9 (메타-체커 false-green + 신규자-문서 과대주장)
 > dedup_check·CI·체커도구·초기스킬·미공개과대주장 5렌즈로 7 확인 / 0 기각. 발견이 *체커 자신*(모든
 > "0 broken" 주장을 떠받치는 도구)과 신규자 문서로 이동 — 진짜 새 영역.
@@ -347,7 +360,8 @@
 - **깨진 자기 앵커 링크 정정(skills/08).** `§3 라우팅 표`를 가리키는 세 개의 자기 링크가
   `#3-라우팅-표-1-1-전수`로 잘못 작성되어 실제 헤딩 슬러그(`#3-라우팅-표-11-전수`, `(1:1, 전수)`의
   `1:1`이 `11`로 정규화)와 어긋났음 → 다른 모든 링크가 쓰는 `11` 규약으로 통일. 저장소 전체 앵커
-  링크를 GitHub 슬러그 알고리즘으로 일괄 점검(현재 167개, broken=0; CI가 매번 재확인).
+  링크를 GitHub 슬러그 알고리즘으로 일괄 점검(전 저장소 broken=0; CI가 매번 재확인 — 정확한 링크 수는
+  문서가 늘며 변하므로 고정하지 않음).
 - **실행되지 않던 문서 명령·낡은 라이브 출력 정정("모든 figure는 명령으로 재현"의 위반).**
   `convergence_report.py`는 *디렉터리 하나*를 받는데 문서 세 곳이 깨진 형태였음 — `tools/README.md`
   §2의 두-파일 형태, `CONTRIBUTING.md`의 인자 없는 형태, `templates/QUICKSTART.md`의 존재하지 않는
