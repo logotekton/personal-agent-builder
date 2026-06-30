@@ -421,10 +421,14 @@ class TestConvergenceExample(unittest.TestCase):
         cls.tier, cls.tname, _ = cr.maturity_tier(cls.ix)
         cls.n_files = n
 
-    def test_maturity_is_L1(self):
-        # gate keys on coverage = strict depth (spec §2). logotekton has depth in only 1 pack
-        # (evaluation_cases), so it is honestly L1 Sketch (broad, shallow) — not L2 Working.
-        self.assertEqual(self.tier, "L1")
+    def test_maturity_is_L0(self):
+        # The L1 depth-vertical must come from a CONTENT pack (it.5): logotekton has depth in only
+        # ONE pack — user.evaluation_cases (a META pack) — and ZERO content packs reach ≥3, so its
+        # "depth" is the eval ledger, not knowledge of the person. It is honestly L0 Seed (broad,
+        # shallow), not L1 Sketch. (Counting the eval pack as the vertical made L1's depth gate
+        # vacuous — the eval≥3 gate would auto-satisfy it.)
+        self.assertEqual(self.tier, "L0")
+        self.assertEqual(self.ix["_content_packs_with_3"], 0)   # no content-pack depth
 
     def test_six_indices_locked(self):
         ix = self.ix
@@ -460,22 +464,30 @@ class TestConvergenceExample(unittest.TestCase):
         unmet = [k for k, ok in reasons.items() if k.startswith("L2_") and not ok]
         self.assertEqual(unmet, ["L2_coverage>=0.5"])
 
-    def test_example_has_one_vertical(self):
-        # the example's single deep pack (evaluation_cases, 6 confirmed) is what keeps it at L1+
-        self.assertEqual(self.ix["_packs_with_3"], 1)
+    def test_example_vertical_is_meta_not_content(self):
+        # the example's single ≥3 pack is user.evaluation_cases (a META pack, 6 confirmed) — it does
+        # NOT count as a content depth-vertical, which is why the example is L0, not L1 (it.5).
+        self.assertEqual(self.ix["_packs_with_3"], 1)            # all-pack count (incl. eval)
+        self.assertEqual(self.ix["_content_packs_with_3"], 0)    # but 0 CONTENT verticals
 
-    def test_l1_requires_depth_not_just_breadth(self):
-        # #7: 7 packs each seeded with 1 record (no depth) must NOT reach L1 (breadth-gaming blocked)
+    def test_l1_requires_content_depth_not_just_breadth(self):
+        # #7 + it.5: 7 packs each seeded with 1 record (no depth) must NOT reach L1, AND the depth
+        # vertical must be a CONTENT pack — a vertical that is only the eval/drift meta pack does
+        # NOT open L1 (else the eval≥3 gate would auto-satisfy the depth requirement).
         base = {
             "coverage": 0.5, "confirmation_ratio": 1.0, "human_confirmation_ratio": 1.0,
             "decision_fidelity": 0.9, "correction_cost": 0.1, "drift_stability": 1.0,
-            "traceability": 1.0, "_seeded_packs": 7, "_packs_with_3": 0, "_n_eval": 3,
+            "traceability": 1.0, "_seeded_packs": 7, "_content_packs_with_3": 0,
+            "_packs_with_3": 0, "_n_eval": 3,
         }
         tier, _, reasons = cr.maturity_tier(base)
-        self.assertFalse(reasons["L1_vertical>=1 (한 팩 ≥3 확인)"])
+        self.assertFalse(reasons["L1_vertical>=1 (콘텐츠 팩 ≥3 확인)"])
         self.assertEqual(tier, "L0")  # stuck at L0 despite 7 seeded packs
-        # one pack with ≥3 confirmed (a "vertical") opens the ladder
-        tier2, _, _ = cr.maturity_tier({**base, "_packs_with_3": 1})
+        # the eval pack alone reaching ≥3 (meta vertical) must NOT open L1
+        meta_only = {**base, "_packs_with_3": 1, "_content_packs_with_3": 0}
+        self.assertEqual(cr.maturity_tier(meta_only)[0], "L0")
+        # one CONTENT pack with ≥3 confirmed opens the ladder
+        tier2, _, _ = cr.maturity_tier({**base, "_content_packs_with_3": 1, "_packs_with_3": 1})
         self.assertIn(tier2, ("L1", "L2"))
 
 
@@ -504,7 +516,8 @@ class TestHumanConfirmationRatio(unittest.TestCase):
         base = {
             "coverage": 0.6, "confirmation_ratio": 0.75, "human_confirmation_ratio": 0.30,
             "decision_fidelity": 0.9, "correction_cost": 0.1, "drift_stability": 0.9,
-            "traceability": 1.0, "_seeded_packs": 8, "_packs_with_3": 8, "_n_eval": 3,
+            "traceability": 1.0, "_seeded_packs": 8, "_packs_with_3": 8,
+            "_content_packs_with_3": 8, "_n_eval": 3,
         }
         tier, _, reasons = cr.maturity_tier(base)
         self.assertFalse(reasons["L2_human_confirmation_ratio>=0.6"])
@@ -797,7 +810,7 @@ class TestEndToEnd(unittest.TestCase):
         # the documented command runs AND prints the tier/coverage the README now advertises.
         r = _run("tools/convergence_report.py", "examples/logotekton")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("L1 Sketch", r.stdout)   # honest: gate on strict coverage (depth)
+        self.assertIn("L0 Seed", r.stdout)     # honest: no CONTENT depth-vertical (eval pack ≠ depth)
         self.assertIn("0.07", r.stdout)        # coverage = strict (spec §2), not the 0.71 breadth
 
     def test_documented_commands_all_run(self):

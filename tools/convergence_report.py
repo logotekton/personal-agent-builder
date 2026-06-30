@@ -84,6 +84,12 @@ CANONICAL_PACKS = (
 )
 TOTAL_PACKS = len(CANONICAL_PACKS)  # 14
 
+# 메타/시스템 팩 — *내용 깊이*(L1 depth-vertical)를 만드는 콘텐츠 팩이 아니다.
+# evaluation_cases·drift_history 는 평가/드리프트 장부라, 이들이 깊이 vertical 을 채우게 두면
+# L1 의 'n_eval≥3' 게이트가 vertical 도 자동 충족시켜 깊이 요구가 공허해진다(적대적 검증 it.5).
+META_PACKS = frozenset({"user.evaluation_cases", "user.drift_history"})
+CONTENT_PACKS = tuple(p for p in CANONICAL_PACKS if p not in META_PACKS)  # 12 콘텐츠 팩
+
 # 구 코드명 → 정식 이름. 입력이 폐기된 코드명을 키로 쓰면 정식 이름으로 정규화한다.
 LEGACY_ALIASES = {
     "pa.roles": "user.identity_roles",
@@ -643,6 +649,10 @@ def compute_indices(pack_records, eval_cases, drift_records):
     # draft-only 라 신뢰 깊이를 만들지 못한다(설계자 결정 C/#1, spec/00 클레임-계층).
     packs_with_3 = sum(1 for p in CANONICAL_PACKS
                        if behavioral_confirmed_by_pack[p] >= COVERAGE_MIN_CONFIRMED)
+    # L1 depth-vertical 은 *콘텐츠* 팩의 깊이여야 한다 — 평가/드리프트 장부(meta)가 vertical 을
+    # 채우면 깊이 요구가 'n_eval≥3' 게이트로 자동 충족돼 공허해진다(it.5 L1-vertical-vacuous).
+    content_packs_with_3 = sum(1 for p in CONTENT_PACKS
+                               if behavioral_confirmed_by_pack[p] >= COVERAGE_MIN_CONFIRMED)
 
     coverage_strict = packs_with_3 / TOTAL_PACKS          # spec §2 정의: 확인 ≥3 팩 / 14 (깊이)
     coverage_seeded = seeded_packs / TOTAL_PACKS          # 시드 폭 (보조 신호 — 게이트엔 안 씀)
@@ -747,6 +757,7 @@ def compute_indices(pack_records, eval_cases, drift_records):
         # 보조 카운트 (성숙도 판정·리포트용)
         "_seeded_packs": seeded_packs,
         "_packs_with_3": packs_with_3,
+        "_content_packs_with_3": content_packs_with_3,
         "_n_confirmed": n_confirmed,
         "_n_auto_confirmed": n_auto_confirmed,
         "_n_human_confirmed": n_human_confirmed,
@@ -782,7 +793,8 @@ def maturity_tier(ix):
     drift = ix["drift_stability"]
     trace = ix["traceability"]
     seeded = ix["_seeded_packs"]
-    verticals = ix.get("_packs_with_3", 0)   # ≥3 확인 레코드를 가진 팩 수 (깊이)
+    # L1 vertical 은 *콘텐츠* 팩의 깊이만 센다 — 평가/드리프트 메타 팩은 제외(it.5 L1-vertical-vacuous).
+    verticals = ix.get("_content_packs_with_3", 0)   # ≥3 확인 레코드를 가진 *콘텐츠* 팩 수 (깊이)
     n_eval = ix["_n_eval"]
 
     def ge(a, b):  # None-안전 ≥
@@ -827,7 +839,7 @@ def maturity_tier(ix):
         "L1_seeded>=7": seeded >= 7,
         "L1_eval>=3": n_eval >= 3,
         "L1_traceability==1.0": trace == 1.0,
-        "L1_vertical>=1 (한 팩 ≥3 확인)": verticals >= 1,
+        "L1_vertical>=1 (콘텐츠 팩 ≥3 확인)": verticals >= 1,
         "L2_coverage>=0.5": ge(coverage, 0.5),
         "L2_decision_fidelity>=0.6": ge(df, 0.6),
         "L2_human_confirmation_ratio>=0.6": ge(hcr, 0.6),
@@ -932,7 +944,8 @@ def render_table(ix, tier_id, tier_name, directory, n_files):
     else:
         lines.append("  behavioral 확인 0개 팩 없음 — off-frontier 공백 없음.")
     lines.append(
-        f"  깊이(≥3 확인) 팩 {ix['_packs_with_3']}/{TOTAL_PACKS}  ·  "
+        f"  깊이(≥3 확인) 팩 {ix['_packs_with_3']}/{TOTAL_PACKS}"
+        f"(이 중 콘텐츠 {ix.get('_content_packs_with_3', 0)} — L1 vertical 은 콘텐츠만 인정)  ·  "
         f"폭(시드) {ix['coverage_seeded']:0.2f} vs 깊이(엄격) {ix['coverage_strict']:0.2f}"
     )
     if ix["coverage_seeded"] - ix["coverage_strict"] >= 0.3:
