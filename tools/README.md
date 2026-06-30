@@ -119,7 +119,7 @@ python tools/validate_packs.py --help
 | `confirmation_ratio` | confirmed / (confirmed + pending + rejected) | 인스턴스 레코드의 `review_status` | ↑ |
 | `decision_fidelity` | 통과 평가 케이스 / 전체 평가 케이스 | `user.evaluation_cases` 결과 | ↑ |
 | `correction_cost` | 작업당 사용자 편집 비율(평균) | 평가 케이스 관측 | **↓** |
-| `drift_stability` | 1 − (최근 대체수 / 확인 레코드수) | `user.drift_history` | ↑ |
+| `drift_stability` | 1 − (전기간 대체수 / 확인 레코드수) | `user.drift_history` | ↑ |
 | `traceability` | 증거 보유 활성 규칙 / 활성 규칙 | 활성 규칙의 `evidence_refs` | **= 1.0 필수** |
 
 지표를 [수렴 모델 §3](../spec/06-convergence-model.md)의 사다리에 대입해 현재 성숙도 단계

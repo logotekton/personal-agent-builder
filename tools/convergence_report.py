@@ -35,7 +35,7 @@ JSON과 YAML의 안전한 부분집합을 읽습니다.
 
 성숙도 단계 (spec/06 §3):
   L0 Seed       : 시드 팩 < 3, 평가 케이스 없음
-  L1 Sketch     : 시드 팩 ≥ 7, 평가 케이스 ≥ 3, traceability == 1.0, ≥1 팩이 ≥3 확인(깊이)
+  L1 Sketch     : 시드 팩 ≥ 7, 평가 케이스 ≥ 3, traceability == 1.0, ≥1 *콘텐츠* 팩이 ≥3 확인(깊이; 메타 제외)
   L2 Working    : coverage ≥ 0.5, decision_fidelity ≥ 0.6, human_confirmation_ratio ≥ 0.6
   L3 Reliable   : coverage ≥ 0.8, decision_fidelity ≥ 0.8, correction_cost ≤ 0.3,
                   drift_stability ≥ 0.7
