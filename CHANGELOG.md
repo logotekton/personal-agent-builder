@@ -21,6 +21,31 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.14 (2차 퍼징 — 실 코드버그 13건)
+> it.13 에 이어 *입출력·로더·병합 경계*를 집중 퍼징한 2차 스윕으로 **13 확인 / 1 기각**. 손상/비-UTF8/
+> 과중첩 입력 파일 하나가 디렉터리 전체 실행을 죽이거나, 비결정 정렬·비숫자 예산·중복-id 병합이 조용히
+> 데이터를 망치던 경로들을 각 도구 경계에서 봉쇄. 잠금 숫자(예제 지표·canonical_key)는 전부 불변.
+- **[Fixed] (HIGH) 손상 입력 1개가 전체 실행 중단.** `convergence_report.load_structured`·
+  `validate_packs.load_file`·`pab_merge._load` 가 비-UTF8(UnicodeDecodeError)·과중첩 JSON/YAML
+  (RecursionError) 에서 추적역추적으로 죽어 디렉터리 전체 수렴/검증/병합을 중단 → 각 로더가 *그 파일만*
+  경고-건너뜀(수렴) 또는 깔끔한 오류/SystemExit 로 보고하고 나머지는 계속.
+- **[Fixed] (MEDIUM) pab_merge 중복-id 후보 데이터 손실.** `apply_plan` 이 `{id: cand}` 사전으로 후보를
+  찾아, 같은 id 후보가 둘이면 한쪽이 덮어써져 *서로 다른 진술이 유실*. plan_batch 출력은 후보와 1:1·동순서
+  이므로 위치(zip)로 짝짓도록 변경 + 길이 불일치는 명시적 ValueError.
+- **[Fixed] (MEDIUM) pab_merge 비정수 repetition_count 크래시.** `int("oops")` 가 병합 누적에서
+  ValueError → 관용적 코어션(비정수는 1 로 보고 +1).
+- **[Fixed] (MEDIUM) pab_merge 문자열 evidence_refs 문자분해.** `evidence_refs` 가 리스트 아닌 문자열이면
+  `for ev in "ref"` 가 글자 단위로 쪼개져 가짜 참조 생성 → `_as_ref_list` 가 문자열을 단일 원소로 정규화.
+- **[Fixed] (MEDIUM) context_select 비숫자 예산.** `token_budget` 이 None·문자열·NaN·bool 이면 전부드롭/
+  전부선택의 조용한 오작동이나 TypeError → 입력 단계에서 숫자·유한 검증.
+- **[Fixed] (LOW) compile_adapter 비문자열 id 크래시.** `render_summary` 의 `", ".join(r["id"] ...)` 가
+  정수 id 에서 TypeError → `str()` 강제(섹션·project_context 둘 다).
+- **[Fixed] (LOW) compile_adapter 동일-id 비결정 정렬.** id 단독 정렬은 동일-id 레코드에서 안정정렬이
+  입력순서에 의존 → `(id, statement)` 전순서로 입력순서와 무관한 어댑터 보장.
+- **[Fixed] (LOW) pab_merge._load 파일핸들 누수.** `open(...).read()` 가 핸들을 안 닫음 → with 컨텍스트.
+- **[Added] 회귀 테스트 10건**(`TestRobustnessFuzzingIt14`): 위 각 수정 + 로더 봉쇄(비-UTF8·과중첩) +
+  길이 불일치 가드. 총 117→127.
+
 ### 다중 에이전트 적대적 검증 스윕 — it.13 (엣지케이스 퍼징 — 실 코드버그 9건)
 > 전 도구 엣지케이스 퍼징(NaN/inf/None/bool/유니코드/대용량/악성 YAML) 4렌즈로 **9 확인 / 0 기각**.
 > it.12 의 NaN-비결정 버그가 *다른 부류*가 더 있음을 시사 → 퍼징이 11회 못 잡던 실 버그 9개를 노출.
