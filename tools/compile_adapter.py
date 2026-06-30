@@ -148,10 +148,17 @@ def compile_adapter(pack_records, drift_records, task_tags=None):
         active_by_pack[pack] = sorted(active, key=lambda r: str(r.get("id", "")))
 
     sections = {n: [] for n in range(1, 9)}
+    # 섹션 1 경계(전이성): memory_project_graph 는 섹션 1 에 *피연산자*로 들어오지만
+    # 페르소나(identity_roles·persona_core)와 섞이지 않는 별도 하위블록(project_context)으로
+    # 적재한다 — skills/10 §4. (섹션 6 합류는 정상: 워크플로의 프로젝트 단계.)
+    project_context = []
     for pack, secs in PACK_SECTIONS.items():
         for r in active_by_pack[pack]:
             for s in secs:
-                sections[s].append(_ref(r, pack))
+                if s == 1 and pack == "user.memory_project_graph":
+                    project_context.append(_ref(r, pack))
+                else:
+                    sections[s].append(_ref(r, pack))
 
     # 경계 레이어: 확인된 BoundaryRule 이 있으면 인스턴스 경계, 없으면 기본 안전 정책 하한.
     boundary_active = active_by_pack.get("user.boundary_authority", [])
@@ -180,6 +187,8 @@ def compile_adapter(pack_records, drift_records, task_tags=None):
     return {
         "task_tags": list(task_tags) if isinstance(task_tags, (list, tuple, set)) else task_tags,
         "sections": {SECTION_NAMES[s]: sections[s] for s in range(1, 9)},
+        # 섹션 1 의 project_context 하위블록 (페르소나와 분리; 프로젝트 종료 시 교체 대상).
+        "project_context": project_context,
         "boundary_source": boundary_source,
         "section8_inputs": section8_inputs,
         "response_policy_inputs": [
@@ -244,6 +253,10 @@ def render_summary(adapter, directory):
         else:
             extra = " (기본 안전 정책)" if s == 7 and adapter["boundary_source"] == "default_safe_policy" else ""
             lines.append(f"  {s}. {name:<20} (공백 — 갭){extra}")
+    pc = adapter.get("project_context") or []
+    if pc:
+        ids = ", ".join(r["id"] for r in pc)
+        lines.append(f"  1+ project_context     {len(pc)}개: {ids}  (페르소나 아님 — 프로젝트 맥락)")
     lines.append("")
     lines.append("[갭 로그] 빈/저커버리지 슬롯 — 다음 채굴 라운드 신호 (추측으로 메우지 않음, G1)")
     if adapter["gap_log"]:

@@ -909,6 +909,34 @@ class TestCompileAdapter(unittest.TestCase):
         ids = {r["id"] for r in a["sections"]["active_patterns"]}
         self.assertEqual(ids, {"x.s.rev"})   # external-scoped record dropped for a review task
 
+    def test_project_context_not_blended_into_persona(self):
+        # 전이성 경계 (skills/10 §4): memory_project_graph 는 섹션 1 에 들어오되 persona 와
+        # 섞이지 않고 별도 project_context 하위블록으로 — persona list 에 새면 안 된다 (F5).
+        recs = {
+            "user.persona_core": [
+                {"id": "x.trait.1", "review_status": "confirmed", "statement": "values clarity", "scope": "s"},
+            ],
+            "user.memory_project_graph": [
+                {"id": "x.proj.1", "review_status": "confirmed",
+                 "statement": "payments-svc is in launch-hardening phase", "scope": "s"},
+            ],
+        }
+        a = comp.compile_adapter(recs, [])
+        persona_ids = {r["id"] for r in a["sections"]["identity_role"]}
+        ctx_ids = {r["id"] for r in a["project_context"]}
+        self.assertEqual(persona_ids, {"x.trait.1"})       # project memory NOT in persona
+        self.assertEqual(ctx_ids, {"x.proj.1"})            # it IS in the separate sub-block
+        self.assertNotIn("x.proj.1", persona_ids)
+
+    def test_project_memory_still_feeds_workflow(self):
+        # 섹션 6 합류는 정상(워크플로의 프로젝트 단계) — 분리는 섹션 1 에만 적용.
+        recs = {"user.memory_project_graph": [
+            {"id": "x.proj.9", "review_status": "confirmed", "statement": "phase 2", "scope": "s"},
+        ]}
+        a = comp.compile_adapter(recs, [])
+        wf_ids = {r["id"] for r in a["sections"]["workflow"]}
+        self.assertIn("x.proj.9", wf_ids)
+
     def test_deterministic_same_input_same_adapter(self):
         pack_records, drift = comp.load(EXAMPLE)
         self.assertEqual(comp.compile_adapter(pack_records, drift),
