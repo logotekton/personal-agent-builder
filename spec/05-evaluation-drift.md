@@ -203,8 +203,8 @@ correction_notes: "user.boundary_authority에 external_email용 ConfirmationRule
 
 - **성숙도 게이트**: L1은 `traceability`=1.0과 **≥3개 평가 케이스**를 요구합니다 — 즉 이
   문서의 케이스가 없으면 사다리를 오를 수 없습니다. L2는 `decision_fidelity`≥0.6,
-  L3는 ≥0.8과 `correction_cost`≤0.3, L4는 ≥0.9·`correction_cost`≤0.15·`drift_stability`≥0.85
-  ([06 §3](./06-convergence-model.md#3-다섯-단계-성숙도-maturity-tiers)).
+  L3는 ≥0.8·`correction_cost`≤0.3·`drift_stability`≥0.7, L4는 ≥0.9·`correction_cost`≤0.15·`drift_stability`≥0.85
+  (헤드라인 요약 — coverage 등 전체 게이트 조건은 [06 §3](./06-convergence-model.md#3-다섯-단계-성숙도-maturity-tiers)).
 - **왜 두 곡선이 만나는가**: 매 실패 변환은 출력 공간을 *당신이 승인하는 영역*으로 더
   좁힙니다. 그래서 `correction_cost`는 내려가고, 한 번 굳은 패턴은 잘 안 바뀌어
   `drift_stability`는 올라갑니다. 두 곡선이 만나는 지점이 수렴입니다
