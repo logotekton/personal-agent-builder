@@ -21,6 +21,25 @@
 
 ## [Unreleased]
 
+### 다중 에이전트 적대적 검증 스윕 — it.13 (엣지케이스 퍼징 — 실 코드버그 9건)
+> 전 도구 엣지케이스 퍼징(NaN/inf/None/bool/유니코드/대용량/악성 YAML) 4렌즈로 **9 확인 / 0 기각**.
+> it.12 의 NaN-비결정 버그가 *다른 부류*가 더 있음을 시사 → 퍼징이 11회 못 잡던 실 버그 9개를 노출.
+- **[Fixed] (HIGH) canonical_key NFD 유니코드 충돌.** 분해형(NFD) 한글은 결합 자모(가-힣 밖)라 토큰이
+  통째로 사라져 *서로 다른 한글 진술이 같은 키로 충돌 → 잘못된 병합*. `_norm_tokens` 가 NFC 정규화 후
+  토큰화하도록 수정(NFC≡NFD 같은 키, 다른 진술은 분리). 잠금값 3cabb5142158 불변.
+- **[Fixed] (MEDIUM) NaN/inf correction_cost 오염.** NaN edit_fraction → correction_cost=NaN → 무효 JSON·
+  NA-가장·성숙도 오강등 → `_correction_value` 가 비유한값·bool 거부.
+- **[Fixed] (MEDIUM) validate NaN score 게이트 우회.** NaN score 가 status↔score 정합 게이트를 조용히 통과 →
+  `_num` 이 math.isfinite 요구 + NaN weight/score 명시 거부.
+- **[Fixed] (MEDIUM) enum 검사 unhashable 크래시.** sensitivity/review_status/reliability 가 list/dict 면
+  `x in SET` 이 TypeError 로 검증 전체 중단 → `_in_enum`/`_not_in_enum` 안전 래퍼.
+- **[Fixed] (MEDIUM) pab_merge 비문자열 크래시.** scope/statement 가 list/int 면 `.lower()` AttributeError →
+  `_norm_tokens` 가 str 강제.
+- **[Fixed] (MEDIUM) mini-YAML 무한재귀.** 닫히지 않은 `[`/`{` 가 `_parse_scalar↔_parse_inline` 무한재귀
+  (RecursionError) → 깔끔한 MiniYAMLError.
+- **[Fixed] (LOW) bool edit_fraction=True 가 1.0 으로 셈** (위 비유한값 수정에 포함).
+- 7개 회귀 테스트 추가(110→117). 예제·잠금값 전부 불변.
+
 ### 다중 에이전트 적대적 검증 스윕 — it.12 (수렴 확정 검사 — 실 코드버그 1 + stale 1)
 > 게이밍5·코드로직·중심명제·과대주장 최고가치 4렌즈 엄격 재실행으로 2 확인 / 1 기각. **게이밍5 0 발견**
 > (게이밍 완전 방어), **중심명제 0**(L2 주장은 공개된 노트라 기각). 코드로직 렌즈가 11회 못 잡던 *실 버그* 포착.
