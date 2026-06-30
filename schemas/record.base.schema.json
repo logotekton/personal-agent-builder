@@ -96,7 +96,7 @@
       "items": { "type": "string" },
       "description": "Required when confidence < 0.7 (validation rule)."
     },
-    "exception_rules": { "type": "array", "items": { "type": "string" } },
+    "exception_rules": { "type": "array", "items": { "type": "string" }, "description": "On-record list of the boundary exceptions/conditions under which a sensitive/restricted record may be used (the machine-checkable G5 proxy: required when sensitivity ∈ {sensitive, restricted}, enforced by the allOf below and tools/validate_packs.py). NOTE: the validator checks only that this field is present and non-empty; verifying each entry corresponds to a confirmed BoundaryRule in user.boundary_authority is a governance/review step, not yet machine-enforced." },
     "related_records": { "type": "array", "items": { "type": "string" } },
     "supersedes": { "type": "array", "items": { "type": "string" } },
     "linked_projects": { "type": "array", "items": { "type": "string" } },

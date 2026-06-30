@@ -13,8 +13,9 @@
 > here are **real, confirmed, evidence-bound** records mined from actual AI-agent sessions,
 > then run once through the full pipeline: evidence → candidates → scope → confirmation
 > gate → routing into the `user.*` packs → compiled runtime adapter → evaluation and a
-> convergence report. **9 of the 14 instance packs are seeded** (plus the evaluation cases —
-> 10 packs by the convergence count) at maturity **L1 Sketch** (the gate keys on strict ≥3-depth
+> convergence report. **8 of the 14 instance packs are seeded** in `instance-records.yaml`
+> (10 packs by the convergence count, which also counts `user.evaluation_cases` and
+> `user.drift_history`) at maturity **L1 Sketch** (the gate keys on strict ≥3-depth
 > coverage per spec §2; broad-but-shallow = Sketch — see the ⚙️ note above), after the data-engine wheel was
 > turned **twice** on real records: `revolution-01` (merge actuator + the eval.004 correction →
 > `decision_fidelity` 0.75→0.92) and `revolution-02` (a second turn → `decision_fidelity`
@@ -88,8 +89,8 @@ G6). 여기 레코드의 ID는 모두 인스턴스 형식 `<subject>.<recordkind
 
 ### 1) [`instance-records.yaml`](./instance-records.yaml) — 확인된 레코드 (`personal.logotekton.*`)
 
-정식 팩 이름을 **키로 하는 단일 YAML 매핑**입니다. 현재 **14개 중 9개 인스턴스 팩이 시드**(+
-평가케이스 팩 = 수렴 기준 10팩)되어 있고(revolution-01 에서 `boundary_authority`·`drift_history`,
+정식 팩 이름을 **키로 하는 단일 YAML 매핑**입니다. 이 파일은 **14개 중 8개 인스턴스 팩을 시드**하고,
+`user.evaluation_cases`·`user.drift_history`까지 더하면 **수렴 기준 10팩**입니다(revolution-01 에서 `boundary_authority`·`drift_history`,
 revolution-02 에서 `artifact_policy`·`tool_stack` 추가), 각 레코드는 동일 이름의
 [`user.*` 스키마](../../schemas)와 [통합 베이스 레코드](../../schemas/record.base.schema.json)를
 동시에 만족합니다 ([팩 카탈로그](../../spec/03-pack-catalog.md)와 1:1 대응).
@@ -159,7 +160,7 @@ merge actuator([`../../tools/pab_merge.py`](../../tools/pab_merge.py)) + eval.00
 
 ## 읽는 순서 (추천)
 
-1. **[`instance-records.yaml`](./instance-records.yaml)** — 시드된 9개 팩의 확인된 레코드.
+1. **[`instance-records.yaml`](./instance-records.yaml)** — 시드된 8개 인스턴스 팩의 확인된 레코드.
    `user.identity_roles`의 창립자 귀속 레코드가 다른 모든 팩의 기준점입니다. 가장 흥미로운
    암묵지는 `user.tacit_heuristics`(교정·diff에서 나온 "이건 이렇게" 규칙; 3개 세션에서 재유도
    → rev-01·rev-02 **2회 병합**으로 `repetition_count`=3)입니다.

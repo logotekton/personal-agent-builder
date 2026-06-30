@@ -42,6 +42,9 @@ raw_signal
 검증 가능한 게이트는 코드로 강제됩니다: **G1·G2·G5** 는 [`tools/validate_packs.py`](../tools/validate_packs.py)
 가 FAIL 로 막고(G3 은 경고), **G3** 의 FAIL 강제는 컴파일 시 [`tools/compile_adapter.py`](../tools/compile_adapter.py)
 가 합니다(비활성 레코드 드롭). **G4·G6** 은 사람·거버넌스 차원의 게이트입니다.
+**G5 의 기계 검사 범위 주의:** 검증기는 민감/제한 레코드에 `exception_rules`(≥1)가 *레코드에 실려 있는지*만
+막습니다(스키마 allOf 의 기계-검사 가능한 G5 프록시). 그 예외 규칙이 실제 `user.boundary_authority` 의 확정된
+`BoundaryRule` 에 대응하는지의 *연결* 검증은 아직 사람·거버넌스 단계이며 기계로 강제되지 않습니다.
 
 ## 3. 노드 타입 (Node Types)
 

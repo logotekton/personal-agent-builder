@@ -20,7 +20,7 @@ AssistantProfile이 *주체가 승인했을 방식*대로 판단·작성·행동
 
 ## 1. 여덟 가지 평가 지표 (Evaluation Metrics)
 
-스킬 S11이 채점하는 정식 8개 지표입니다(계약 §10 / [01 커널 스키마 §10](./01-kernel-schema.md)).
+스킬 S11이 채점하는 정식 8개 지표입니다(계약 = 본 문서 §2 · [02 빌더 파이프라인 S11](./02-builder-pipeline.md)).
 이름은 고정이며, 케이스의 `scoring_rubric.metric` enum과 1:1로 대응합니다
 ([`../schemas/user.evaluation_cases.schema.json`](../schemas/user.evaluation_cases.schema.json)).
 
@@ -225,4 +225,4 @@ correction_notes: "user.boundary_authority에 external_email용 ConfirmationRule
 
 ---
 
-*관련: [11 평가·드리프트 스킬](../skills/11-evaluation-drift.md) · [user.evaluation_cases 스키마](../schemas/user.evaluation_cases.schema.json) · [user.drift_history 스키마](../schemas/user.drift_history.schema.json) · [01 커널 스키마 §10](./01-kernel-schema.md) · [02 빌더 파이프라인 S11](./02-builder-pipeline.md) · [03 팩 카탈로그 §13·§14](./03-pack-catalog.md) · [06 수렴 모델](./06-convergence-model.md). 구 코드명: x13(evaluation), x14(drift).*
+*관련: [11 평가·드리프트 스킬](../skills/11-evaluation-drift.md) · [user.evaluation_cases 스키마](../schemas/user.evaluation_cases.schema.json) · [user.drift_history 스키마](../schemas/user.drift_history.schema.json) · [01 커널 스키마 §3 노드 타입](./01-kernel-schema.md) · [02 빌더 파이프라인 S11](./02-builder-pipeline.md) · [03 팩 카탈로그 §13·§14](./03-pack-catalog.md) · [06 수렴 모델](./06-convergence-model.md). 구 코드명: x13(evaluation), x14(drift).*
