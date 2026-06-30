@@ -688,21 +688,17 @@ def compute_indices(pack_records, eval_cases, drift_records):
         decision_fidelity = None
         n_pass = n_partial = n_fail = 0
 
-    # correction_cost: 편집 비율 필드가 있는 레코드들의 평균. 없으면 NA. (self_reported 제외)
+    # correction_cost: *평가 케이스*의 편집 비율(result.edit_fraction 등)만의 평균. 없으면 NA.
+    # 출처를 평가 케이스(behavioral_evals)로 한정한다 — 임의 레코드(페르소나·휴리스틱 등)에 edit_fraction=0
+    # 을 무더기로 심어 평균을 0 으로 끌어내리는 게이밍 경로를 차단(적대적 검증 it.4 CORRECTION-COST-SEEDING).
+    # correction_cost 는 본질적으로 *평가* 측정(런타임 출력을 사람이 얼마나 고쳤는가, spec/05)이므로
+    # 평가 케이스 외 레코드를 출처로 삼는 것은 의미상으로도 틀리다. self_reported·auto_confirmed 평가는
+    # 이미 behavioral_evals 에서 제외됨.
     corr_vals = []
     for ec in behavioral_evals:
         v = _correction_value(ec)
         if v is not None:
             corr_vals.append(v)
-    # eval 외 레코드에서도 correction 필드를 허용 (self_reported 는 건너뜀)
-    if not corr_vals:
-        for recs in pack_records.values():
-            for r in recs:
-                if _is_self_reported(r):
-                    continue
-                v = _correction_value(r)
-                if v is not None:
-                    corr_vals.append(v)
     correction_cost = (sum(corr_vals) / len(corr_vals)) if corr_vals else None
 
     # drift_stability = 1 − (전기간 대체수 / 확인 레코드수). 드리프트 없으면 1.0. (self_reported 드리프트 제외)

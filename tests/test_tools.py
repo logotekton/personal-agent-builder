@@ -707,6 +707,26 @@ class TestAutoConfirmGateImmunity(unittest.TestCase):
         self.assertEqual(ix["_n_eval"], 1)               # only the human-gated eval counts
         self.assertEqual(ix["decision_fidelity"], 0.0)   # not 0.8
 
+    def test_correction_cost_only_from_eval_cases_not_seedable(self):
+        # it.4: correction_cost must come ONLY from eval-case edit fractions — seeding many
+        # non-eval records with edit_fraction=0 must not drag the average down.
+        evals = [{"result": {"status": "pass", "edit_fraction": 0.3}}]
+        base = cr.compute_indices({}, evals, [])
+        seeded = {"user.tacit_heuristics": [
+            {"review_status": "confirmed", "statement": "x", "scope": "s",
+             "evidence_refs": ["e"], "edit_fraction": 0.0} for _ in range(50)]}
+        flooded = cr.compute_indices(seeded, evals, [])
+        self.assertEqual(base["correction_cost"], 0.3)
+        self.assertEqual(flooded["correction_cost"], 0.3)   # non-eval seeds ignored
+
+    def test_correction_cost_na_without_eval_provenance(self):
+        # a record carrying edit_fraction but NO eval cases → correction_cost stays NA
+        recs = {"user.tacit_heuristics": [
+            {"review_status": "confirmed", "statement": "x", "scope": "s",
+             "evidence_refs": ["e"], "edit_fraction": 0.0}]}
+        ix = cr.compute_indices(recs, [], [])
+        self.assertIsNone(ix["correction_cost"])
+
     def test_autoconfirm_flood_plus_three_human_records_cannot_reach_L4(self):
         # The empirically-reproduced it.3 attack: flood all 14 packs with auto-confirmed records
         # + 3 human records → must NOT reach a high tier (was L4 before the fix).
