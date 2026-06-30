@@ -491,10 +491,17 @@ def _is_candidate(rec: Any) -> bool:
     후보는 `candidate_type`(또는 `candidate_id`+`validation_status`)를 쓰고, 베이스 레코드는
     `record_type`/`id`/`statement`/`review_status` 를 쓴다(겹치지 않음). 확인 게이트(S07) 전의 후보
     파일은 베이스 코어 계약을 만족하지 않으므로 베이스 검증에서 *건너뛴다*(SKIP) — FAIL 이 아니다.
+
+    중요: 후보-필드 *존재*만으로 판정하면, 승격 시 감사용으로 candidate_id/validation_status 를
+    보존한(또는 candidate_type 이 끼어든) 베이스 레코드가 후보로 오분류돼 G1/G2/G5 를 전부 건너뛴다
+    (적대적 검증 it.19). 따라서 베이스 형태(record_type·review_status, 또는 id+statement)를 가진
+    레코드는 후보로 보지 않는다 — 베이스 계약으로 검증해 오염을 소리내어 잡는다.
     """
     if not isinstance(rec, dict):
         return False
-    return ("candidate_type" in rec) or ("candidate_id" in rec and "validation_status" in rec)
+    is_cand = ("candidate_type" in rec) or ("candidate_id" in rec and "validation_status" in rec)
+    is_base = ("record_type" in rec) or ("review_status" in rec) or ("id" in rec and "statement" in rec)
+    return is_cand and not is_base
 
 
 def load_file(path: str) -> Tuple[Optional[Any], Optional[str]]:
