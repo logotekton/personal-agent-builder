@@ -31,6 +31,7 @@
   중복 케이스 재현, 실제 plan_batch 경로). it.16(충돌밴드)·it.17(supersede-chain)이 빠뜨린 세 번째 경로 —
   단일 canonical-survivor tie-break 이 duplicate·refinement·conflict 세 verdict 전부를 해소함이 이로써
   완성. docs/open-design-decisions.md 클러스터 1 에 통합.
+- **[Added] 속성-회귀 테스트 4건**(`TestPropertyRegressionsIt24`): compile-adapter 재정렬-결정성·convergence 지표 재정렬-결정성·context_select 예산 단조-중첩·dedup 재정렬-안정성을 *고정 입력+전수 순열*로 영구 잠금(퍼저가 증명한 불변식을 CI 강제로 전환). 총 165→169.
 - **[positive] 속성-검증 강건성 누적**: it.23(38k)+it.24(75k) = ~**113,000 무작위 케이스**에서 index-range·
   monotonicity·gate-implication·compile-roundtrip·dedup-대칭 전부 통과, 실 코드버그는 it.23 ULP 1건뿐.
 

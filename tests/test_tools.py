@@ -1695,5 +1695,106 @@ class TestPropertyDeterminismIt23(unittest.TestCase):
         self.assertAlmostEqual(a, 0.2, places=9)
 
 
+class TestPropertyRegressionsIt24(unittest.TestCase):
+    """it.24 (property-fuzz follow-up): lock the order-invariance properties that ~113k fuzzer cases
+    upheld, so a future change cannot silently break determinism. Each uses a small FIXED record set
+    and exhaustive permutations (no randomness) so the test itself is deterministic and fast."""
+
+    import itertools as _it
+
+    def _recs(self):
+        # a small mixed set across packs/sections with varied review_status + a superseded record
+        return {
+            "user.identity_roles": [
+                {"id": "role.1", "record_type": "IdentityRole", "statement": "founder",
+                 "review_status": "confirmed", "scope": "context.global"},
+                {"id": "role.2", "record_type": "IdentityRole", "statement": "maintainer",
+                 "review_status": "confirmed", "scope": "context.global"}],
+            "user.persona_core": [
+                {"id": "trait.1", "record_type": "PreferenceRecord", "statement": "concise",
+                 "review_status": "confirmed", "scope": "context.global"},
+                {"id": "trait.old", "record_type": "PreferenceRecord", "statement": "verbose",
+                 "review_status": "narrowed", "scope": "context.global"}],
+            "user.tacit_heuristics": [
+                {"id": "heur.1", "record_type": "HeuristicRecord", "statement": "test first",
+                 "review_status": "confirmed", "scope": "context.task.code",
+                 "supersedes": ["trait.old"]}],
+        }
+
+    def _permutations_of(self, recs, limit=6):
+        # yield reorderings: permute pack-key order, and reverse within-pack record order
+        import json
+        keys = list(recs.keys())
+        seen = []
+        for i, kperm in enumerate(self._it.permutations(keys)):
+            if i >= limit:
+                break
+            d = {}
+            for k in kperm:
+                rows = list(recs[k])
+                d[k] = list(reversed(rows)) if (i % 2) else rows
+            seen.append(d)
+        return seen
+
+    def test_compile_adapter_is_reorder_deterministic(self):
+        import json
+        base = self._recs()
+        outs = set()
+        for perm in self._permutations_of(base):
+            adapter = comp.compile_adapter(perm, {})
+            outs.add(json.dumps(adapter, sort_keys=True, ensure_ascii=False))
+        self.assertEqual(len(outs), 1, "compile_adapter output varied under input reordering")
+
+    def test_convergence_indices_are_reorder_deterministic(self):
+        import json
+        base = self._recs()
+        outs = set()
+        for perm in self._permutations_of(base):
+            ix = cr.compute_indices(perm, [], [])
+            pub = {k: v for k, v in ix.items() if not k.startswith("_")}
+            outs.add(json.dumps(pub, sort_keys=True, ensure_ascii=False))
+        self.assertEqual(len(outs), 1, "convergence indices varied under input reordering")
+
+    def test_context_select_budget_is_monotone_nested(self):
+        recs = [
+            {"id": "a", "statement": "alpha rule", "scope": "context.task.code",
+             "confidence": 0.95, "repetition_count": 3},
+            {"id": "b", "statement": "beta rule here", "scope": "context.task.code",
+             "confidence": 0.8, "repetition_count": 2},
+            {"id": "c", "statement": "gamma rule longer text", "scope": "context.task.code",
+             "confidence": 0.6, "repetition_count": 1},
+        ]
+        prev = set()
+        for budget in range(0, 120, 4):
+            selected, _ = cs.select_context(recs, token_budget=budget,
+                                            task_tags=["context.task.code"])
+            ids = {r["id"] for r in selected}
+            # nesting: nothing selected at a smaller budget may be dropped at a larger one
+            self.assertTrue(prev <= ids, f"budget {budget}: previously-selected dropped ({prev} -> {ids})")
+            prev = ids
+
+    def test_dedup_pairs_are_reorder_stable(self):
+        import json
+        recs = {"user.tacit_heuristics": [
+            {"id": f"h{i}", "statement": s, "scope": "s"} for i, s in enumerate([
+                "always run the tests before committing the code",
+                "always run the tests prior to committing the code",
+                "prefer subprocess over os system for shell calls"])]}
+        with tempfile.TemporaryDirectory() as tmp:
+            outs = set()
+            for i in range(3):
+                rows = list(recs["user.tacit_heuristics"])
+                rows = rows[i:] + rows[:i]   # rotate input order
+                p = os.path.join(tmp, "r.json")
+                with open(p, "w") as fh:
+                    json.dump({"user.tacit_heuristics": rows}, fh)
+                out = subprocess.run([sys.executable, os.path.join(TOOLS, "dedup_check.py"), p],
+                                     capture_output=True, text=True).stdout
+                # the redundancy_ratio line must be invariant under input rotation
+                ratio = [ln for ln in out.splitlines() if "redundancy_ratio" in ln]
+                outs.add(ratio[0] if ratio else "")
+            self.assertEqual(len(outs), 1, "dedup redundancy_ratio varied under input rotation")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
