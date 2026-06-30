@@ -356,6 +356,20 @@ class TestEvalIntegrity(unittest.TestCase):
         r["scoring_rubric"]["judge_config"] = {"model": "claude-opus-4-8", "temperature": 0}
         self.assertTrue(vp.validate_record(r, "t").ok)
 
+    def test_empty_criteria_rubric_fails(self):
+        # 공허한 루브릭(채점 기준 없음)은 무조건 통과라 decision_fidelity 를 부풀린다 (it.4).
+        r = _good_eval(); r["scoring_rubric"]["criteria"] = []
+        res = vp.validate_record(r, "t")
+        self.assertFalse(res.ok)
+        self.assertTrue(any("criteria 가 비어" in e for e in res.errors), res.errors)
+
+    def test_zero_pass_threshold_fails(self):
+        # pass_threshold=0 은 score=0 도 통과시켜 채점을 무의미하게 만든다 (it.4).
+        r = _good_eval(); r["scoring_rubric"]["pass_threshold"] = 0
+        res = vp.validate_record(r, "t")
+        self.assertFalse(res.ok)
+        self.assertTrue(any("pass_threshold" in e for e in res.errors), res.errors)
+
     def test_mixed_judge_warns_without_config(self):
         # 스키마 설명("warns when judge=mixed")이 실제 동작과 일치해야 한다 (적대적 검증 F7).
         # mixed 는 error 가 아니라 warning — 레코드는 통과하되 재현성 경고를 남긴다.

@@ -159,6 +159,21 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
                         f"[EVAL] scoring_rubric 가중치 합이 1.0 이 아닙니다: {s:.3f}"
                     )
 
+        # (a2) 공허한 루브릭 차단 — criteria 가 비었거나 pass_threshold≤0 이면 *항상 통과*하는 루브릭이라
+        #      decision_fidelity 를 공짜로 1.0 으로 밀어올린다("보상이 검증이 아니라 기록", 카파시 #3,
+        #      적대적 검증 it.4 VACUOUS-RUBRIC-DF). 채점 기준이 실재해야 통과가 의미를 가진다.
+        if not (isinstance(crit, list) and len(crit) >= 1):
+            res.errors.append(
+                "[EVAL] scoring_rubric.criteria 가 비어 있습니다 — 채점 기준 없는 루브릭은 "
+                "무조건 통과라 decision_fidelity 를 공허하게 부풀립니다(채점=기록 금지)"
+            )
+        thr0 = rubric.get("pass_threshold")
+        if not (_num(thr0) and float(thr0) > 0.0):
+            res.errors.append(
+                f"[EVAL] scoring_rubric.pass_threshold 는 0 보다 커야 합니다: {thr0!r} "
+                "— 임계 0 은 score=0 도 통과시켜 채점을 무의미하게 만듭니다"
+            )
+
         # (d) llm_judge 결정성 — model+temperature 고정 없으면 재현 불가한 판정.
         judge = rubric.get("judge")
         jc = rubric.get("judge_config")
