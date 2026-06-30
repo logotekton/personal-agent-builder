@@ -1286,5 +1286,100 @@ class TestRobustnessFuzzingIt14(unittest.TestCase):
             pab_merge.apply_plan({}, cands, [], "1970-01-01T00:00:00Z")  # plans != candidates
 
 
+class TestGateQualityIt15(unittest.TestCase):
+    """it.15: gate bypasses + merge-identity correctness. List-shaped gates must reject
+    placeholder/malformed elements (a fired hard-fail or a missing BoundaryRule cannot be hidden
+    behind a non-list-of-strings), and duplicate detection must derive identity from content, never
+    a possibly-stale stored canonical_key."""
+
+    def _eval_fired(self, fired, status="pass", score=0.95):
+        r = _good_eval()
+        r["scoring_rubric"]["pass_threshold"] = 0.7
+        r["result"] = {"status": status, "score": score, "unacceptable_fired": fired}
+        return r
+
+    def test_rlvr_hardfail_not_bypassed_by_malformed_fired_shapes(self):
+        # a fired hard-fail recorded as objects / scalar / non-strings must still FAIL a 'pass'
+        for shape in ([{"rule": "leaked_pii"}], "leaked_pii", {"0": "pii"}, [1, 2], ["   "]):
+            self.assertFalse(vp.validate_record(self._eval_fired(shape), "t").ok,
+                             f"malformed fired {shape!r} bypassed the hard-fail gate")
+        self.assertFalse(vp.validate_record(self._eval_fired(["leaked_pii"]), "t").ok)  # control: enforced
+        self.assertTrue(vp.validate_record(self._eval_fired(["leaked_pii"], status="fail", score=0.1), "t").ok)
+        self.assertTrue(vp.validate_record(self._eval_fired([]), "t").ok)               # empty: nothing fired
+
+    def test_g5_exception_rules_rejects_placeholder_elements(self):
+        for exc in ([None], [""], ["   "], [123], [{}]):
+            r = _good(); r["sensitivity"] = "sensitive"; r["record_type"] = "BoundaryRule"
+            r["exception_rules"] = exc
+            errs = vp.validate_record(r, "t").errors
+            self.assertTrue(any("exception_rules 에 비어" in e for e in errs),
+                            f"G5 accepted placeholder {exc!r}")
+        # a real rule does not trip the element-quality check
+        r = _good(); r["sensitivity"] = "sensitive"; r["record_type"] = "BoundaryRule"
+        r["exception_rules"] = ["allow if user confirms"]
+        self.assertFalse(any("exception_rules 에 비어" in e for e in vp.validate_record(r, "t").errors))
+
+    def test_counterexamples_rejects_placeholder_elements(self):
+        for cx in ([None], [""], [123]):
+            r = _good(); r["confidence"] = 0.5; r["counterexamples"] = cx
+            errs = vp.validate_record(r, "t").errors
+            self.assertTrue(any("counterexamples 에 비어" in e for e in errs),
+                            f"low-conf gate accepted placeholder {cx!r}")
+        r = _good(); r["confidence"] = 0.5; r["counterexamples"] = ["fails when X"]
+        self.assertTrue(vp.validate_record(r, "t").ok)   # real counterexample passes
+
+    def test_apply_plan_infinite_repetition_count_does_not_crash(self):
+        pack = "user.persona_core"
+        existing = {pack: [{"id": "r1", "pack": pack, "record_type": "PreferenceRecord",
+                            "statement": "prefer dark mode", "scope": "code",
+                            "review_status": "confirmed", "repetition_count": float("inf")}]}
+        cands = [{"id": "c1", "pack": pack, "record_type": "PreferenceRecord",
+                  "statement": "prefer dark mode", "scope": "code"}]
+        plans = pab_merge.plan_batch(existing, cands)
+        merged, _ = pab_merge.apply_plan(existing, cands, plans, "1970-01-01T00:00:00Z")  # no OverflowError
+        self.assertEqual([r for r in merged[pack] if r["id"] == "r1"][0]["repetition_count"], 2)
+
+    def test_duplicate_detection_ignores_stale_stored_canonical_key(self):
+        pack = "user.persona_core"
+        base = dict(pack=pack, record_type="PreferenceRecord",
+                    statement="prefer concise answers", scope="general")
+        ck = pab_merge.canonical_key(base["pack"], base["record_type"], base["statement"], base["scope"])
+        # false-negative: a true duplicate whose STORED key is stale must still be a duplicate
+        ex_fn = {pack: [dict(base, id="R1", canonical_key="deadbeef0000",
+                             review_status="confirmed", repetition_count=3, evidence_refs=["e1"])]}
+        c = dict(base, id="C1", evidence_refs=["e2"])
+        self.assertEqual(pab_merge.classify(ex_fn, c)["verdict"], "duplicate")
+        # false-positive: an UNRELATED record whose stored key equals the candidate key must NOT match
+        ex_fp = {pack: [{"id": "R1", "pack": pack, "record_type": "AvoidanceRecord",
+                         "statement": "never force push on shared branches", "scope": "production",
+                         "canonical_key": ck, "review_status": "confirmed"}]}
+        self.assertEqual(pab_merge.classify(ex_fp, c)["verdict"], "novel")
+
+    def test_conflict_fires_for_untyped_records(self):
+        # existing record with no record_type (None) must still conflict-match a candidate with rt=''
+        ex = {"unknown": [{"id": "R1", "pack": "unknown",
+                           "statement": "prefer concise answers always", "scope": "general",
+                           "review_status": "confirmed"}]}
+        c = {"id": "C1", "pack": "unknown", "statement": "prefer concise short answers", "scope": "general"}
+        self.assertEqual(pab_merge.classify(ex, c)["verdict"], "conflict")
+
+    def test_compile_adapter_honors_applies_in_scope_source(self):
+        # a record scoped only via applies_in must be excluded from an out-of-scope task adapter,
+        # matching context_select's scope-source resolution (the two tools must not diverge)
+        recs = {"user.tacit_heuristics": [
+            {"id": "via_applies_in", "review_status": "confirmed", "statement": "A",
+             "applies_in": ["context.task.code_review"]},
+            {"id": "via_scope", "review_status": "confirmed", "statement": "B",
+             "scope": ["context.task.code_review"]}]}
+        adapter = comp.compile_adapter(recs, [], task_tags=["context.task.writing"])
+        leaked = [r["id"] for refs in adapter["sections"].values() for r in refs]
+        self.assertEqual(leaked, [])   # both out-of-scope; neither leaks into the writing adapter
+        # context_select agrees: same records, same task -> nothing selected
+        selected, _ = cs.select_context(
+            [recs["user.tacit_heuristics"][0], recs["user.tacit_heuristics"][1]],
+            token_budget=10000, task_tags=["context.task.writing"])
+        self.assertEqual(selected, [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
