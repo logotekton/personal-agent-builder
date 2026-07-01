@@ -439,7 +439,7 @@ trigger:
   signal: pack_updated
   condition: "after a pack changes, or on a schedule"
   cadence: schedule
-  host_hook: Cron · chained
+  host_hook: [Cron, chained]
   produces: evaluated
   requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
   default_state: suggested

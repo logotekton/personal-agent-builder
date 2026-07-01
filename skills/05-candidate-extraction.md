@@ -330,7 +330,7 @@ trigger:
   signal: review_queue_threshold
   condition: "enough evidence signals have accumulated"
   cadence: threshold
-  host_hook: Stop · chained
+  host_hook: [Stop, chained]
   produces: candidate_staged
   requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
   default_state: enabled

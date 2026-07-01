@@ -1695,6 +1695,40 @@ class TestPropertyDeterminismIt23(unittest.TestCase):
         self.assertAlmostEqual(a, 0.2, places=9)
 
 
+class TestTriggerContractCluster5(unittest.TestCase):
+    """open-design-decisions Cluster 5 (resolved): trigger.schema.json host_hook accepts a single
+    token OR a list of tokens (multi-hook binding), so the 7 skill blocks that shipped a composite
+    value now validate. check_triggers.py locks the embedded blocks against the schema's own enums."""
+
+    def _run(self, *args):
+        return subprocess.run([sys.executable, os.path.join(TOOLS, "check_triggers.py"), *args],
+                              capture_output=True, text=True)
+
+    def test_all_embedded_triggers_validate(self):
+        r = self._run(os.path.join(REPO, "skills"), os.path.join(REPO, "schemas", "trigger.schema.json"))
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertIn("0 problem(s)", r.stdout)
+
+    def test_check_triggers_catches_bad_host_hook_token(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sk = os.path.join(tmp, "skills"); os.makedirs(sk)
+            with open(os.path.join(sk, "x.md"), "w") as fh:
+                fh.write("```yaml\ntrigger:\n  trigger_id: pab.evidence_capture.on_x\n"
+                         "  skill: evidence_capture\n  signal: turn\n  cadence: continuous\n"
+                         "  host_hook: [UserPromptSubmit, BogusHook]\n  produces: evidence_staged\n"
+                         "  requires_confirmation: false\n  default_state: enabled\n```\n")
+            r = self._run(sk, os.path.join(REPO, "schemas", "trigger.schema.json"))
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("host_hook", r.stdout)
+
+    def test_schema_host_hook_accepts_string_or_list(self):
+        import json as _json
+        schema = _json.load(open(os.path.join(REPO, "schemas", "trigger.schema.json"), encoding="utf-8"))
+        hh = schema["properties"]["host_hook"]
+        self.assertIn("oneOf", hh)                      # no longer a bare single-token enum
+        self.assertIn("host_hook_token", schema.get("$defs", {}))
+
+
 class TestCliExitContractCluster3(unittest.TestCase):
     """open-design-decisions Cluster 3 (resolved): CLI exit-code / loader-signal contract.
     Missing path -> 2 (sibling-tool consistency); multi-doc YAML merges its pack mappings instead of

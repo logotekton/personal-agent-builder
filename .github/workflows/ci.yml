@@ -45,6 +45,9 @@ jobs:
       - name: Schemas — every schemas/*.json is well-formed and extends record.base
         run: python tools/check_schemas.py schemas
 
+      - name: Triggers — every embedded skill trigger validates against trigger.schema.json
+        run: python tools/check_triggers.py skills schemas/trigger.schema.json
+
       - name: Docs — every cross-document link + anchor resolves
         run: python tools/check_anchors.py .
 

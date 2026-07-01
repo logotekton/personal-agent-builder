@@ -40,11 +40,10 @@
       "enum": ["continuous", "turn", "event", "threshold", "session_boundary", "schedule", "command"]
     },
     "host_hook": {
-      "type": "string",
-      "description": "Where the trigger binds in the host runtime. Claude Code hook events, an OpenCrab crab_orchestration entry condition, cron, or a slash command. SessionStart=compile; UserPromptSubmit/PostToolUse=ambient capture; PreToolUse=pre-action boundary; Stop=session-end mining + review board.",
-      "enum": [
-        "SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop",
-        "Cron", "orchestrator", "command", "chained"
+      "description": "Where the trigger binds in the host runtime — a single hook token, OR a YAML list of tokens for a multi-hook binding (e.g. [UserPromptSubmit, PostToolUse] when the same trigger binds ambient capture on both the prompt and the tool result; see skills/14-host-binding.md §2). Claude Code hook events, an OpenCrab crab_orchestration entry condition, cron, or a slash command. SessionStart=compile; UserPromptSubmit/PostToolUse=ambient capture; PreToolUse=pre-action boundary; Stop=session-end mining + review board.",
+      "oneOf": [
+        { "$ref": "#/$defs/host_hook_token" },
+        { "type": "array", "items": { "$ref": "#/$defs/host_hook_token" }, "minItems": 1 }
       ]
     },
     "produces": {
@@ -120,6 +119,15 @@
           "description": "Calibration target for shadow-mode validation (spec/12 §4.3). The policy first runs in shadow (PREDICT confirm/hold, NO-ACT) and its disagreement rate vs the human gate decision must stabilize at or below this value before it is allowed to act. e.g. 0.05 (<=5%). Grounded in Tesla shadow mode."
         }
       }
+    }
+  },
+  "$defs": {
+    "host_hook_token": {
+      "type": "string",
+      "enum": [
+        "SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop",
+        "Cron", "orchestrator", "command", "chained"
+      ]
     }
   },
   "$comment": "Trigger fires detection/staging only; promotion stays gated unless auto_confirm_policy narrowly permits it. This is how the system stays safe to leave 'always on' (Gates G3 no-pending-activation, G5 privacy-before-promotion). Host mapping: Claude Code hooks for in-session ambient capture + session-boundary review; Cron(durable) for batch processing of prior transcripts; OpenCrab ingest_text(pack_visibility='draft') as the staging store."

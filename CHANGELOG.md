@@ -21,6 +21,19 @@
 
 ## [Unreleased]
 
+### 설계판단 해소 — 클러스터 5: 트리거 스키마 계약 (it.25)
+> open-design-decisions 클러스터 5(host_hook)를 배열-enum 으로 해소 + 임베디드 트리거 블록 검증기 추가.
+> 잠금 숫자 불변(트리거 블록은 문서·스키마 계층, 예제 validate 경로와 무관).
+- **[Fixed] trigger.schema.json host_hook 표현 불가.** 단일-토큰 enum 이 11개 스킬 트리거 블록 중 7개의
+  `A · B` 복합값을 못 담아 jsonschema 검증 실패했음(it.22). `$defs.host_hook_token` + `oneOf`(단일 토큰
+  OR 토큰 리스트)로 바꾸고, 7개 스킬 블록·spec/09 §2 표의 `A · B` 를 `[A, B]` YAML 리스트로 정합.
+- **[Added] tools/check_triggers.py + CI 게이트.** skill 문서의 임베디드 `trigger:` 블록을 추출해
+  trigger.schema.json *자기 enum*(스키마에서 파생 → 드리프트 없음)에 대조: 필수필드·skill/signal/cadence/
+  produces/default_state enum·host_hook(단일 또는 리스트) 검증. CI·check_commands·tools/README 에 배선.
+- **[Added] 회귀 테스트 3건**(`TestTriggerContractCluster5`). 총 175→178.
+- **[NOTE] confirmation_trigger(클러스터 5 잔여)**: spec/04 가 스키마 enum 처럼 기술하나 실제 스키마는
+  무제약 — enum 추가 시 예제 boundary 값 점검 필요라 별도 판단으로 남김(open-design-decisions 참고).
+
 ### 설계판단 해소 — 클러스터 3: CLI 종료코드·로더 신호 계약 (it.25)
 > open-design-decisions 클러스터 3 을 형제 도구 계약('경로 부재→2, 손상/공허→명시적 실패')에 맞춰 정합.
 > 잠금 숫자 전부 불변(정상 입력 경로엔 다문서/누락/주석-only 없음).

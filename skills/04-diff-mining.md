@@ -279,7 +279,7 @@ trigger:
   signal: user_correction
   condition: "agent output is edited, rejected, or followed by 'do X instead'"
   cadence: event
-  host_hook: UserPromptSubmit · PostToolUse
+  host_hook: [UserPromptSubmit, PostToolUse]
   produces: candidate_staged
   requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
   default_state: enabled
