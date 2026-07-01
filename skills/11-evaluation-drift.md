@@ -304,7 +304,7 @@ regression_for: [logotekton.drift.0012]
 
 - **성숙도 게이트** — L1은 `traceability`=1.0과 **≥3개 평가 케이스**를 요구한다(즉 이 스킬의
   케이스가 없으면 사다리를 오를 수 없다). L2는 `coverage`≥0.5·`decision_fidelity`≥0.6·
-  `confirmation_ratio`≥0.6; L3는 `coverage`≥0.8·`decision_fidelity`≥0.8·`correction_cost`≤0.3·
+  `human_confirmation_ratio`≥0.6; L3는 `coverage`≥0.8·`decision_fidelity`≥0.8·`correction_cost`≤0.3·
   **`drift_stability`≥0.7**; L4는 `coverage`==1.0·`decision_fidelity`≥0.9·`correction_cost`≤0.15·
   `drift_stability`≥0.85·`traceability`==1.0
   ([06 §3](../spec/06-convergence-model.md#3-다섯-단계-성숙도-maturity-tiers)).
@@ -439,7 +439,7 @@ trigger:
   signal: pack_updated
   condition: "after a pack changes, or on a schedule"
   cadence: schedule
-  host_hook: Cron · chained
+  host_hook: [Cron, chained]
   produces: evaluated
   requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
   default_state: suggested

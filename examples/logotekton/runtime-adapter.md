@@ -5,7 +5,7 @@
 > `user.boundary_authority`에 `ConfirmationRuleRecord`(`logotekton.boundary.001`, 외부메일
 > ask_confirm)를 추가했고, revolution-02 가 `user.artifact_policy`(`artifact.001`, 보고 next-action
 > 필수)와 `user.tool_stack`(`tool.001`)을 시드했습니다(현재 **시드 10팩**, df 1.00, 게이트 결함 수정
-> 후 **L1 Sketch** — coverage 엄격 0.07/시드폭 0.71). 따라서 아래
+> 후 **L0 Seed** — 콘텐츠 깊이 vertical 0, coverage 엄격 0.07/시드폭 0.71). 따라서 아래
 > 본문의 *"확인된 BoundaryRule 0개 → 기본 안전 정책"* 과 *"5개 팩"* 단언은 **이 T0 스냅샷에 한해
 > 참**이며, 현재 라이브 상태가 아닙니다 — 재컴파일하면 섹션 7(경계)은 `boundary.001`을, 섹션 8(출력
 > 검증)은 `artifact.001`을 끌어옵니다. 현재 지표·시드는
@@ -300,7 +300,7 @@ response_policy:
 | 반복 워크플로 미확정 | `user.workflow_playbooks` (8) | 섹션 6 (steps) | 빈 슬롯 |
 | 도메인 주의 패턴 없음 | `user.domain_overlays` (9) | 섹션 2·5 (domain) | 빈 슬롯 |
 | 도구 선호 미확정 | `user.tool_stack` (10) | 섹션 6 (tools) | 빈 슬롯 |
-| **확인된 경계 0개 → 기본 정책** | `user.boundary_authority` (11) | 섹션 7·8 | 인스턴스 경계 부재 |
+| **확인된 경계 0개 → 기본 정책** | `user.boundary_authority` (11) | 섹션 7 (+8 파생) | 인스턴스 경계 부재 |
 | 프로젝트·목표 그래프 미확정 | `user.memory_project_graph` (12) | 섹션 1·6 | 빈 슬롯 |
 | 평가 케이스 (컴파일 입력 아님) | `user.evaluation_cases` (13) | — ([11 평가](../../skills/11-evaluation-drift.md)가 사용) | 측정 입력 |
 | 드리프트 이력 없음 | `user.drift_history` (14) | (폐기 선별) | 폐기 레코드 0개 |

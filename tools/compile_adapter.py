@@ -30,6 +30,7 @@ Usage:
 import json
 import os
 import sys
+import unicodedata
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import convergence_report as cr   # loader (collect/load_structured) + CANONICAL_PACKS  # noqa: E402
@@ -72,13 +73,19 @@ SECTION_NAMES = {
 SECTION8_INPUT_PACKS = ("user.communication_style", "user.boundary_authority", "user.artifact_policy")
 
 
+def _norm_id(v):
+    """id/supersedes 토큰을 NFC 정규화 + strip — convergence_report._norm_id 와 동일(it.21).
+    유니코드 정규형(NFC/NFD) 차이로 supersedes 참조와 대상 id 매칭이 갈려 은퇴 레코드가 LIVE 로 남지 않게."""
+    return unicodedata.normalize("NFC", str(v)).strip()
+
+
 def _as_id_set(value):
-    """supersedes 값(리스트/문자열/None)을 id 집합으로."""
+    """supersedes 값(리스트/문자열/None)을 id 집합으로 (NFC 정규화)."""
     out = set()
     if isinstance(value, list):
-        out |= {str(v).strip() for v in value if v is not None and str(v).strip()}
-    elif value is not None and str(value).strip():
-        out.add(str(value).strip())
+        out |= {_norm_id(v) for v in value if v is not None and _norm_id(v)}
+    elif value is not None and _norm_id(value):
+        out.add(_norm_id(value))
     return out
 
 
@@ -114,7 +121,7 @@ def is_runtime_active(rec, superseded_ids):
         return False
     if _is_self_reported(rec):
         return False
-    if str(rec.get("id", "")).strip() in superseded_ids:
+    if _norm_id(rec.get("id", "")) in superseded_ids:
         return False
     return True
 
@@ -142,16 +149,32 @@ def compile_adapter(pack_records, drift_records, task_tags=None):
         active = [
             r for r in recs
             if is_runtime_active(r, superseded)
-            and (task_tags is None or cs.scope_overlap(r.get("scope"), task_tags))
+            # scope 소스 해석을 context_select 와 일치시킨다(`scope` 없으면 `applies_in`) — applies_in 은
+            # 런타임 컨텍스트 스위치(spec/01 §, skills/06)이므로 scope 만 보면 applies_in-스코프 레코드가
+            # 모든 작업류에 새어든다. 두 결정론 도구가 runtime-active 집합에서 갈라지면 안 된다. (it.15)
+            and (task_tags is None
+                 or cs.scope_overlap(r.get("scope") or r.get("applies_in"), task_tags))
         ]
-        # 결정론: id 로 정렬 (동일 입력 → 동일 어댑터).
-        active_by_pack[pack] = sorted(active, key=lambda r: str(r.get("id", "")))
+        # 결정론: (id, statement, scope) 전순서로 정렬 (동일 입력 → 동일 어댑터).
+        # id 만으로는 동일-id 레코드에서 안정정렬이 입력순서에 의존(it.14) — 더 나아가 id+statement 까지
+        # 같고 scope 만 다른 레코드도 입력순서에 의존하므로 scope 를 보조키로 더한다(적대적 검증 it.16).
+        active_by_pack[pack] = sorted(
+            active,
+            key=lambda r: (str(r.get("id", "")), str(r.get("statement", "")), str(r.get("scope", ""))),
+        )
 
     sections = {n: [] for n in range(1, 9)}
+    # 섹션 1 경계(전이성): memory_project_graph 는 섹션 1 에 *피연산자*로 들어오지만
+    # 페르소나(identity_roles·persona_core)와 섞이지 않는 별도 하위블록(project_context)으로
+    # 적재한다 — skills/10 §4. (섹션 6 합류는 정상: 워크플로의 프로젝트 단계.)
+    project_context = []
     for pack, secs in PACK_SECTIONS.items():
         for r in active_by_pack[pack]:
             for s in secs:
-                sections[s].append(_ref(r, pack))
+                if s == 1 and pack == "user.memory_project_graph":
+                    project_context.append(_ref(r, pack))
+                else:
+                    sections[s].append(_ref(r, pack))
 
     # 경계 레이어: 확인된 BoundaryRule 이 있으면 인스턴스 경계, 없으면 기본 안전 정책 하한.
     boundary_active = active_by_pack.get("user.boundary_authority", [])
@@ -180,6 +203,8 @@ def compile_adapter(pack_records, drift_records, task_tags=None):
     return {
         "task_tags": list(task_tags) if isinstance(task_tags, (list, tuple, set)) else task_tags,
         "sections": {SECTION_NAMES[s]: sections[s] for s in range(1, 9)},
+        # 섹션 1 의 project_context 하위블록 (페르소나와 분리; 프로젝트 종료 시 교체 대상).
+        "project_context": project_context,
         "boundary_source": boundary_source,
         "section8_inputs": section8_inputs,
         "response_policy_inputs": [
@@ -239,11 +264,15 @@ def render_summary(adapter, directory):
         name = SECTION_NAMES[s]
         refs = adapter["sections"][name]
         if refs:
-            ids = ", ".join(r["id"] for r in refs)
+            ids = ", ".join(str(r["id"]) for r in refs)
             lines.append(f"  {s}. {name:<20} {len(refs)}개: {ids}")
         else:
             extra = " (기본 안전 정책)" if s == 7 and adapter["boundary_source"] == "default_safe_policy" else ""
             lines.append(f"  {s}. {name:<20} (공백 — 갭){extra}")
+    pc = adapter.get("project_context") or []
+    if pc:
+        ids = ", ".join(str(r["id"]) for r in pc)
+        lines.append(f"  1+ project_context     {len(pc)}개: {ids}  (페르소나 아님 — 프로젝트 맥락)")
     lines.append("")
     lines.append("[갭 로그] 빈/저커버리지 슬롯 — 다음 채굴 라운드 신호 (추측으로 메우지 않음, G1)")
     if adapter["gap_log"]:
@@ -270,7 +299,16 @@ def build_arg_parser():
 
 def main(argv=None):
     args = build_arg_parser().parse_args(argv)
+    # 존재하지 않거나 읽을 수 없는 입력에서 *조용히 성공*하지 않는다 — 그래야 문서-커맨드 가드
+    # (check_commands)의 exit-0 판정이 "예제가 실제로 해석된다"를 진짜로 증명한다(적대적 검증 it.10).
+    if not os.path.exists(args.directory):
+        print(f"error: 입력 경로가 없습니다: {args.directory}", file=sys.stderr)
+        return 2
     pack_records, drift_records = load(args.directory)
+    if not any(pack_records.get(p) for p in pack_records):
+        print(f"error: {args.directory} 에서 레코드를 하나도 로드하지 못했습니다 "
+              "(빈/파싱불가 입력 — 컴파일할 대상 없음)", file=sys.stderr)
+        return 1
     adapter = compile_adapter(pack_records, drift_records, task_tags=args.task)
     if args.json:
         print(json.dumps(adapter, ensure_ascii=False, indent=2, sort_keys=True))

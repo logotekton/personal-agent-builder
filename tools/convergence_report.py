@@ -30,12 +30,12 @@ JSON과 YAML의 안전한 부분집합을 읽습니다.
                         성숙도 게이트는 auto-confirm 을 제외한 human_confirmation_ratio 를 쓴다(§4.4)
   decision_fidelity   = 통과 평가 케이스 / 전체 평가 케이스    (↑, ≥0.8; partial=0.5)
   correction_cost     = 작업당 사용자 편집 비율 평균          (↓, ≤0.2; 없으면 NA)
-  drift_stability     = 1 − (최근 대체수 / 확인 레코드수)     (↑, ≥0.8; 드리프트 없으면 1.0)
+  drift_stability     = 1 − (전기간 대체수 / 확인 레코드수)   (↑, ≥0.8; 드리프트 없으면 1.0)
   traceability        = 증거 보유 활성 규칙 / 활성 규칙       (= 1.0 필수)
 
 성숙도 단계 (spec/06 §3):
   L0 Seed       : 시드 팩 < 3, 평가 케이스 없음
-  L1 Sketch     : 시드 팩 ≥ 7, 평가 케이스 ≥ 3, traceability == 1.0, ≥1 팩이 ≥3 확인(깊이)
+  L1 Sketch     : 시드 팩 ≥ 7, 평가 케이스 ≥ 3, traceability == 1.0, ≥1 *콘텐츠* 팩이 ≥3 확인(깊이; 메타 제외)
   L2 Working    : coverage ≥ 0.5, decision_fidelity ≥ 0.6, human_confirmation_ratio ≥ 0.6
   L3 Reliable   : coverage ≥ 0.8, decision_fidelity ≥ 0.8, correction_cost ≤ 0.3,
                   drift_stability ≥ 0.7
@@ -63,6 +63,7 @@ import json
 import math
 import os
 import sys
+import unicodedata
 
 # 정식 14 user 온톨로지 팩 이름 — spec/01-kernel-schema.md §5, CANONICAL_CONTRACT §5.
 # 순서 = 카탈로그 번호. 구 코드명(pa.t03, t06, x12, .ba 등)은 폐기됨.
@@ -83,6 +84,12 @@ CANONICAL_PACKS = (
     "user.drift_history",         # 14
 )
 TOTAL_PACKS = len(CANONICAL_PACKS)  # 14
+
+# 메타/시스템 팩 — *내용 깊이*(L1 depth-vertical)를 만드는 콘텐츠 팩이 아니다.
+# evaluation_cases·drift_history 는 평가/드리프트 장부라, 이들이 깊이 vertical 을 채우게 두면
+# L1 의 'n_eval≥3' 게이트가 vertical 도 자동 충족시켜 깊이 요구가 공허해진다(적대적 검증 it.5).
+META_PACKS = frozenset({"user.evaluation_cases", "user.drift_history"})
+CONTENT_PACKS = tuple(p for p in CANONICAL_PACKS if p not in META_PACKS)  # 12 콘텐츠 팩
 
 # 구 코드명 → 정식 이름. 입력이 폐기된 코드명을 키로 쓰면 정식 이름으로 정규화한다.
 LEGACY_ALIASES = {
@@ -146,6 +153,15 @@ def _strip_comment(line: str) -> str:
     return "".join(out)
 
 
+# PyYAML 1.1 은 bare nan/inf/infinity 를 float 가 아니라 문자열로 해석한다
+# (특수 부동소수는 `.nan`/`.inf` 표기를 요구). 미니 파서를 같은 규칙에 맞춘다.
+_SPECIAL_FLOAT_WORDS = {
+    "nan", "+nan", "-nan",
+    "inf", "+inf", "-inf",
+    "infinity", "+infinity", "-infinity",
+}
+
+
 def _parse_scalar(tok: str):
     """YAML 스칼라 토큰 → Python 값 (문자열/숫자/불리언/null/인라인 컬렉션)."""
     tok = tok.strip()
@@ -160,6 +176,11 @@ def _parse_scalar(tok: str):
         return False
     if tok.startswith("[") or tok.startswith("{"):
         return _parse_inline(tok)
+    # 특수 부동소수 워드(nan/inf/infinity, ± 포함)는 PyYAML 1.1 처럼 *문자열* 로 둔다.
+    # Python float() 는 "nan"/"inf" 를 받아들이지만, 그러면 미니 파서가 PyYAML 과
+    # 갈라져 NaN 이 조용히 수치 계산(평균·비율)에 스며든다 (적대적 검증 F4).
+    if low in _SPECIAL_FLOAT_WORDS:
+        return tok
     # 숫자?
     try:
         if any(c in tok for c in ".eE") and not tok.startswith("0x"):
@@ -218,6 +239,10 @@ def _parse_inline(tok: str):
             k, v = p.split(":", 1)
             out[_parse_scalar(k)] = _parse_scalar(v)
         return out
+    # 시작이 브래킷인데 짝이 안 맞으면 깨끗한 에러 — 안 그러면 _parse_scalar↔_parse_inline 가
+    # 무한 재귀해 RecursionError 로 죽는다(적대적 검증 it.13).
+    if tok.startswith(("[", "{")):
+        raise MiniYAMLError(f"불완전한 인라인 컬렉션(닫는 괄호 없음): {tok!r}")
     return _parse_scalar(tok)
 
 
@@ -316,30 +341,36 @@ def mini_yaml_load(text: str):
     return value
 
 
-def load_structured(path: str):
-    """확장자에 따라 JSON 또는 미니 YAML 로 파싱. 실패하면 None 반환."""
+def _read_structured(path: str):
+    """(ok, value) 반환 — ok=False 는 *읽기/파싱 실패*, ok=True 는 *성공*(빈/주석-only 파일은 value=None).
+
+    '읽기 실패'와 '읽었으나 내용 없음(None)'을 구분한다 — 후자를 '읽을 파일 없음'(exit 2)과 혼동하면
+    주석-only 플레이스홀더 파일 하나로 전체 실행이 중단된다(적대적 검증 it.17-4/클러스터3).
+    파싱 실패는 *그 파일만* (False,None) 으로 건너뛴다 — 한 손상 파일이 디렉터리 전체를 죽이면 안 됨(it.14)."""
     try:
         with open(path, "r", encoding="utf-8") as fh:
             text = fh.read()
-    except OSError as exc:  # noqa: BLE001
+    except (OSError, UnicodeDecodeError) as exc:  # 비-UTF8 파일도 한 파일만 건너뛰고 전체는 계속
         sys.stderr.write(f"[warn] 읽기 실패 {path}: {exc}\n")
-        return None
+        return (False, None)
     ext = os.path.splitext(path)[1].lower()
     try:
         if ext == ".json":
-            return json.loads(text)
+            return (True, json.loads(text))
         # .yaml/.yml 및 기타: 미니 YAML, 실패 시 JSON 재시도
         try:
-            return mini_yaml_load(text)
+            return (True, mini_yaml_load(text))
         except MiniYAMLError as exc:
             sys.stderr.write(f"[warn] YAML 부분집합 파싱 실패 {path}: {exc}\n")
-            try:
-                return json.loads(text)
-            except json.JSONDecodeError:
-                return None
-    except json.JSONDecodeError as exc:
-        sys.stderr.write(f"[warn] JSON 파싱 실패 {path}: {exc}\n")
-        return None
+            return (True, json.loads(text))
+    except (json.JSONDecodeError, RecursionError, ValueError) as exc:
+        sys.stderr.write(f"[warn] 파싱 실패 {path}: {exc}\n")
+        return (False, None)
+
+
+def load_structured(path: str):
+    """확장자에 따라 JSON 또는 미니 YAML 로 파싱. 실패/빈파일이면 None 반환(호환 유지)."""
+    return _read_structured(path)[1]
 
 
 # ───────────────────────────── 레코드 수집 ──────────────────────────────────────────
@@ -463,10 +494,12 @@ def collect(directory: str):
             entries.append(full)
 
     for path in entries:
-        value = load_structured(path)
+        ok, value = _read_structured(path)
+        if not ok:
+            continue                 # 읽기/파싱 실패 — 건너뜀(이미 경고됨)
+        n_files += 1                 # 성공적으로 읽음(빈/주석-only 포함) → '읽을 파일 없음'과 구분
         if value is None:
-            continue
-        n_files += 1
+            continue                 # 내용 없음 — 읽은 파일로 세되 레코드는 없음
         for pack_hint, rec in _iter_records_from_value(value):
             pack = pack_hint or _infer_pack_for_record(rec)
             if pack is None:
@@ -530,19 +563,31 @@ def _eval_result_status(rec) -> str | None:
 def _correction_value(rec):
     """레코드에서 사용자 편집 비율(작업당)을 추출. 없으면 None.
 
-    인식하는 필드 (우선순위): correction_cost, edit_fraction, correction_fraction,
-    result.edit_fraction, result.correction_cost.
+    인식하는 필드 (우선순위): (top-level) correction_cost, edit_fraction, correction_fraction,
+    그리고 result.edit_fraction. result.correction_cost/correction_fraction 은 eval 스키마가
+    result.additionalProperties:false 라 무효이므로 읽지 않는다.
     """
+    # 유한 숫자(bool 아님, NaN/inf 아님)만 받는다 — NaN/inf 가 새면 correction_cost 가 NaN/inf 로
+    # 오염돼 무효 JSON·NA-가장·성숙도 오강등을 부르고, bool 은 int 하위형이라 True 가 1.0 으로 셈된다
+    # (적대적 검증 it.13). 미니-YAML 의 _SPECIAL_FLOAT_WORDS 방어와 같은 취지.
+    def _finite_num(v):
+        # 유한 + [0,1] 분수만 받는다 — 유한이지만 범위 밖(예: 50.0·-5.0)인 값도 평균을 오염시킨다.
+        # 특히 음수는 correction_cost 를 과소평가해 L3/L4 성숙도 게이트를 헛되이 통과시키는 게이밍 벡터다
+        # (validate_packs 를 거치지 않은 원시 레코드 방어, 적대적 검증 it.17).
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and 0.0 <= v <= 1.0:
+            return v
+        return None
     for fld in ("correction_cost", "edit_fraction", "correction_fraction"):
-        v = rec.get(fld)
-        if isinstance(v, (int, float)):
+        v = _finite_num(rec.get(fld))
+        if v is not None:
             return float(v)
     result = rec.get("result")
     if isinstance(result, dict):
-        for fld in ("edit_fraction", "correction_cost", "correction_fraction"):
-            v = result.get(fld)
-            if isinstance(v, (int, float)):
-                return float(v)
+        # result.edit_fraction 만 읽는다 — eval 스키마의 result 는 additionalProperties:false 라
+        # result.correction_cost/correction_fraction 는 *스키마 무효*다(중첩 별칭은 top-level 에서만 유효).
+        v = _finite_num(result.get("edit_fraction"))
+        if v is not None:
+            return float(v)
     return None
 
 
@@ -553,20 +598,80 @@ def _has_evidence(rec) -> bool:
     )
 
 
+def _norm_id(v):
+    """id/supersedes 토큰을 NFC 정규화 + strip — 유니코드 정규형 차이로 매칭이 갈리지 않게(it.21)."""
+    return unicodedata.normalize("NFC", str(v)).strip()
+
+
+def _id_set(value):
+    """supersedes 필드(문자열·리스트·스칼라)를 id 집합으로 정규화.
+
+    compile_adapter._as_id_set 와 *원소 단위로 동일* 해야 한다 — 두 도구가 'superseded' 집합을 다르게
+    정규화하면(리스트 속 None 을 한쪽은 'None' 으로 살리고 한쪽은 버림; 비-리스트 스칼라를 한쪽만 문자열화)
+    같은 입력에서 runtime-active/LIVE 집합이 갈라진다(적대적 검증 it.16). compile_adapter 가 이 모듈을
+    import 하므로(역방향 import 는 순환) 로직을 복제해 일치시킨다.
+
+    id 는 NFC 로 정규화한다 — supersedes 참조가 NFD, 대상 레코드 id 가 NFC(또는 그 반대)면 시각적으로 같은
+    id 가 매칭에 실패해 *은퇴한 레코드가 LIVE 로 남고 이중집계*된다. 비교 양쪽(집합·조회)을 NFC 로 통일한다
+    (적대적 검증 it.21; pab_merge canonical_key 의 NFC 정규화 it.13 과 같은 취지)."""
+    out = set()
+    if isinstance(value, list):
+        out |= {_norm_id(v) for v in value if v is not None and _norm_id(v)}
+    elif value is not None and _norm_id(value):
+        out.add(_norm_id(value))
+    return out
+
+
+def _collect_superseded(pack_records, drift_records):
+    """폐기된(=대체된) 레코드 id 집합 — compile_adapter.collect_superseded 와 동일 규칙
+    (drift_history 의 supersedes + 각 레코드 자체의 supersedes 대상). 두 도구가 '런타임 활성'
+    슬라이스를 동일하게 정의하도록, convergence 도 폐기된(은퇴한) 레코드를 LIVE 집계에서 제외한다
+    — 안 그러면 compile_adapter 는 빼는 레코드를 convergence 는 confirmed/active 로 세어
+    coverage·confirmation_ratio·traceability·drift 가 불일치한다 (적대적 검증 it.3)."""
+    ids = set()
+    for d in drift_records:
+        ids |= _id_set(d.get("supersedes"))
+    for recs in pack_records.values():
+        for r in recs:
+            if isinstance(r, dict):
+                ids |= _id_set(r.get("supersedes"))
+    return ids
+
+
 def compute_indices(pack_records, eval_cases, drift_records):
     """6개 지표 + 보조 카운트를 dict 로 반환."""
+    # 폐기(supersede)된 레코드는 LIVE 자기지도에서 은퇴했으므로 활성 집계에서 제외 (compile_adapter 와 동일).
+    superseded_ids = _collect_superseded(pack_records, drift_records)
     # 팩별 확인 레코드 수
     confirmed_by_pack = {}
-    behavioral_confirmed_by_pack = {}   # 깊이는 behavioral confirmed 만 (self_reported 는 draft-only)
+    # 깊이(coverage)는 behavioral *그리고* 사람이 직접 게이트한(=auto-confirm 아닌) confirmed 만 센다.
+    # self_reported(draft-only) 제외 + auto_confirmed 제외 — spec/12 §4.4 '순환 차단': 성숙도 게이트가
+    # *그것이 통제하는* auto-confirm 으로 부풀려지면 독립 신뢰 신호가 못 된다. auto-confirm 무더기로
+    # 깊이를 채워 L3/L4 를 따는 게이밍 경로 차단(적대적 검증 it.3 AC-COVERAGE-DF-GATE-POLLUTION).
+    behavioral_confirmed_by_pack = {}
     seeded_packs = 0
     n_confirmed = n_pending = n_rejected = 0
     n_auto_confirmed = 0
     n_self_reported = 0
+    # 전역 id 유일성: 같은 record id 가 여러 팩 키 아래 복사돼도 1회만 집계한다 — 안 그러면 3개
+    # 레코드를 12팩에 흩뿌려 coverage·성숙도를 L0→L3 로 위조할 수 있다(적대적 검증 it.18/클러스터2).
+    # de-averaging 명제(§8: 흩뿌려 가짜 성숙도 따기 차단)의 핵심. CANONICAL_PACKS 순서로 첫 팩이 소유.
+    seen_ids = set()
     for pack in CANONICAL_PACKS:
-        recs = pack_records.get(pack, [])
+        recs = []
+        for r in pack_records.get(pack, []):
+            rid = _norm_id(r.get("id", ""))
+            if rid in superseded_ids:
+                continue
+            if rid and rid in seen_ids:
+                continue   # 다른 팩에서 이미 집계된 id — 교차-팩 중복집계 차단
+            if rid:
+                seen_ids.add(rid)
+            recs.append(r)
         c = sum(1 for r in recs if _status_of(r) in CONFIRMED_STATES)
         bc = sum(1 for r in recs
-                 if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r))
+                 if _status_of(r) in CONFIRMED_STATES
+                 and not _is_self_reported(r) and not _is_auto_confirmed(r))
         confirmed_by_pack[pack] = c
         behavioral_confirmed_by_pack[pack] = bc
         # 폭(seeded)도 *behavioral* 존재를 요구한다 — self_reported 만 든 팩은 행동 증거가 없어
@@ -596,6 +701,10 @@ def compute_indices(pack_records, eval_cases, drift_records):
     # draft-only 라 신뢰 깊이를 만들지 못한다(설계자 결정 C/#1, spec/00 클레임-계층).
     packs_with_3 = sum(1 for p in CANONICAL_PACKS
                        if behavioral_confirmed_by_pack[p] >= COVERAGE_MIN_CONFIRMED)
+    # L1 depth-vertical 은 *콘텐츠* 팩의 깊이여야 한다 — 평가/드리프트 장부(meta)가 vertical 을
+    # 채우면 깊이 요구가 'n_eval≥3' 게이트로 자동 충족돼 공허해진다(it.5 L1-vertical-vacuous).
+    content_packs_with_3 = sum(1 for p in CONTENT_PACKS
+                               if behavioral_confirmed_by_pack[p] >= COVERAGE_MIN_CONFIRMED)
 
     coverage_strict = packs_with_3 / TOTAL_PACKS          # spec §2 정의: 확인 ≥3 팩 / 14 (깊이)
     coverage_seeded = seeded_packs / TOTAL_PACKS          # 시드 폭 (보조 신호 — 게이트엔 안 씀)
@@ -614,10 +723,12 @@ def compute_indices(pack_records, eval_cases, drift_records):
     denom_hcr = n_human_confirmed + n_pending + n_rejected
     human_confirmation_ratio = (n_human_confirmed / denom_hcr) if denom_hcr else None
 
-    # self_reported 평가/드리프트 레코드는 draft-only 라 성숙도 지표 집계에서 전부 제외한다 — 그래야
-    # "모든 6개 지표 제외"가 글자 그대로 참이 된다(적대적 재검증 N1: self_reported 평가 케이스로
-    # decision_fidelity 를 부풀리는 잔여 경로 차단). 별도 카운트는 위 n_self_reported 에 이미 반영됨.
-    behavioral_evals = [ec for ec in eval_cases if not _is_self_reported(ec)]
+    # decision_fidelity·correction_cost 는 성숙도 게이트의 1차 신호다. spec/12 §4.4 는 이 둘이
+    # 'auto-confirm 여부와 무관'하다고 약속한다 — 그러려면 평가 케이스도 self_reported(draft-only)뿐
+    # 아니라 auto_confirmed(사람 미게이트) 도 제외해야 한다. 안 그러면 auto-confirm 한 pass 평가 케이스를
+    # 무더기로 넣어 decision_fidelity 를 부풀려 L3/L4 를 따는 경로가 열린다(it.3 AC-* 게이밍 홀).
+    behavioral_evals = [ec for ec in eval_cases
+                        if not _is_self_reported(ec) and not _is_auto_confirmed(ec)]
 
     # decision_fidelity: pass=1, partial=0.5, fail/그외=0 (behavioral 평가 케이스만)
     n_eval = len(behavioral_evals)
@@ -639,36 +750,40 @@ def compute_indices(pack_records, eval_cases, drift_records):
         decision_fidelity = None
         n_pass = n_partial = n_fail = 0
 
-    # correction_cost: 편집 비율 필드가 있는 레코드들의 평균. 없으면 NA. (self_reported 제외)
+    # correction_cost: *평가 케이스*의 편집 비율(result.edit_fraction 등)만의 평균. 없으면 NA.
+    # 출처를 평가 케이스(behavioral_evals)로 한정한다 — 임의 레코드(페르소나·휴리스틱 등)에 edit_fraction=0
+    # 을 무더기로 심어 평균을 0 으로 끌어내리는 게이밍 경로를 차단(적대적 검증 it.4 CORRECTION-COST-SEEDING).
+    # correction_cost 는 본질적으로 *평가* 측정(런타임 출력을 사람이 얼마나 고쳤는가, spec/05)이므로
+    # 평가 케이스 외 레코드를 출처로 삼는 것은 의미상으로도 틀리다. self_reported·auto_confirmed 평가는
+    # 이미 behavioral_evals 에서 제외됨.
     corr_vals = []
     for ec in behavioral_evals:
         v = _correction_value(ec)
         if v is not None:
             corr_vals.append(v)
-    # eval 외 레코드에서도 correction 필드를 허용 (self_reported 는 건너뜀)
-    if not corr_vals:
-        for recs in pack_records.values():
-            for r in recs:
-                if _is_self_reported(r):
-                    continue
-                v = _correction_value(r)
-                if v is not None:
-                    corr_vals.append(v)
-    correction_cost = (sum(corr_vals) / len(corr_vals)) if corr_vals else None
+    # math.fsum: 부동소수 합은 비결합적이라 plain sum 은 corr_vals 순서(=평가 케이스/파일 순서)에 따라
+    # 마지막 ULP 가 달라져 직렬화 JSON 의 byte-동일성(결정성 논제)을 깬다. fsum 은 순서무관 정확합산이다(it.23).
+    correction_cost = (math.fsum(corr_vals) / len(corr_vals)) if corr_vals else None
 
-    # drift_stability = 1 − (최근 대체수 / 확인 레코드수). 드리프트 없으면 1.0. (self_reported 드리프트 제외)
-    supersessions = 0
+    # drift_stability = 1 − (전기간 대체수 / 확인 레코드수). 드리프트 없으면 1.0. (self_reported 드리프트 제외)
+    # 주: 기간/타임스탬프 윈도우 모델이 아직 없어 *전 기간 누적* 대체수를 센다(spec/06 §1 표 주석).
+    # '최근 기간' 윈도우는 계획된 정련 — 기간 필드 추가 시 도입.
+    # 대체수 = (모든 팩의 supersedes 엣지가 지목한 은퇴 id 집합의 크기) + (supersedes 없는 순수
+    # drift 이벤트 수). 콘텐츠-팩 supersedes 로 반전을 숨겨도 은퇴 id 로 잡히므로, 반전을 DriftRecord
+    # 대신 콘텐츠-팩 엣지로 기재해 drift_stability 를 부풀리는 비대칭 게이밍을 차단한다(it.19/클러스터2).
+    # 예제의 2개 DriftRecord 는 supersedes 가 없어 '이벤트'로 세어 supersessions=2 → 0.8947 보존.
+    superseded_target_ids = set()
+    for recs in pack_records.values():
+        for r in recs:
+            if isinstance(r, dict) and not _is_self_reported(r):
+                superseded_target_ids |= _id_set(r.get("supersedes"))
+    bare_drift_events = 0
     for d in drift_records:
         if _is_self_reported(d):
             continue
-        sup = d.get("supersedes")
-        if isinstance(sup, list):
-            supersessions += len([s for s in sup if s])
-        elif sup:
-            supersessions += 1
-        else:
-            # supersedes 미기재여도 드리프트 레코드 자체를 1건 대체로 셈
-            supersessions += 1
+        if not _id_set(d.get("supersedes")):
+            bare_drift_events += 1
+    supersessions = len(superseded_target_ids) + bare_drift_events
     if n_confirmed > 0:
         drift_stability = 1.0 - (supersessions / n_confirmed)
         if drift_stability < 0.0:
@@ -679,7 +794,8 @@ def compute_indices(pack_records, eval_cases, drift_records):
     # traceability = 증거 보유 활성(confirmed) 규칙 / 활성 규칙. 활성 규칙 0이면 1.0.
     # self_reported 는 draft-only(런타임 활성 규칙이 아님)라 활성 집합에서 제외 (C1 백도어 차단).
     active = [r for recs in pack_records.values() for r in recs
-              if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r)]
+              if _status_of(r) in CONFIRMED_STATES and not _is_self_reported(r)
+              and _norm_id(r.get("id", "")) not in superseded_ids]
     if active:
         with_ev = sum(1 for r in active if _has_evidence(r))
         traceability = with_ev / len(active)
@@ -699,6 +815,7 @@ def compute_indices(pack_records, eval_cases, drift_records):
         # 보조 카운트 (성숙도 판정·리포트용)
         "_seeded_packs": seeded_packs,
         "_packs_with_3": packs_with_3,
+        "_content_packs_with_3": content_packs_with_3,
         "_n_confirmed": n_confirmed,
         "_n_auto_confirmed": n_auto_confirmed,
         "_n_human_confirmed": n_human_confirmed,
@@ -709,7 +826,9 @@ def compute_indices(pack_records, eval_cases, drift_records):
         "_eval_pass": n_pass,
         "_eval_partial": n_partial,
         "_eval_fail": n_fail,
+        "_n_correction_reported": len(corr_vals),
         "_supersessions": supersessions,
+        "_n_superseded_excluded": len(superseded_ids),
         "_n_active": len(active),
         "_confirmed_by_pack": confirmed_by_pack,
         "_behavioral_confirmed_by_pack": behavioral_confirmed_by_pack,
@@ -733,7 +852,8 @@ def maturity_tier(ix):
     drift = ix["drift_stability"]
     trace = ix["traceability"]
     seeded = ix["_seeded_packs"]
-    verticals = ix.get("_packs_with_3", 0)   # ≥3 확인 레코드를 가진 팩 수 (깊이)
+    # L1 vertical 은 *콘텐츠* 팩의 깊이만 센다 — 평가/드리프트 메타 팩은 제외(it.5 L1-vertical-vacuous).
+    verticals = ix.get("_content_packs_with_3", 0)   # ≥3 확인 레코드를 가진 *콘텐츠* 팩 수 (깊이)
     n_eval = ix["_n_eval"]
 
     def ge(a, b):  # None-안전 ≥
@@ -778,7 +898,7 @@ def maturity_tier(ix):
         "L1_seeded>=7": seeded >= 7,
         "L1_eval>=3": n_eval >= 3,
         "L1_traceability==1.0": trace == 1.0,
-        "L1_vertical>=1 (한 팩 ≥3 확인)": verticals >= 1,
+        "L1_vertical>=1 (콘텐츠 팩 ≥3 확인)": verticals >= 1,
         "L2_coverage>=0.5": ge(coverage, 0.5),
         "L2_decision_fidelity>=0.6": ge(df, 0.6),
         "L2_human_confirmation_ratio>=0.6": ge(hcr, 0.6),
@@ -883,7 +1003,8 @@ def render_table(ix, tier_id, tier_name, directory, n_files):
     else:
         lines.append("  behavioral 확인 0개 팩 없음 — off-frontier 공백 없음.")
     lines.append(
-        f"  깊이(≥3 확인) 팩 {ix['_packs_with_3']}/{TOTAL_PACKS}  ·  "
+        f"  깊이(≥3 확인) 팩 {ix['_packs_with_3']}/{TOTAL_PACKS}"
+        f"(이 중 콘텐츠 {ix.get('_content_packs_with_3', 0)} — L1 vertical 은 콘텐츠만 인정)  ·  "
         f"폭(시드) {ix['coverage_seeded']:0.2f} vs 깊이(엄격) {ix['coverage_strict']:0.2f}"
     )
     if ix["coverage_seeded"] - ix["coverage_strict"] >= 0.3:

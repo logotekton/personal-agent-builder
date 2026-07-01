@@ -153,7 +153,8 @@ raw_signal → evidence_bound_candidate → scoped_candidate → user_reviewed
 `confidence(0..1)` · `scope` · `review_status` · `sensitivity` · `created_at` · `updated_at`
 **선택:** `aliases` · `priority_weight` · `counterexamples` · `exception_rules` ·
 `related_records` · `supersedes` · `linked_projects` · `linked_domains` · `examples` · `anti_examples` ·
-`canonical_key` · `repetition_count` · `merge_history`
+`canonical_key` · `repetition_count` · `merge_history` · `auto_confirmed` · `review_audit` ·
+`reliability`(§7.1)
 
 - `review_status` ∈ {`pending`, `confirmed`, `rejected`, `narrowed`, `sensitive`, `deferred`}
 - `sensitivity` ∈ {`public`, `internal`, `sensitive`, `restricted`}
@@ -236,7 +237,7 @@ OpenCrab 도구로 실행할 때는 `opencrab_search_packs`로 거버넌스/스�
 
 - **정식 커널(단일 진실원)** → [01 커널 스키마](../spec/01-kernel-schema.md)
 - 베이스 레코드의 기계 스키마(필드·enum·검증) → [`record.base.schema.json`](../schemas/record.base.schema.json)
-- 어휘·게이트를 강제·측정하는 결정론적 도구 → [`tools/validate_packs.py`](../tools/validate_packs.py)(게이트 G1–G6) ·
+- 어휘·게이트를 강제·측정하는 결정론적 도구 → [`tools/validate_packs.py`](../tools/validate_packs.py)(게이트 G1·G2·G5 강제, G3 경고) ·
   [`tools/pab_merge.py`](../tools/pab_merge.py)(dedup/merge 액추에이터) ·
   [`tools/dedup_check.py`](../tools/dedup_check.py)(중복·merge_rate) ·
   [`tools/convergence_report.py`](../tools/convergence_report.py)(6 수렴 지표·성숙도)

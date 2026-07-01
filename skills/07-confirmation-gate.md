@@ -347,7 +347,7 @@ trigger:
   signal: session_end
   condition: "review staged candidates before any promotion (also queue>=K or /review)"
   cadence: session_boundary
-  host_hook: Stop · command
+  host_hook: [Stop, command]
   produces: review_requested
   requires_confirmation: true     # 사람 검토 필요 (게이트)
   default_state: enabled

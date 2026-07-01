@@ -42,7 +42,9 @@
 - [`templates/QUICKSTART.md`](./templates/QUICKSTART.md)로 첫 세션(30~60분)에서 시작하세요.
 - **당신의 인스턴스 레코드(`personal.<당신>.*`)는 당신 것입니다.** MIT/CC 라이선스의 적용을
   받지 않고([README 라이선스](./README.md#라이선스)), **PR로 올라가지 않습니다.**
-  `.gitignore`가 개인 인스턴스 경로를 무시하도록 되어 있습니다 — 실수로라도 커밋하지 마세요.
+  `.gitignore`가 개인 데이터 규약을 무시하도록 되어 있습니다 — 실제 인스턴스 레코드는
+  `*.private.yaml`·`*.private.json` 이름이나 `private/` 폴더에 두면 자동으로 커밋에서 제외됩니다.
+  (팩 *이름* `personal.<당신>.*` 은 파일명 규약이 아니므로, 파일 자체는 위 규약으로 보호하세요.)
 - 당신이 *방법론*에 무언가 발견했다면(이 템플릿이 헷갈렸다, 이 게이트가 막혔다, 이 스키마
   필드가 부족하다) — 그때 (b)로 넘어와 **이슈/PR**을 열어 주세요. 그게 진짜 기여입니다.
 
@@ -103,8 +105,9 @@ python tools/convergence_report.py examples/logotekton  # 예제 인스턴스에
 #   (도구를 바꿨다면) python -m unittest discover -s tests   # 모든 숫자를 잠근 회귀 스위트
 ```
 
-`tools/validate_packs.py`는 게이트(G1·G2·G3·G6)와 정식 이름, 베이스 레코드 적합성을
-기계적으로 검사합니다. **빨간불인 PR은 머지하지 않습니다.** OpenCrab을 쓴다면 동일 검사를
+`tools/validate_packs.py`는 게이트(G1·G2·G5 를 FAIL 강제; G3 은 경고)와 정식 이름, 베이스
+레코드 적합성을 기계적으로 검사합니다(G3 의 FAIL 강제는 컴파일 시 `compile_adapter.py`; G4·G6 은
+사람·거버넌스 차원). **빨간불인 PR은 머지하지 않습니다.** OpenCrab을 쓴다면 동일 검사를
 `opencrab_pack_qa`로 재현할 수 있습니다.
 
 ---

@@ -74,8 +74,8 @@ Questioning · Diff Miner)이 묶여 있어, 오케스트레이터가 들어온 
 
 ## 3. 13개 Crab 역할 (13 Crab roles)
 
-파이프라인에는 **13개 Crab 역할**이 있습니다 — 9개 상태를 소유하는 12개 실행 역할과, 그 위에서
-관장하는 Orchestrator입니다. 역할 어휘는 [커널 §8](../spec/01-kernel-schema.md#8-crab-에이전트-역할-운영-모델),
+파이프라인에는 **13개 Crab 역할**이 있습니다 — 9개 상태를 소유하는 11개 실행 역할(Evidence…Evaluator)과,
+그 위에서 관장하는 Orchestrator, 그리고 상태를 소유하지 않는 척추 역할 Pack Architect입니다(아래 표·§3 주석과 일치). 역할 어휘는 [커널 §8](../spec/01-kernel-schema.md#8-crab-에이전트-역할-운영-모델),
 상태 매핑은 [파이프라인 §4](../spec/02-builder-pipeline.md#4-단계--스킬--crab-역할--게이트-요약표)와
 동일하며 새 이름을 만들지 않습니다.
 

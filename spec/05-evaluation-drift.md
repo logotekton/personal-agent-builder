@@ -20,7 +20,7 @@ AssistantProfile이 *주체가 승인했을 방식*대로 판단·작성·행동
 
 ## 1. 여덟 가지 평가 지표 (Evaluation Metrics)
 
-스킬 S11이 채점하는 정식 8개 지표입니다(계약 §10 / [01 커널 스키마 §10](./01-kernel-schema.md)).
+스킬 S11이 채점하는 정식 8개 지표입니다(계약 = 본 문서 §2 · [02 빌더 파이프라인 S11](./02-builder-pipeline.md)).
 이름은 고정이며, 케이스의 `scoring_rubric.metric` enum과 1:1로 대응합니다
 ([`../schemas/user.evaluation_cases.schema.json`](../schemas/user.evaluation_cases.schema.json)).
 
@@ -78,7 +78,7 @@ AssistantProfile이 *주체가 승인했을 방식*대로 판단·작성·행동
 | `unacceptable_behavior` | **절대 하면 안 되는 것**. 하나라도 발화하면 나머지 점수와 무관하게 즉시 실패 |
 | `scoring_rubric` | 채점 방법. `metric`(8개 중), 가중 `criteria`, `pass_threshold`, `judge`(human/automated/llm_judge/mixed) |
 | `evidence_refs` | 베이스 상속. 케이스가 검증하는 행동의 `EvidenceItem`을 가리킴(G1) — 케이스도 하나의 주장 |
-| `result` | 최근 실행 결과. `status`(pass/fail/partial/not_run/needs_review), `score`, `observed_behavior`, `failed_checks`, `agent_profile_ref`, `run_at` |
+| `result` | 최근 실행 결과. `status`(pass/fail/partial/not_run/needs_review), `score`, `observed_behavior`, `unacceptable_fired`(발화한 unacceptable_behavior 목록 — 하나라도 있으면 하드페일, 무결성 게이트 ③), `edit_fraction`(작업당 교정 비율 → `correction_cost`), `failed_checks`, `agent_profile_ref`, `run_at` |
 | `correction_notes` | 실패·부분 통과 시 무엇을 고쳐야 하는가 — 어떤 팩/레코드를 추가·narrow·supersede할지. 루프를 닫는 피드백 |
 
 보조 필드: `input_context`(재현용 고정 설정: `given`/`persona_subject`/`channel`),
@@ -94,7 +94,7 @@ AssistantProfile이 *주체가 승인했을 방식*대로 판단·작성·행동
 > 케이스의 **기록 내부 정합성**을 게이트로 강제합니다: ① `criteria` 가중치 합 = 1.0, ②
 > `status=pass`면 `score ≥ pass_threshold`(점수와 모순되는 pass 거부), ③ `result.unacceptable_fired`가
 > 비어있지 않으면 status는 **반드시 `fail`**(하드페일은 점수와 무관, RLVR), ④ `judge=llm_judge`면
-> `judge_config`(model·temperature·prompt 고정) 필수 — 비결정 판정 금지. *라이브 채점기*(프로필을
+> `judge_config`의 **`model`·`temperature`·`prompt_id` 셋 다 고정** 필수 — 하나라도 빠지면 비결정 판정으로 거부. *라이브 채점기*(프로필을
 > 실제 실행해 status를 도출)는 컴파일된 런타임이 필요한 별개 작업이며, 이 게이트는 그 전제인
 > **기록이 자기 루브릭과 거짓말하지 않음**을 보장합니다.
 
@@ -203,8 +203,8 @@ correction_notes: "user.boundary_authority에 external_email용 ConfirmationRule
 
 - **성숙도 게이트**: L1은 `traceability`=1.0과 **≥3개 평가 케이스**를 요구합니다 — 즉 이
   문서의 케이스가 없으면 사다리를 오를 수 없습니다. L2는 `decision_fidelity`≥0.6,
-  L3는 ≥0.8과 `correction_cost`≤0.3, L4는 ≥0.9·`correction_cost`≤0.15·`drift_stability`≥0.85
-  ([06 §3](./06-convergence-model.md#3-다섯-단계-성숙도-maturity-tiers)).
+  L3는 ≥0.8·`correction_cost`≤0.3·`drift_stability`≥0.7, L4는 ≥0.9·`correction_cost`≤0.15·`drift_stability`≥0.85
+  (헤드라인 요약 — coverage 등 전체 게이트 조건은 [06 §3](./06-convergence-model.md#3-다섯-단계-성숙도-maturity-tiers)).
 - **왜 두 곡선이 만나는가**: 매 실패 변환은 출력 공간을 *당신이 승인하는 영역*으로 더
   좁힙니다. 그래서 `correction_cost`는 내려가고, 한 번 굳은 패턴은 잘 안 바뀌어
   `drift_stability`는 올라갑니다. 두 곡선이 만나는 지점이 수렴입니다
@@ -225,4 +225,4 @@ correction_notes: "user.boundary_authority에 external_email용 ConfirmationRule
 
 ---
 
-*관련: [11 평가·드리프트 스킬](../skills/11-evaluation-drift.md) · [user.evaluation_cases 스키마](../schemas/user.evaluation_cases.schema.json) · [user.drift_history 스키마](../schemas/user.drift_history.schema.json) · [01 커널 스키마 §10](./01-kernel-schema.md) · [02 빌더 파이프라인 S11](./02-builder-pipeline.md) · [03 팩 카탈로그 §13·§14](./03-pack-catalog.md) · [06 수렴 모델](./06-convergence-model.md). 구 코드명: x13(evaluation), x14(drift).*
+*관련: [11 평가·드리프트 스킬](../skills/11-evaluation-drift.md) · [user.evaluation_cases 스키마](../schemas/user.evaluation_cases.schema.json) · [user.drift_history 스키마](../schemas/user.drift_history.schema.json) · [01 커널 스키마 §3 노드 타입](./01-kernel-schema.md) · [02 빌더 파이프라인 S11](./02-builder-pipeline.md) · [03 팩 카탈로그 §13·§14](./03-pack-catalog.md) · [06 수렴 모델](./06-convergence-model.md). 구 코드명: x13(evaluation), x14(drift).*

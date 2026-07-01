@@ -216,7 +216,7 @@ trigger:
   signal: turn
   condition: "every user turn and tool result is a potential EvidenceItem"
   cadence: continuous
-  host_hook: UserPromptSubmit · PostToolUse
+  host_hook: [UserPromptSubmit, PostToolUse]
   produces: evidence_staged
   requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
   default_state: enabled

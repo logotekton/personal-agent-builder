@@ -281,7 +281,7 @@ trigger:
   signal: session_end
   condition: "mine the full transcript when a session ends"
   cadence: session_boundary
-  host_hook: Stop · Cron
+  host_hook: [Stop, Cron]
   produces: candidate_staged
   requires_confirmation: false     # 스테이징만 (라이브 규칙 아님)
   default_state: enabled

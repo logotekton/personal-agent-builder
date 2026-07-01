@@ -3,12 +3,15 @@
 
 The repo's thesis is "every claim is enforced by a command." Cross-document links are claims
 too: "see spec/10 §3" only holds if that anchor still exists. This stdlib-only checker resolves
-every intra-repo Markdown link and fails if a target file is missing or an `#anchor` does not
-match any heading in the target — so a renamed heading can't silently strand a link.
+every intra-repo inline Markdown link and fails if a target file/dir is missing or an `#anchor`
+does not match any heading in the target — so a renamed heading/file can't silently strand a link.
 
-What it checks (intra-repo only; external http(s) links are ignored):
-  - relative links to local `.md` files resolve to a file that exists;
-  - any `#fragment` on such a link matches the GitHub-generated slug of some heading there.
+What it checks (intra-repo only; external http(s)/mailto links are ignored):
+  - every relative inline link `](path)` resolves to an existing file (any extension) or, for a
+    trailing-slash target, an existing directory;
+  - any `#fragment` on a `.md` link matches the GitHub-generated slug of some heading there.
+  Scope: inline-style `](...)` links only — reference-style `[id]: target` definitions,
+  angle-bracket autolinks, and HTML `href=` anchors are NOT scanned.
 
 Anchor slugs follow GitHub's algorithm (github-slugger): lowercase, drop every character that is
 not a Unicode word char / hyphen / space, then turn each space into one hyphen (consecutive
@@ -25,13 +28,15 @@ Usage:
 Exit code 0 = every intra-repo link (file + anchor) resolves. Exit code 1 = at least one broken
 link, each printed as `file:line -> target#anchor  (reason)`. This is a gate, not a signal.
 """
-import sys, os, re, argparse, glob
+import sys, os, re, argparse, glob, unicodedata
 
 HEADING = re.compile(r'^(#{1,6})\s+(.*?)\s*#*\s*$')
-# inline link target with a fragment: ](  optional-path  #fragment )
-LINK = re.compile(r'\]\(\s*([^)\s#]*)\s*#([^)\s]+)\s*\)')
-# inline link target without a fragment (for file-existence checks): ](path)
-FILELINK = re.compile(r'\]\(\s*([^)\s#]+?)\s*\)')
+# an optional Markdown link title:  ](path "title")  or  ](path 'title')
+_TITLE = r'(?:\s+["\'][^"\']*["\'])?'
+# inline link target with a fragment: ](  optional-path  #fragment  ["title"] )
+LINK = re.compile(r'\]\(\s*([^)\s#]*)\s*#([^)\s]+?)' + _TITLE + r'\s*\)')
+# inline link target without a fragment (for file-existence checks): ](path ["title"])
+FILELINK = re.compile(r'\]\(\s*([^)\s#]+?)' + _TITLE + r'\s*\)')
 FENCE = re.compile(r'^\s*(```|~~~)')
 
 
@@ -41,6 +46,10 @@ def gh_slug(text):
     t = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', t)   # [label](url) -> label
     t = t.replace('`', '')                           # backticks are dropped anyway
     t = re.sub(r'[^\w\- ]', '', t, flags=re.UNICODE)  # keep word chars, hyphen, space
+    # github-slugger 는 No/Nl(½ ① ² ¼ Ⅻ 등 number-other/number-letter)도 제거하지만 Python \w 는
+    # 이들을 유지한다 — 그대로 두면 도구가 GitHub 이 안 만드는 슬러그를 인정해 그 #fragment 가 통과하고도
+    # 실제로는 404 가 된다(가짜 음성, 적대적 검증 it.19). 십진수(Nd)는 남기고 No/Nl 만 추가로 제거한다.
+    t = ''.join(ch for ch in t if unicodedata.category(ch) not in ('No', 'Nl'))
     return t.replace(' ', '-')                        # each space -> one hyphen (no collapse)
 
 
@@ -134,13 +143,14 @@ def main():
                 tgt = os.path.normpath(os.path.join(base, target))
 
             if frag is None:
-                # file-existence check only for relative links to repo files
+                # file-existence check for EVERY relative (non-external) link target — not just a
+                # hard-coded extension whitelist, so a renamed .toml/.sh/dir target can't slip past.
                 if target and not target.startswith(('http://', 'https://', 'mailto:', '#')):
-                    # only check links that point at files (have an extension or end in /)
-                    low = target.lower()
-                    if low.endswith(('.md', '.json', '.yaml', '.yml', '.py', '.txt')):
-                        if not os.path.exists(tgt):
-                            broken.append((f, ln, target, 'target file missing'))
+                    if target.endswith('/'):                       # directory link
+                        if not os.path.isdir(tgt):
+                            broken.append((f, ln, target, 'target directory missing'))
+                    elif not os.path.exists(tgt):
+                        broken.append((f, ln, target, 'target file missing'))
                 continue
 
             # anchor check applies to .md targets we can read

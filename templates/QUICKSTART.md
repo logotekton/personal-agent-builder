@@ -5,7 +5,9 @@
 > fully know. (That map is the material a *Personal Agent* later compiles from; the map comes
 > first.) You start from one real session you already had with an AI agent, capture 3–5
 > `EvidenceItem`s, extract typed candidates, confirm them yourself in a quick Korean-style
-> review board, route the confirmed ones into 2–3 packs to reach the **L1 Sketch** tier, and
+> review board, route the confirmed ones into a few packs to reach the **L0 Seed** tier (a real
+> start; the next milestone **L1 Sketch** asks for ≥7 seeded packs *and* one **content** pack with
+> ≥3 confirmed — go deep in one area, not 1 record across many), and
 > check the numbers with `tools/convergence_report.py`. Nothing here becomes a runtime rule
 > without **your** explicit confirmation — the whole flow is fenced by six quality gates
 > (G1–G6) and your data is private by default.
@@ -15,7 +17,7 @@
 있게* 명시화하는 것입니다. 그 지도가 나중에 Personal Agent로 컴파일되지만, **지도가 먼저**입니다
 ([README — 거울이냐 대리인이냐](../README.md#거울이냐-대리인이냐--자기명시화가-먼저다)). 거창한 설정 없이,
 당신이 *이미 했던* AI 에이전트 세션 하나에서 출발해 — 증거를 줍고, 후보를 뽑고, **당신이 직접 확인**
-해서, 2~3개 팩에 채워 넣고, 수렴 지표로 현재 위치(L1 스케치)를 확인하는 데까지 갑니다.
+해서, 2~3개 팩에 채워 넣고, 수렴 지표로 현재 위치(**L0 시드** — 시작했다는 증거)를 확인하는 데까지 갑니다.
 
 핵심 약속 두 가지를 먼저 못 박습니다:
 
@@ -142,7 +144,7 @@
 
 ---
 
-## 5단계 · 2~3개 팩에 라우팅 → L1 스케치 도달
+## 5단계 · 2~3개 팩에 라우팅 → L0 시드 도달 (L1 은 다음 목표)
 
 확인된 후보를 [08 팩 라우터](../skills/08-pack-router.md)가 **목적지 팩**으로 보냅니다. 승격되면
 후보 필드가 통합 베이스 레코드로 매핑됩니다: `candidate_id` → `id`, `concise_claim` → `statement`,
@@ -162,13 +164,15 @@
 
 ### 지금 당신은 어디인가 — 성숙도 사다리
 
-[수렴 모델](../spec/06-convergence-model.md)의 5단계 사다리에서 첫 세션의 목표는 **L1 Sketch**입니다.
+[수렴 모델](../spec/06-convergence-model.md)의 5단계 사다리에서 첫 세션의 현실적 도착점은 **L0 Seed**
+(시작했다는 증거)이고, 그다음 목표가 **L1 Sketch**입니다 — L1 은 ≥7팩 시드 *그리고* **콘텐츠 팩 하나가
+≥3 확인**(한 영역을 깊게)을 요구합니다. 참고로 워크된 예제는 2회전 뒤에도 콘텐츠 깊이 0이라 여전히 L0입니다.
 
 | 단계 | 이름 | 진입 조건 | 첫 세션 |
 |------|------|-----------|---------|
-| **L0** | Seed | 3개 미만 팩 시드, 평가 케이스 없음 | 출발점 |
-| **L1** | **Sketch** | **≥7개 팩 시드, ≥3개 평가 케이스, `traceability`=1.0** | ← 목표 |
-| L2 | Working | `coverage`≥0.5, `decision_fidelity`≥0.6, `confirmation_ratio`≥0.6 | 다음 |
+| **L0** | Seed | 3개 미만 팩 시드, 평가 케이스 없음 (시작했으면 졸업) | ← 첫 세션 |
+| **L1** | **Sketch** | **≥7개 팩 시드, ≥3개 평가 케이스, `traceability`=1.0, 콘텐츠 팩 ≥1개가 ≥3 확인(깊이)** | 다음 목표 |
+| L2 | Working | `coverage`≥0.5, `decision_fidelity`≥0.6, `human_confirmation_ratio`≥0.6 | 그다음 |
 | L3 | Reliable | `coverage`≥0.8, `decision_fidelity`≥0.8, `correction_cost`≤0.3 … | 이후 |
 | L4 | Convergent | 전 지표 충족 + N기간 지속 (도달이 아니라 *유지*) | 장기 |
 
@@ -194,7 +198,8 @@ python tools/convergence_report.py examples/logotekton
 
 | 지표 | 방향 | 첫 세션 예상 | 의미 |
 |------|------|--------------|------|
-| `coverage` | ↑ | ~0.14 (2/14) | 폭 — 아직 좁음, 정상 |
+| `coverage` (엄격=게이트) | ↑ | **0.00** (≥3 깊이 팩 없음) | 깊이 — 아직 없음, 정상(L0) |
+| ┗ 시드폭(보조) | ↑ | ~0.14 (2/14) | 폭 — 아직 좁음, 정상 |
 | `confirmation_ratio` | ↑ | ~0.75 | 포착 품질 — 추출이 실제로 승인됨 |
 | `decision_fidelity` | ↑ | n/a | 평가 케이스가 생기면 측정 |
 | `correction_cost` | **↓** | 기준선 | 다음 세션부터 내려가는지 봄 |
@@ -226,9 +231,9 @@ OpenCrab에서 운영한다면 동일 지표를 `opencrab_pack_qa` / `opencrab_p
    고쳐지는가. 이 곡선이 내려가고 `drift_stability`가 올라가면, 그게 **당신으로 수렴**한다는 증거입니다.
 
 ```
-   세션 1   ── L0를 벗어나 사다리에 발을 올림 (이 문서)
-   세션 2~3 ── 7개 팩 시드 + 평가 케이스 3개 → L1 Sketch 완성
-   세션 N   ── coverage·fidelity 상승, correction_cost 하강 → L2 → L3 → …
+   세션 1   ── L0 Seed (시작했다는 증거) — 사다리에 발을 올림 (이 문서)
+   세션 2~3 ── 7개 팩 시드 + 평가 3개 + **한 콘텐츠 팩 ≥3 깊이** → L1 Sketch 완성
+   세션 N   ── coverage(깊이)·fidelity 상승, correction_cost 하강 → L2 → L3 → …
                          └──────► 매 세션 다시 증거로 (루프)
 ```
 

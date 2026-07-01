@@ -1,8 +1,12 @@
 # 00 · 개요 (System Overview)
 
-> **EN:** Personal Agent Builder converts a person's persona and tacit knowledge into
-> evidence-bound ontology packs and compiles them into a controlled assistant — the
-> Personal Agent. Four pack classes (skill / template / instance / adapter), a 12-step
+> **EN:** Personal Agent Builder makes a person's tacit knowledge explicit as
+> evidence-bound ontology packs — an inspectable **self-map** (the *mirror*; the primary
+> deliverable, measurable without ever compiling or running an agent). That map can
+> *optionally* be compiled into a controlled assistant — the **Personal Agent** (the
+> *delegate*) — a separate, human-reviewed step. Convergence is read in two layers: the
+> map layer (the mirror, L0–L1) and the delegate layer (L2+, which requires running the
+> compiled agent). Four pack classes (skill / template / instance / adapter), a 12-step
 > evidence-bound pipeline, 14 user ontology packs, a privacy/authority model, an
 > evaluation+drift loop, and a measurable convergence model. Read order below.
 

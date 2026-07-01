@@ -43,17 +43,17 @@
 
 | 스킬 | signal | cadence | host_hook | produces | 확인? | 기본 |
 |------|--------|---------|-----------|----------|:---:|------|
-| evidence_capture | turn / tool_result | continuous | UserPromptSubmit · PostToolUse | evidence_staged | ✗ | enabled |
-| **diff_mining** ★ | user_correction | event | UserPromptSubmit · PostToolUse | candidate_staged | ✗ | enabled |
-| session_mining | session_end | session_boundary | Stop · Cron | candidate_staged | ✗ | enabled |
-| candidate_extraction | review_queue_threshold | threshold | Stop · chained | candidate_staged | ✗ | enabled |
+| evidence_capture | turn / tool_result | continuous | [UserPromptSubmit, PostToolUse] | evidence_staged | ✗ | enabled |
+| **diff_mining** ★ | user_correction | event | [UserPromptSubmit, PostToolUse] | candidate_staged | ✗ | enabled |
+| session_mining | session_end | session_boundary | [Stop, Cron] | candidate_staged | ✗ | enabled |
+| candidate_extraction | review_queue_threshold | threshold | [Stop, chained] | candidate_staged | ✗ | enabled |
 | scope_context | candidate_created | event | chained | scoped | ✗ | enabled |
-| elicitation_questioning | coverage_gap / command | event · command | orchestrator · command | candidate_staged | ✓ (묻는다) | suggested |
-| **confirmation_gate** | session_end / queue≥K / command | session_boundary | Stop · command | review_requested | ✓ **(게이트)** | enabled |
+| elicitation_questioning | coverage_gap / command | event · command | [orchestrator, command] | candidate_staged | ✓ (묻는다) | suggested |
+| **confirmation_gate** | session_end / queue≥K / command | session_boundary | [Stop, command] | review_requested | ✓ **(게이트)** | enabled |
 | pack_router | candidate_confirmed | event | chained | routed | ✗ (게이트 후) | enabled |
 | privacy_boundary | sensitivity_flag / pre_external_action | event | PreToolUse | boundary_applied | ✓ (ask_confirm) | enabled |
 | agent_compiler | session_start | session_boundary | SessionStart | compiled | ✗ | enabled |
-| evaluation_drift | pack_updated / schedule | schedule | Cron · chained | evaluated · drift_recorded | ✗ | suggested |
+| evaluation_drift | pack_updated / schedule | schedule | [Cron, chained] | evaluated · drift_recorded | ✗ | suggested |
 | crab_orchestration | (메타: 위 전부를 라우팅) | — | orchestrator | — | — | enabled |
 
 `kernel_schema`는 스키마 척추라 트리거가 없습니다. 각 스킬 문서의 **## 트리거** 절에 동일한

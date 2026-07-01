@@ -18,14 +18,14 @@ Personal Agent 스키마의 모든 노드를 이 9개 공간에 사상(`maps_to`
 | 9-space | PA 노드 / 개념 | 설명 |
 |---------|----------------|------|
 | **subject** | `UserSubject` | 에이전트의 주인인 개인 |
-| **resource** | `EvidenceItem` 출처(세션·파일·diff), `ToolPreference` 대상 | 참조되는 자원·자산 |
+| **resource** | `EvidenceItem` 출처(세션·파일·diff), `ToolPreference` 대상, `ProjectMemory`(현재 프로젝트 맥락 — 피연산자) | 참조되는 자원·자산·맥락 |
 | **evidence** | `EvidenceItem` 발췌, `evidence_refs` | 주장을 떠받치는 증거 |
-| **concept** | `PersonaTrait`, `CommunicationStyleRule`, `DomainOverlay`, `WorkflowPattern`, `IdentityRole` | 사람에 관한 안정적 개념 |
+| **concept** | `PersonaTrait`, `CommunicationStyleRule`, `DomainOverlay`, `WorkflowPattern`, `IdentityRole`, `TacitHeuristic`(안정적 *판단 방식* 패턴) | 사람에 관한 안정적 개념·판단 패턴 |
 | **claim** | `CandidateAssertion` / 확인된 `statement` | 증거에 묶인 가변(defeasible) 주장 |
 | **community** | `AssistantProfile`↔`UserSubject` 관계, 확인 리뷰보드, 개인 에이전트 네트워크 | 행위자·관계망 |
-| **outcome** | `EvaluationCase` 결과, `correction_cost`, `decision_fidelity` | 측정된 결과 |
+| **outcome** | `EvaluationCase` 결과, `correction_cost`, `decision_fidelity`, `DriftRecord`(시간에 따른 대체·드리프트) | 측정된 결과·변화 |
 | **lever** | `WorkflowPattern` 단계, `DecisionPolicy` 우선순위, 도구 행동 | 에이전트가 당기는 지렛대 |
-| **policy** | `BoundaryRule`, `DecisionPolicy` 규칙, `RedFlag`, 프라이버시/권한 기본값 | 행동을 규율하는 정책 |
+| **policy** | `BoundaryRule`, `DecisionPolicy` 규칙, `RedFlag`, `ArtifactPolicy`(산출물 형식 규율), 프라이버시/권한 기본값 | 행동·산출물을 규율하는 정책 |
 
 ## 매핑이 보장하는 것
 

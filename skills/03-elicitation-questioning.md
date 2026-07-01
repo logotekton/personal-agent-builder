@@ -251,7 +251,7 @@ trigger:
   signal: coverage_gap
   condition: "a pack is under-covered and an opportune moment arises, or the user runs /interview"
   cadence: event
-  host_hook: orchestrator · command
+  host_hook: [orchestrator, command]
   produces: candidate_staged
   requires_confirmation: true     # 사람 검토 필요 (게이트)
   default_state: suggested

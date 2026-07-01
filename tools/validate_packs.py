@@ -44,6 +44,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import sys
 from typing import Any, Iterable, List, Optional, Tuple
@@ -84,6 +85,10 @@ REVIEW_STATUS_ENUM = {
 
 SENSITIVITY_ENUM = {"public", "internal", "sensitive", "restricted"}
 
+# [G5] 이 민감도는 exception_rules(BoundaryRule) 없이 승격할 수 없다
+# (record.base.schema.json allOf 와 동기화).
+SENSITIVITY_REQUIRES_EXCEPTION = {"sensitive", "restricted"}
+
 # reliability 채널 — 증거 계층 (record.base.schema.json §7.1, spec/00 클레임-계층).
 # behavioral = 관찰된 행동/산출물/교정 (G4, 신뢰 기본값). self_reported = 자기서술 (저신뢰).
 RELIABILITY_ENUM = {"behavioral", "self_reported"}
@@ -100,6 +105,21 @@ def _truthy_auto_confirm(v) -> bool:
     if isinstance(v, str):
         return v.strip().lower() in ("true", "auto", "yes", "1")
     return False
+
+def _not_in_enum(v, enum):
+    """enum 미포함 여부 — unhashable(list/dict) 값은 enum 멤버가 될 수 없으므로 TypeError 크래시
+    대신 '미포함'(True)으로 본다(적대적 검증 it.13: 악성 list/dict 값이 검증 전체를 중단시키지 않게)."""
+    try:
+        return v not in enum
+    except TypeError:
+        return True
+
+def _in_enum(v, enum):
+    """포함 여부 — unhashable 값은 멤버가 아니므로 False (TypeError 크래시 방지)."""
+    try:
+        return v in enum
+    except TypeError:
+        return False
 
 # 런타임 활성 상태: 이 상태의 레코드는 증거가 비면 안 됩니다 (G1 + G3).
 RUNTIME_ACTIVE_STATUS = {"confirmed", "narrowed"}
@@ -140,13 +160,21 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
         return  # 평가 케이스가 아님 (rubric/result 둘 다 없음)
 
     def _num(v):
-        return isinstance(v, (int, float)) and not isinstance(v, bool)
+        # NaN/inf 는 숫자로 보지 않는다 — NaN 비교가 전부 False 라 가중치합·점수 게이트를 조용히
+        # 통과시켜 쓰레기 값이 합법 pass 로 받아들여진다(적대적 검증 it.13).
+        return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
     if isinstance(rubric, dict):
         # (a) criteria 가중치 합 ≈ 1.0 — 가중 평균 score 가 의미를 가지려면.
         crit = rubric.get("criteria")
         if isinstance(crit, list) and crit:
             weights = [c.get("weight") for c in crit if isinstance(c, dict)]
+            if any(isinstance(w, (int, float)) and not isinstance(w, bool) and not math.isfinite(w)
+                   for w in weights):
+                res.errors.append("[EVAL] scoring_rubric.criteria 의 weight 에 비유한값(NaN/inf) 이 있습니다")
+            # weight 는 스키마상 [0,1]. 범위 밖(예: 2.0 + (-1.0) = 1.0)은 합 게이트만으론 못 잡으므로 별도 강제(it.17).
+            if any(_num(w) and not (0.0 <= float(w) <= 1.0) for w in weights):
+                res.errors.append("[EVAL] scoring_rubric.criteria 의 weight 가 0..1 범위를 벗어났습니다")
             nums = [w for w in weights if _num(w)]
             if len(nums) == len(crit):  # 모든 criteria 에 숫자 weight 가 있을 때만 판정
                 s = sum(nums)
@@ -155,14 +183,55 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
                         f"[EVAL] scoring_rubric 가중치 합이 1.0 이 아닙니다: {s:.3f}"
                     )
 
-        # (d) llm_judge 결정성 — model+temperature 고정 없으면 재현 불가한 판정.
+        # (a1) criteria 항목 품질 — 각 원소는 비어있지 않은 문자열 'check' 를 가진 dict 여야 한다.
+        #      비-dict 원소(None·문자열·중첩리스트)는 (1) 스키마 위반이고 (2) 위 weights 리스트에서 조용히
+        #      빠져 len(nums)==len(crit) 가드를 무너뜨려 가중치합 게이트 자체를 비활성화한다 — 한 원소만
+        #      끼워넣어 합 5.0 짜리 쓰레기 루브릭이 통과(적대적 검증 it.16). G1/G5 항목-품질 검사와 대칭.
+        def _bad_criterion(c):
+            if not isinstance(c, dict):
+                return True
+            ch = c.get("check")
+            return not (isinstance(ch, str) and ch.strip())
+        if isinstance(crit, list) and crit and any(_bad_criterion(c) for c in crit):
+            res.errors.append(
+                "[EVAL] scoring_rubric.criteria 에 dict 가 아니거나 'check'(비어있지 않은 문자열)가 없는 "
+                "항목이 있습니다 — 비-dict 항목은 가중치합 게이트까지 무력화합니다"
+            )
+
+        # (a2) 공허한 루브릭 차단 — criteria 가 비었거나 pass_threshold≤0 이면 *항상 통과*하는 루브릭이라
+        #      decision_fidelity 를 공짜로 1.0 으로 밀어올린다("보상이 검증이 아니라 기록", 카파시 #3,
+        #      적대적 검증 it.4 VACUOUS-RUBRIC-DF). 채점 기준이 실재해야 통과가 의미를 가진다.
+        if not (isinstance(crit, list) and len(crit) >= 1):
+            res.errors.append(
+                "[EVAL] scoring_rubric.criteria 가 비어 있습니다 — 채점 기준 없는 루브릭은 "
+                "무조건 통과라 decision_fidelity 를 공허하게 부풀립니다(채점=기록 금지)"
+            )
+        thr0 = rubric.get("pass_threshold")
+        # 스키마상 (0,1]. 하한 0(score=0 도 통과 → 채점 무의미) + 상한 1(도달 불가능한 임계는 영구 fail)(it.17).
+        if not (_num(thr0) and 0.0 < float(thr0) <= 1.0):
+            res.errors.append(
+                f"[EVAL] scoring_rubric.pass_threshold 는 (0,1] 범위여야 합니다: {thr0!r} "
+                "— 임계 0 은 score=0 도 통과시켜 채점을 무의미하게, 임계>1 은 도달 불가능해 영구 fail"
+            )
+
+        # (d) llm_judge 결정성 — model·temperature·prompt(=prompt_id) 셋 다 고정해야 재현 가능
+        #     (spec/05 §2 ④와 동기화). 셋 중 하나라도 빠지면 비결정 판정.
         judge = rubric.get("judge")
         jc = rubric.get("judge_config")
-        has_cfg = isinstance(jc, dict) and bool(jc.get("model")) and ("temperature" in jc)
-        if judge == "llm_judge" and not has_cfg:
+        jc_dict = jc if isinstance(jc, dict) else {}
+        has_model_temp = bool(jc_dict.get("model")) and ("temperature" in jc_dict)
+        has_prompt = bool(str(jc_dict.get("prompt_id", "")).strip())
+        if judge == "llm_judge" and not (has_model_temp and has_prompt):
             res.errors.append(
-                "[EVAL] judge=llm_judge 인데 judge_config(model+temperature) 가 없습니다 "
-                "— 순수 기계 판정이 비결정적(재현 불가). model·temperature·prompt 를 고정하세요"
+                "[EVAL] judge=llm_judge 인데 judge_config 가 불완전합니다(model·temperature·prompt_id 셋 다 필요) "
+                "— 순수 기계 판정이 비결정적(재현 불가)"
+            )
+        # mixed(사람+기계 혼합)는 기계 부분이 비결정적일 수 있으므로 judge_config 를 권한다(경고).
+        # 스키마(user.evaluation_cases) 설명과 동기화: "warns when judge=mixed".
+        if judge == "mixed" and not has_model_temp:
+            res.warnings.append(
+                "[EVAL] judge=mixed 인데 judge_config(model+temperature) 가 없습니다 "
+                "— 혼합 판정의 기계 부분이 재현 불가할 수 있습니다. judge_config 를 고정하세요"
             )
 
     if isinstance(result, dict):
@@ -171,6 +240,30 @@ def _eval_integrity(record: Any, res: "RecordResult") -> None:
         thr = rubric.get("pass_threshold") if isinstance(rubric, dict) else None
         fired = result.get("unacceptable_fired")
         fired_any = isinstance(fired, list) and any(isinstance(x, str) and x.strip() for x in fired)
+        # unacceptable_fired 가 존재하는데 list[비어있지않은 str] 형태가 아니면 — 발동한 하드페일이
+        # 조용히 무시되어(예: [{"rule":"leaked_pii"}] 같은 객체 리스트, 스칼라 문자열) RLVR 하드페일
+        # 게이트를 우회한다. 형태를 강제해, 가장 안전-결정적인 게이트가 가장 쉽게 뚫리지 않게 한다.
+        # (G1 evidence_refs 의 항목-품질 검사와 대칭; 스키마는 items:string 으로 선언.) (적대적 검증 it.15)
+        if fired not in (None, []) and not (
+            isinstance(fired, list) and all(isinstance(x, str) and x.strip() for x in fired)
+        ):
+            res.errors.append(
+                "[EVAL] result.unacceptable_fired 는 비어있지 않은 문자열의 리스트여야 합니다 "
+                f"— 발동한 하드페일이 조용히 무시되어선 안 됩니다: {fired!r}"
+            )
+
+        # score 가 숫자인데 비유한값(NaN/inf)이면 status↔score 정합 게이트가 조용히 통과하므로 거부.
+        if isinstance(score, (int, float)) and not isinstance(score, bool) and not math.isfinite(score):
+            res.errors.append(f"[EVAL] result.score 가 비유한값입니다(NaN/inf): {score!r}")
+        # score 는 스키마상 [0,1]. 범위 밖(예: 5.0)은 status↔score 정합 게이트(score≥thr)를 무의미하게
+        # 통과시켜 불가능한 점수가 'pass' 를 인증한다 — 스키마 선언 경계를 검증기도 강제(적대적 검증 it.17).
+        if _num(score) and not (0.0 <= float(score) <= 1.0):
+            res.errors.append(f"[EVAL] result.score 가 0..1 범위를 벗어났습니다: {score!r}")
+        # edit_fraction 은 스키마상 [0,1]. 범위 밖(예: 50.0·-5.0)은 correction_cost 평균을 오염시켜
+        # 성숙도 게이트를 헛되이 통과/실패시킨다(음수는 비용 과소→L3/L4 게이밍 벡터) — 경계 강제(it.17).
+        ef = result.get("edit_fraction")
+        if _num(ef) and not (0.0 <= float(ef) <= 1.0):
+            res.errors.append(f"[EVAL] result.edit_fraction 이 0..1 범위를 벗어났습니다: {ef!r}")
 
         # (c) 하드페일: unacceptable 이 발동하면 점수와 무관하게 status 는 fail (RLVR).
         if fired_any and status != "fail":
@@ -221,7 +314,7 @@ def _review_audit_check(record: Any, res: "RecordResult", require_audit: bool) -
             )
     elif ra is not None:
         res.errors.append(f"[#8] review_audit 는 객체여야 합니다: got {type(ra).__name__}")
-    elif require_audit and rs in RUNTIME_ACTIVE_STATUS:
+    elif require_audit and _in_enum(rs, RUNTIME_ACTIVE_STATUS):
         res.errors.append(
             "[#8] 런타임 활성 레코드에 review_audit(reviewer_id·decision·diff) 가 없습니다 "
             "— 고무도장과 구별 불가, edit_rate 계산 불능 (--require-audit)"
@@ -277,7 +370,7 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
 
     # 5) review_status enum.
     rs = record.get("review_status")
-    if "review_status" in record and rs not in REVIEW_STATUS_ENUM:
+    if "review_status" in record and _not_in_enum(rs, REVIEW_STATUS_ENUM):
         res.errors.append(
             f"review_status 가 enum 에 없습니다: {rs!r} "
             f"(허용: {sorted(REVIEW_STATUS_ENUM)})"
@@ -285,16 +378,34 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
 
     # 6) sensitivity enum.
     sens = record.get("sensitivity")
-    if "sensitivity" in record and sens not in SENSITIVITY_ENUM:
+    if "sensitivity" in record and _not_in_enum(sens, SENSITIVITY_ENUM):
         res.errors.append(
             f"sensitivity 가 enum 에 없습니다: {sens!r} "
             f"(허용: {sorted(SENSITIVITY_ENUM)})"
         )
 
+    # 6a) [G5] sensitive/restricted 는 exception_rules(≥1) 필수 (BoundaryRule 없이 승격 금지).
+    #     record.base.schema.json allOf 가 같은 규칙을 강제하지만, validate_packs 가
+    #     단독으로(스키마 검증기 없이) 돌 때도 G5 구멍이 안 생기도록 여기서도 강제한다.
+    if _in_enum(sens, SENSITIVITY_REQUIRES_EXCEPTION):
+        exc = record.get("exception_rules")
+        if not isinstance(exc, list) or len(exc) < 1:
+            res.errors.append(
+                f"[G5] sensitivity={sens!r} 레코드는 exception_rules(≥1) 가 필요합니다 "
+                "— 민감/제한 레코드는 BoundaryRule(예외 규칙) 없이 승격 금지"
+            )
+        elif any((not isinstance(x, str) or not x.strip()) for x in exc):
+            # 빈/널/비문자열 placeholder 로 G5 를 충족시키지 못하게 — G1 의 항목-품질 검사와 대칭.
+            # 스키마는 items:string 이므로 [None]/[123]/[''] 는 무효이고 빈 문자열은 어떤 층도 못 잡는다.
+            res.errors.append(
+                "[G5] exception_rules 에 비어있거나 문자열이 아닌 항목이 있습니다 "
+                "(placeholder BoundaryRule 로 민감/제한 레코드 승격 금지)"
+            )
+
     # 6b) reliability 채널 enum + self_reported 는 auto_confirm 금지 (claim-layer 분리, C/#1).
     #     self_reported = 자기서술(저신뢰 InterpretationClaim) → 사람 게이트 없이 승격 불가.
     rel = record.get("reliability")
-    if "reliability" in record and rel not in RELIABILITY_ENUM:
+    if "reliability" in record and _not_in_enum(rel, RELIABILITY_ENUM):
         res.errors.append(
             f"reliability 가 enum 에 없습니다: {rel!r} "
             f"(허용: {sorted(RELIABILITY_ENUM)})"
@@ -321,11 +432,17 @@ def validate_record(record: Any, locator: str, require_audit: bool = False) -> R
                 f"confidence={conf} < {COUNTEREXAMPLE_THRESHOLD} 이면 "
                 "counterexamples(≥1) 가 필요합니다"
             )
+        elif any((not isinstance(x, str) or not x.strip()) for x in cx):
+            # 저신뢰 주장이 빈/널 placeholder 로 counterexamples 요건을 충족하지 못하게 — G1 과 대칭.
+            res.errors.append(
+                "counterexamples 에 비어있거나 문자열이 아닌 항목이 있습니다 "
+                "(저신뢰 주장은 실제 반례가 ≥1 필요)"
+            )
 
     # 8) (경고) 런타임 활성(confirmed/narrowed) 인데 증거가 없으면 경고.
     #    필수-필드 검사에서 이미 error 가 났을 수 있으나, 증거 부재는 런타임 활성
     #    레코드에서 특히 위험하므로 별도로 환기합니다 (G1 + G3).
-    if rs in RUNTIME_ACTIVE_STATUS:
+    if _in_enum(rs, RUNTIME_ACTIVE_STATUS):
         if not isinstance(ev, list) or len(ev) < 1:
             res.warnings.append(
                 f"런타임 활성(review_status={rs}) 레코드인데 evidence_refs 가 "
@@ -374,10 +491,17 @@ def _is_candidate(rec: Any) -> bool:
     후보는 `candidate_type`(또는 `candidate_id`+`validation_status`)를 쓰고, 베이스 레코드는
     `record_type`/`id`/`statement`/`review_status` 를 쓴다(겹치지 않음). 확인 게이트(S07) 전의 후보
     파일은 베이스 코어 계약을 만족하지 않으므로 베이스 검증에서 *건너뛴다*(SKIP) — FAIL 이 아니다.
+
+    중요: 후보-필드 *존재*만으로 판정하면, 승격 시 감사용으로 candidate_id/validation_status 를
+    보존한(또는 candidate_type 이 끼어든) 베이스 레코드가 후보로 오분류돼 G1/G2/G5 를 전부 건너뛴다
+    (적대적 검증 it.19). 따라서 베이스 형태(record_type·review_status, 또는 id+statement)를 가진
+    레코드는 후보로 보지 않는다 — 베이스 계약으로 검증해 오염을 소리내어 잡는다.
     """
     if not isinstance(rec, dict):
         return False
-    return ("candidate_type" in rec) or ("candidate_id" in rec and "validation_status" in rec)
+    is_cand = ("candidate_type" in rec) or ("candidate_id" in rec and "validation_status" in rec)
+    is_base = ("record_type" in rec) or ("review_status" in rec) or ("id" in rec and "statement" in rec)
+    return is_cand and not is_base
 
 
 def load_file(path: str) -> Tuple[Optional[Any], Optional[str]]:
@@ -386,7 +510,7 @@ def load_file(path: str) -> Tuple[Optional[Any], Optional[str]]:
     try:
         with open(path, "r", encoding="utf-8") as fh:
             text = fh.read()
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:  # 비-UTF8 파일도 그 파일만 오류로 보고(적대적 검증 it.14)
         return None, f"파일 열기 실패: {exc}"
 
     if ext in YAML_EXTS:
@@ -399,12 +523,16 @@ def load_file(path: str) -> Tuple[Optional[Any], Optional[str]]:
             return yaml.safe_load(text), None
         except yaml.YAMLError as exc:  # type: ignore[attr-defined]
             return None, f"YAML 파싱 오류: {exc}"
+        except RecursionError as exc:  # 과도하게 중첩된 YAML 도 그 파일만 오류로(전체 실행 보호)
+            return None, f"YAML 파싱 오류(중첩 과다): {exc}"
     else:
         # .json (및 확장자 미지정) 은 JSON 으로 시도.
         try:
             return json.loads(text), None
         except json.JSONDecodeError as exc:
             return None, f"JSON 파싱 오류: {exc}"
+        except RecursionError as exc:  # 과도하게 중첩된 JSON 도 그 파일만 오류로(전체 실행 보호)
+            return None, f"JSON 파싱 오류(중첩 과다): {exc}"
 
 
 # ── 경로 수집 ───────────────────────────────────────────────────────────────────
@@ -481,6 +609,7 @@ def run(paths: List[str]) -> int:
     total_warn = 0
     file_errors = 0
     skipped = 0
+    unreadable_skips = 0   # PyYAML 부재 등으로 *읽지 못해* 건너뛴 파일(후보 스킵과 구분, 클러스터3)
 
     for m in missing:
         print(f"FILE-ERROR  {m}: 경로를 찾을 수 없습니다")
@@ -497,6 +626,8 @@ def run(paths: List[str]) -> int:
             if _is_skip_message(msg):
                 print(f"SKIP        {path}: {msg}")
                 skipped += 1
+                if "PyYAML 이 설치되지 않았습니다" in msg:
+                    unreadable_skips += 1
             else:
                 print(f"FILE-ERROR  {path}: {msg}")
                 file_errors += 1
@@ -528,9 +659,15 @@ def run(paths: List[str]) -> int:
         f"WARN {total_warn}  SKIP {skipped}  FILE-ERROR {file_errors}"
     )
 
-    failed = total_fail > 0 or file_errors > 0
+    # 파일은 있었으나 *읽지 못해* 레코드를 하나도 검증 못 했으면 공허한 PASS 를 내지 않는다 —
+    # PyYAML 부재로 모든 YAML 이 SKIP 되면 "검증한 것 0건"이므로 PASS 가 아니라 실패로 보고(클러스터3/CI-2b).
+    vacuous = (total_records == 0 and unreadable_skips > 0)
+    failed = total_fail > 0 or file_errors > 0 or vacuous
     if failed:
-        print("결과: FAIL")
+        if vacuous and total_fail == 0 and file_errors == 0:
+            print("결과: FAIL (검증된 레코드 0 — 읽지 못한 파일이 있습니다; PyYAML 설치 필요)")
+        else:
+            print("결과: FAIL")
         return 1
     print("결과: PASS")
     return 0

@@ -69,7 +69,17 @@ def _load(path):
         if not _HAVE_YAML:
             return []  # silently skip yaml when PyYAML missing
         docs = [d for d in yaml.safe_load_all(text) if d]
-        data = docs[0] if len(docs) == 1 else docs
+        if len(docs) == 1:
+            data = docs[0]
+        else:
+            # 다문서(`---`)는 각 문서의 pack->[records] 매핑을 *병합* — 문서 리스트를 그대로 두면
+            # isinstance(list) 분기가 각 문서를 'unknown' 팩의 레코드로 오파싱해 유령 중복을 만든다(클러스터3).
+            data = {}
+            for doc in docs:
+                if isinstance(doc, dict):
+                    for k, v in doc.items():
+                        if isinstance(v, list):
+                            data.setdefault(k, []).extend(v)
     else:
         data = json.loads(text)
     out = []
@@ -112,21 +122,29 @@ def main():
     if os.path.isdir(args.path):
         for ext in ("*.yaml", "*.yml", "*.json"):
             files += glob.glob(os.path.join(args.path, ext))
-    else:
+        files = sorted(files)  # 결정론: glob 은 파일시스템 순서라 정렬해야 pair 목록·방향이 안 흔들린다(it.21)
+    elif os.path.isfile(args.path):
         files = [args.path]
+    else:
+        # 존재하지 않는 경로는 형제 도구(validate_packs·compile_adapter)와 같은 계약으로 exit 2 (클러스터3).
+        sys.stderr.write(f"[error] 입력 경로가 없습니다: {args.path}\n")
+        return 2
 
     pairs = []  # (pack, record)
+    load_errors = 0
     for f in files:
         try:
             pairs += _load(f)
         except Exception as e:
+            load_errors += 1  # I/O·파싱 오류를 삼키지 않고 센다 — --strict 면 나중에 nonzero (클러스터3)
             print(f"  (skip {os.path.basename(f)}: {e})")
 
     if not pairs:
         print("no instance records found (need a YAML mapping pack->[records] or a record list).")
         if not _HAVE_YAML:
             print("note: PyYAML not installed; only .json files were read.")
-        return 0
+        # --strict 인데 파일이 있었으나 전부 읽기 실패했다면 조용한 성공이 아니라 실패로 보고(클러스터3).
+        return 1 if (args.strict and load_errors) else 0
 
     total = len(pairs)
     packs_seen = sorted({p for p, _ in pairs if p in CANONICAL_PACKS})
@@ -153,8 +171,19 @@ def main():
     distinct_packs = len(packs_seen) + len(noncanon)
     pack_cardinality = round(distinct_packs / 14.0, 3)
 
-    # merge_rate from repetition_count / merge_history if present
-    merges = sum(max(0, int(r.get("repetition_count", 1)) - 1) for _, r in pairs)
+    # merge_rate from the provenance trail (merge_history) OR the denormalized counter
+    # (repetition_count), whichever records MORE merges. Trusting the stored counter alone lets a
+    # stale/empty merge_history — or an inflated counter — misreport convergence (적대적 검증 it.16).
+    # spec/10 §4: repetition_count = 1 + len(merge_history), so on a clean set the two agree.
+    def _merge_count(r):
+        mh = r.get("merge_history")
+        n_mh = len(mh) if isinstance(mh, list) else 0
+        try:
+            rc = int(r.get("repetition_count", 1)) - 1
+        except (TypeError, ValueError, OverflowError):
+            rc = 0  # 비정수/무한 카운터는 무시하고 provenance(merge_history)에 맡긴다
+        return max(0, n_mh, rc)
+    merges = sum(_merge_count(r) for _, r in pairs)
     inserts = total
     merge_rate = round(merges / (merges + inserts), 3) if (merges + inserts) else 0.0
     has_merge_data = any(("repetition_count" in r or "merge_history" in r) for _, r in pairs)
@@ -165,7 +194,7 @@ def main():
     print(f"records scanned     : {total}  across {distinct_packs} pack(s)")
     print(f"redundancy_ratio    : {redundancy_ratio:>6}   (near-dup pairs {len(dup_pairs)} / {total}; lower→better)")
     print(f"pack_cardinality    : {pack_cardinality:>6}   (distinct packs {distinct_packs} / 14; =1.0 ideal, >1 sprawl)")
-    print(f"merge_rate          : {('  ' + str(merge_rate)) if has_merge_data else '    NA'}   (rising = convergence; from repetition_count)")
+    print(f"merge_rate          : {('  ' + str(merge_rate)) if has_merge_data else '    NA'}   (rising = convergence; from merge_history/repetition_count)")
     if noncanon:
         print(f"non-canonical packs : {noncanon}  <-- not one of the 14; fold into a canonical pack")
     if dup_pairs:
@@ -176,7 +205,7 @@ def main():
         print("\nno near-duplicates above threshold — clean.")
     print("=" * 60)
 
-    if args.strict and (redundancy_ratio > 0 or pack_cardinality > 1.0):
+    if args.strict and (redundancy_ratio > 0 or pack_cardinality > 1.0 or load_errors):
         return 1
     return 0
 

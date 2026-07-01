@@ -22,7 +22,9 @@
 | [`pab_merge.py`](./pab_merge.py) | **dedup judge + upsert actuator** — novel/duplicate/refinement/conflict → insert/**merge**/**supersede**/surface. 멱등. *측정이 아니라 수행* | "이 후보를 새로 찍을까, 기존에 흡수할까?" | [10 중복 억제·병합](../spec/10-dedup-and-merge.md) · [07 확인 게이트](../skills/07-confirmation-gate.md) |
 | [`check_anchors.py`](./check_anchors.py) | **문서 링크 무결성** — 모든 교차문서 링크·`#앵커`가 실재 헤딩(GitHub 슬러그)으로 해소되는지. *게이트* | "끊긴 참조가 있는가?" | spec/skills/docs 전체 (GitHub 앵커 규약) |
 | [`check_commands.py`](./check_commands.py) | **문서 명령 무결성** — 문서에 적힌 안전·읽기전용 명령이 실제로 실행되는지. *게이트* | "적힌 명령이 진짜 도는가?" | "모든 figure는 명령으로 재현"([06](../spec/06-convergence-model.md)) |
-| [`context_select.py`](./context_select.py) | **결정론적 컨텍스트 조립**(참조 술어) — scope-overlap + salience(confidence×recency×repetition) + 토큰 예산 + 탈락분 갭 로깅 | "이 작업에 어떤 슬라이스를 예산 안에서 켤까?" | [10 에이전트 컴파일러](../skills/10-agent-compiler.md) (#9; *라이브 컴파일러는 스텁 — 참조 구현*) |
+| [`check_schemas.py`](./check_schemas.py) | **스키마 무결성** — 모든 `schemas/*.json`이 잘 구성된 JSON(draft 2020-12)이고 per-pack 스키마가 `allOf`+`$ref`로 [베이스 레코드](../schemas/record.base.schema.json)를 확장하는지. *게이트* | "스키마 계약이 깨졌는가?" | [01 커널 스키마](../spec/01-kernel-schema.md) · [CONTRIBUTING](../CONTRIBUTING.md) |
+| [`check_triggers.py`](./check_triggers.py) | **트리거 무결성** — skill 문서에 임베디드된 `trigger:` 블록이 [`trigger.schema.json`](../schemas/trigger.schema.json) 의 enum(host_hook 은 단일 토큰 또는 토큰 리스트)을 만족하는지. *게이트* | "트리거 블록이 스키마와 맞는가?" | [09 트리거](../spec/09-triggers.md) |
+| [`context_select.py`](./context_select.py) | **결정론적 컨텍스트 조립**(참조 술어) — scope-overlap + salience(0.5·confidence + 0.3·recency + 0.2·repetition, 가중합) + 토큰 예산 + 탈락분 갭 로깅 | "이 작업에 어떤 슬라이스를 예산 안에서 켤까?" | [10 에이전트 컴파일러](../skills/10-agent-compiler.md) (#9; *라이브 컴파일러는 스텁 — 참조 구현*) |
 | [`compile_adapter.py`](./compile_adapter.py) | **결정론적 런타임 어댑터 컴파일**(참조 컴파일러) — G3 활성 필터 + reliability draft-only 제외 + supersession 제외 + 팩→8섹션 라우팅 + 경계 레이어 + 갭 로깅 | "확정 슬라이스를 어떤 어댑터로 조립할까?" | [10 에이전트 컴파일러 §3·§4](../skills/10-agent-compiler.md) (*라이브 컴파일러는 스텁 — 참조 구현*; T0→T1→T2 멤버십 재현) |
 
 > 같은 산출은 OpenCrab에서 `opencrab_pack_qa`(검증)와 `opencrab_project_run`(수렴 지표)으로도
@@ -47,14 +49,16 @@
 | `confidence` 가 `0..1` 범위의 숫자 | — | FAIL |
 | `review_status` ∈ {pending, confirmed, rejected, narrowed, sensitive, deferred} | — | FAIL |
 | `sensitivity` ∈ {public, internal, sensitive, restricted} | — | FAIL |
+| `sensitivity` ∈ {sensitive, restricted} 이면 `exception_rules`(≥1) 필수 | **G5** (BoundaryRule 없이 민감/제한 승격 금지) | FAIL |
 | `confidence < 0.7` 이면 `counterexamples`(≥1) 필수 | — | FAIL |
 | 런타임 활성(`confirmed`/`narrowed`)인데 `evidence_refs` 가 빔 | **G1·G3** (대기 후보의 런타임 활성 금지) | WARN |
 | (평가 케이스) 루브릭 무결성 — `criteria` 가중치 합=1 · `status=pass`면 `score≥pass_threshold` · `unacceptable_fired`면 status=`fail` · `judge=llm_judge`면 `judge_config` 필수 | **검증자 검증(#3)** | FAIL |
 | `review_audit` 형태(reviewer_id·decision enum) · `--require-audit` 시 런타임활성 레코드에 감사흔적 강제 | **감사 흔적(#8)** | FAIL |
 
-> G4(행동 언어), G5(승격 전 프라이버시 경계), G6(템플릿/인스턴스 분리)는 사람·리뷰·구조 차원의
-> 게이트라 이 스크립트만으로 완전 자동화되지 않습니다. 이 검증기는 **G1·G2·G3와 베이스 필드
-> 계약**을 기계적으로 막는 역할입니다.
+> 이 검증기는 **G1·G2·G5와 베이스 필드 계약**(+ 평가 루브릭·감사 흔적)을 FAIL 로 기계적으로 막습니다.
+> **G3**(런타임 활성 = `confirmed`/`narrowed`)은 여기선 *경고*만 내고, FAIL 강제는 *컴파일 시점*에
+> [`compile_adapter.py`](./compile_adapter.py)(비활성 레코드 드롭)에서 일어납니다. **G4**(행동 언어),
+> **G6**(템플릿/인스턴스 분리)는 사람·리뷰·구조 차원의 게이트라 이 스크립트로 자동화되지 않습니다.
 
 입력은 세 가지 모양을 모두 허용합니다 (JSON 또는 YAML):
 1. 팩 이름을 키로 하는 매핑 — `{"user.identity_roles": [rec, …], …}` (예제 파일 형태)
@@ -117,7 +121,7 @@ python tools/validate_packs.py --help
 | `confirmation_ratio` | confirmed / (confirmed + pending + rejected) | 인스턴스 레코드의 `review_status` | ↑ |
 | `decision_fidelity` | 통과 평가 케이스 / 전체 평가 케이스 | `user.evaluation_cases` 결과 | ↑ |
 | `correction_cost` | 작업당 사용자 편집 비율(평균) | 평가 케이스 관측 | **↓** |
-| `drift_stability` | 1 − (최근 대체수 / 확인 레코드수) | `user.drift_history` | ↑ |
+| `drift_stability` | 1 − (전기간 대체수 / 확인 레코드수) | `user.drift_history` | ↑ |
 | `traceability` | 증거 보유 활성 규칙 / 활성 규칙 | 활성 규칙의 `evidence_refs` | **= 1.0 필수** |
 
 지표를 [수렴 모델 §3](../spec/06-convergence-model.md)의 사다리에 대입해 현재 성숙도 단계
@@ -148,14 +152,14 @@ correction_cost      0.08   (↓ 좋음 — #3 계측 후 NA→측정값)
 drift_stability      0.89
 traceability         1.00   (필수 충족)
 ──────────────────────────────────────────
-maturity tier        L1 Sketch   (L2까지 남은 빗장: coverage≥0.5 하나)
+maturity tier        L0 Seed     (L1 빗장: 콘텐츠 팩 ≥3 깊이 vertical = 0)
 ```
 
 이 숫자는 [`tests/`](../tests/README.md)가 회귀로 잠그고 있어, 도구를 바꾸면 테스트가 먼저 깨집니다.
 **성숙도 게이트는 `coverage`의 *엄격(≥3 깊이)* 값(spec §2 정의)을 씁니다** — 시드폭(0.71)으로 게이팅하면
 "Working"을 폭으로 따게 돼 de-averaging 명제(깊이=신뢰)와 모순되기 때문입니다(L2 게이트 결함 수정).
-그래서 logotekton 은 폭은 넓지만 깊은 팩이 1개뿐이라 정직하게 **L1 Sketch**입니다(시드폭으로 보면
-"L2처럼" 보이지만 그건 자기기만). 남은 L2 병목은 `coverage`(엄격 0.07→0.5) 하나 — 즉 *더 많은 팩을
+그래서 logotekton 은 폭은 넓지만 **콘텐츠 깊이 vertical 이 0**(유일한 ≥3 팩이 *메타* eval 장부)이라
+정직하게 **L0 Seed**입니다(시드폭으로 보면 "L2처럼" 보이지만 그건 자기기만). L1·L2 병목은 *콘텐츠 팩을
 ≥3 확인 레코드로 깊게 채우는 것*. T0 베이스라인은
 [`convergence-report.md`](../examples/logotekton/convergence-report.md), 전이는
 [`revolution-01`](../examples/logotekton/revolution-01/README.md)·[`revolution-02`](../examples/logotekton/revolution-02/README.md)가 추적합니다(그 문서들의 티어 표기는 결함 수정 *이전* 시드폭 게이트 기준 — 각 문서 상단 노트 참조).
