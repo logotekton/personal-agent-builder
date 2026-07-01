@@ -21,6 +21,11 @@
 
 ## [Unreleased]
 
+### 설계판단 해소 — 클러스터 4: 문서 안전성 주장 (it.25)
+- **[Fixed] CONTRIBUTING .gitignore 거짓 약속.** `.gitignore` 가 개인 인스턴스 경로(`personal.<you>.*`)를
+  무시한다고 했으나 실제 규약은 `*.private.yaml`·`*.private.json`·`private/` 였다 — 문서를 실제 규약에
+  맞춰 정정(파일명 규약을 명시). `.gitignore` 자체는 이미 사적 데이터를 보호하므로 변경 없음(과대-무시 위험 회피).
+
 ### 설계판단 해소 — 클러스터 5: 트리거 스키마 계약 (it.25)
 > open-design-decisions 클러스터 5(host_hook)를 배열-enum 으로 해소 + 임베디드 트리거 블록 검증기 추가.
 > 잠금 숫자 불변(트리거 블록은 문서·스키마 계층, 예제 validate 경로와 무관).
