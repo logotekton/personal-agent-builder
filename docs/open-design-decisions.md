@@ -55,7 +55,13 @@
 
 ---
 
-## 클러스터 2 — convergence/maturity 게이밍 벡터 (우선순위: HIGH)
+## 클러스터 2 — convergence/maturity 게이밍 벡터 (🟡 부분 해결 — it.25)
+
+> **해결 상태(it.25):** 교차-팩 id 중복집계(V1)는 전역 id 유일 집계로, drift 비대칭(V4)은 '모든 팩
+> supersedes 은퇴-id 합집합 + 순수 drift 이벤트' 카운팅으로 **해결**(예제 0.8947·coverage 0.0714·L0
+> 전부 보존, 공격은 차단). correction_cost 선택적 누락(V2)은 스펙이 Q&A 케이스 누락을 명시 허용하므로
+> 게이트 대신 **투명성 카운터 `_n_correction_reported`** 추가. decision_fidelity 희석(V3)은 '실질적
+> 케이스' 하한이 모호하고 예제를 깰 위험이 있어 **문서화된 한계로 잔존**.
 
 **증상.** 성숙도 지표가 *관찰된 행동의 실질(substance)* 이 아니라 *레코드/케이스의 형식적 존재* 를 세므로,
 흩뿌리기·패딩·선택적 누락으로 분모·분자를 조작해 성숙도를 부풀릴 수 있다. de-averaging 명제(spec/06 §8:
