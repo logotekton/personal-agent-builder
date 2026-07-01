@@ -1907,5 +1907,52 @@ class TestPropertyRegressionsIt24(unittest.TestCase):
             self.assertEqual(len(outs), 1, "dedup redundancy_ratio varied under input rotation")
 
 
+class TestGamingDefensesCluster2(unittest.TestCase):
+    """open-design-decisions Cluster 2 (partially resolved): the two concrete maturity-gaming
+    vectors are closed while every locked example number is preserved. V1 = cross-pack id
+    double-count (global id de-dup); V4 = drift_stability asymmetry (union of supersedes-target ids
+    across ALL packs + bare drift events)."""
+
+    CONTENT = ["user.persona_core", "user.communication_style", "user.decision_policy",
+               "user.tacit_heuristics", "user.red_flags", "user.workflow_playbooks",
+               "user.domain_overlays", "user.tool_stack", "user.artifact_policy",
+               "user.boundary_authority", "user.identity_roles", "user.memory_project_graph"]
+
+    def _rec(self, rid, stmt, scope="g", **kw):
+        r = {"id": rid, "record_type": "PreferenceRecord", "statement": stmt, "scope": scope,
+             "review_status": "confirmed", "evidence_refs": ["e"], "confidence": 1.0,
+             "reliability": "behavioral"}
+        r.update(kw)
+        return r
+
+    def test_v1_cross_pack_id_reuse_cannot_inflate_coverage(self):
+        shared = [self._rec(f"a.{i}", f"claim {i}") for i in range(3)]
+        atk = {p: [dict(r) for r in shared] for p in self.CONTENT}   # SAME 3 ids under 12 packs
+        ix = cr.compute_indices(atk, [], [])
+        # deduped: the 3 ids count toward exactly ONE content pack, not twelve
+        self.assertEqual(ix["_content_packs_with_3"], 1)
+        self.assertEqual(ix["_n_confirmed"], 3)                      # 3 distinct records, not 36
+        self.assertEqual(cr.maturity_tier(ix)[0], "L0")             # honest, not L3
+
+    def test_v4_content_pack_supersedes_counts_toward_drift(self):
+        base = {"user.persona_core": [self._rec(f"r{i}", f"s{i}") for i in range(20)]}
+        for i in range(6):   # retire 6 via content-pack supersedes edges, NO DriftRecords
+            base["user.persona_core"].append(
+                self._rec(f"n{i}", f"s{i} v2", scope="g2", supersedes=[f"r{i}"]))
+        ix = cr.compute_indices(base, [], [])
+        self.assertLess(ix["drift_stability"], 1.0)                 # was a vacuous 1.0
+        self.assertEqual(ix["_supersessions"], 6)                   # the 6 hidden reversals count
+
+    def test_example_numbers_preserved_under_new_counting(self):
+        res = cr.collect(EXAMPLE)
+        ix = cr.compute_indices(res[0], res[1], res[2])
+        self.assertEqual(ix["_n_confirmed"], 19)
+        self.assertEqual(ix["_supersessions"], 2)                  # 2 bare DriftRecords, unchanged
+        self.assertAlmostEqual(ix["drift_stability"], 0.8947, places=4)
+        self.assertAlmostEqual(ix["coverage"], 0.0714, places=4)
+        self.assertEqual(ix["_content_packs_with_3"], 0)
+        self.assertEqual(cr.maturity_tier(ix)[0], "L0")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

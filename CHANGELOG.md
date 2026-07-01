@@ -21,6 +21,24 @@
 
 ## [Unreleased]
 
+### 설계판단 해소 — 클러스터 2: 성숙도 게이밍 벡터 (부분, it.25)
+> HIGH 클러스터의 두 구체 벡터를 해소하되 **모든 잠금 예제 숫자를 보존**(재실행·회귀테스트로 확인).
+> 원리: "성숙도는 *고유한 실질적 행동 단위* 위에서만 집계한다."
+- **[Fixed] (HIGH) 교차-팩 id 중복집계(V1).** 같은 record id 를 12개 팩 키 아래 복사하면 각 팩에서 깊이로
+  세어 coverage 0.14→0.93, L0→L3 위조 가능했음(it.18). compute_indices 가 **전역 id 유일**로 집계 —
+  같은 id 는 CANONICAL_PACKS 순서상 첫 팩만 소유. 공격 차단(coverage 0.86→0.07, L0), 예제 불변(n_confirmed 19).
+- **[Fixed] (HIGH) drift_stability 대체-카운트 비대칭(V4).** 대체수를 drift_history 이벤트로만 세어, 반전을
+  콘텐츠-팩 supersedes 엣지로 기재하면 레코드는 은퇴하되 대체수는 안 늘어 drift_stability 부풀려짐(it.19).
+  이제 **모든 팩의 supersedes 은퇴-id 합집합 + supersedes 없는 순수 drift 이벤트**로 카운트 — 콘텐츠-팩에
+  숨긴 반전도 잡힘(공격 1.0→0.70). 예제의 2개 bare DriftRecord 는 이벤트로 세어 **supersessions=2·
+  drift_stability=0.8947 보존**.
+- **[Added] 투명성 카운터 `_n_correction_reported`(V2).** correction_cost 에 기여한 평가 케이스 수를 노출 —
+  스펙이 Q&A 케이스의 edit_fraction 누락을 명시 허용하므로 게이트 대신 투명성으로 선택적-누락 게이밍을 가시화.
+- **[Added] 회귀 테스트 3건**(`TestGamingDefensesCluster2`). 총 178→181. coverage 0.0714·drift 0.8947·
+  correction_cost 0.0833·merge_rate 0.095·L0 Seed 전부 불변.
+- **[NOTE] decision_fidelity 희석(V3) 잔여.** '실질적 평가 케이스' 하한이 모호하고(스펙이 미정의) 예제를 깰
+  위험이 있어 문서화된 한계로 남김(open-design-decisions 클러스터 2). confirmation_trigger(클러스터 5 잔여)도 미해결.
+
 ### 설계판단 해소 — 클러스터 4: 문서 안전성 주장 (it.25)
 - **[Fixed] CONTRIBUTING .gitignore 거짓 약속.** `.gitignore` 가 개인 인스턴스 경로(`personal.<you>.*`)를
   무시한다고 했으나 실제 규약은 `*.private.yaml`·`*.private.json`·`private/` 였다 — 문서를 실제 규약에

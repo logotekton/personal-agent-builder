@@ -653,9 +653,21 @@ def compute_indices(pack_records, eval_cases, drift_records):
     n_confirmed = n_pending = n_rejected = 0
     n_auto_confirmed = 0
     n_self_reported = 0
+    # 전역 id 유일성: 같은 record id 가 여러 팩 키 아래 복사돼도 1회만 집계한다 — 안 그러면 3개
+    # 레코드를 12팩에 흩뿌려 coverage·성숙도를 L0→L3 로 위조할 수 있다(적대적 검증 it.18/클러스터2).
+    # de-averaging 명제(§8: 흩뿌려 가짜 성숙도 따기 차단)의 핵심. CANONICAL_PACKS 순서로 첫 팩이 소유.
+    seen_ids = set()
     for pack in CANONICAL_PACKS:
-        recs = [r for r in pack_records.get(pack, [])
-                if _norm_id(r.get("id", "")) not in superseded_ids]
+        recs = []
+        for r in pack_records.get(pack, []):
+            rid = _norm_id(r.get("id", ""))
+            if rid in superseded_ids:
+                continue
+            if rid and rid in seen_ids:
+                continue   # 다른 팩에서 이미 집계된 id — 교차-팩 중복집계 차단
+            if rid:
+                seen_ids.add(rid)
+            recs.append(r)
         c = sum(1 for r in recs if _status_of(r) in CONFIRMED_STATES)
         bc = sum(1 for r in recs
                  if _status_of(r) in CONFIRMED_STATES
@@ -756,18 +768,22 @@ def compute_indices(pack_records, eval_cases, drift_records):
     # drift_stability = 1 − (전기간 대체수 / 확인 레코드수). 드리프트 없으면 1.0. (self_reported 드리프트 제외)
     # 주: 기간/타임스탬프 윈도우 모델이 아직 없어 *전 기간 누적* 대체수를 센다(spec/06 §1 표 주석).
     # '최근 기간' 윈도우는 계획된 정련 — 기간 필드 추가 시 도입.
-    supersessions = 0
+    # 대체수 = (모든 팩의 supersedes 엣지가 지목한 은퇴 id 집합의 크기) + (supersedes 없는 순수
+    # drift 이벤트 수). 콘텐츠-팩 supersedes 로 반전을 숨겨도 은퇴 id 로 잡히므로, 반전을 DriftRecord
+    # 대신 콘텐츠-팩 엣지로 기재해 drift_stability 를 부풀리는 비대칭 게이밍을 차단한다(it.19/클러스터2).
+    # 예제의 2개 DriftRecord 는 supersedes 가 없어 '이벤트'로 세어 supersessions=2 → 0.8947 보존.
+    superseded_target_ids = set()
+    for recs in pack_records.values():
+        for r in recs:
+            if isinstance(r, dict) and not _is_self_reported(r):
+                superseded_target_ids |= _id_set(r.get("supersedes"))
+    bare_drift_events = 0
     for d in drift_records:
         if _is_self_reported(d):
             continue
-        sup = d.get("supersedes")
-        if isinstance(sup, list):
-            supersessions += len([s for s in sup if s])
-        elif sup:
-            supersessions += 1
-        else:
-            # supersedes 미기재여도 드리프트 레코드 자체를 1건 대체로 셈
-            supersessions += 1
+        if not _id_set(d.get("supersedes")):
+            bare_drift_events += 1
+    supersessions = len(superseded_target_ids) + bare_drift_events
     if n_confirmed > 0:
         drift_stability = 1.0 - (supersessions / n_confirmed)
         if drift_stability < 0.0:
@@ -810,6 +826,7 @@ def compute_indices(pack_records, eval_cases, drift_records):
         "_eval_pass": n_pass,
         "_eval_partial": n_partial,
         "_eval_fail": n_fail,
+        "_n_correction_reported": len(corr_vals),
         "_supersessions": supersessions,
         "_n_superseded_excluded": len(superseded_ids),
         "_n_active": len(active),
