@@ -174,6 +174,18 @@ def _pack_of_candidate(c):
             or RECORD_TYPE_TO_PACK.get(c.get("record_type"), "unknown"))
 
 
+def _survivor_key(c):
+    """중복/동일-identity 그룹에서 *결정론적 생존자*를 뽑기 위한 전순서 키(입력 순서 무관).
+
+    같은 canonical_key(순수 중복) 또는 같은 identity(다른 scope refinement) 후보가 한 배치에 여럿
+    오면, 첫-도착(입력 순서)이 아니라 (canonical_key, id) 최소값을 생존자로 고정한다 — 그래야 배치를
+    셔플해도 같은 id 가 남고 나머지가 그쪽으로 병합돼 최종 집합이 입력 순서와 무관해진다(적대적 검증
+    it.24; open-design-decisions 클러스터 1). 예제엔 intra-batch 중복 그룹이 없어 잠금값 불변."""
+    pack = _pack_of_candidate(c)
+    ck = canonical_key(pack, c.get("record_type", ""), c.get("statement", ""), c.get("scope", ""))
+    return (ck, str(c.get("id", "")))
+
+
 def classify(existing_by_pack, candidate):
     """Return a plan dict for one candidate: verdict + target + the field deltas."""
     pack = _pack_of_candidate(candidate)
@@ -250,7 +262,9 @@ def plan_batch(existing_by_pack, candidates):
     in the same batch, so the second of a pair dedups (merge) into the first."""
     working = {p: [dict(r) for r in recs] for p, recs in existing_by_pack.items()}
     plans = []
-    for c in candidates:
+    # _survivor_key 전순서로 처리 — 같은 그룹(중복·refinement)에서 canonical 생존자가 항상 먼저 투영돼
+    # 나머지가 그쪽으로 병합된다. 결과 plan 목록은 이 정렬 순서이며 apply_plan 도 같은 키로 정렬해 짝짓는다.
+    for c in sorted(candidates, key=_survivor_key):
         plan = classify(working, c)
         plans.append(plan)
         _project_candidate(working, plan, c)
@@ -260,8 +274,9 @@ def plan_batch(existing_by_pack, candidates):
 def apply_plan(existing_by_pack, candidates, plans, stamp):
     """Apply non-conflict plans, returning a new {pack:[records]} and a list of DriftRecords.
 
-    plans 는 plan_batch 가 candidates 와 1:1·동순서로 만든다 — 따라서 위치(zip)로 짝짓는다.
-    id 사전 매핑은 동일-id 후보(중복)에서 한쪽을 덮어써 데이터를 잃으므로 쓰지 않는다(적대적 검증 it.14).
+    plans 는 plan_batch 가 candidates 를 _survivor_key 전순서로 정렬해 1:1 로 만든다 — 여기서도 같은
+    키로 정렬해 위치(zip)로 짝짓는다(둘이 동일 키를 쓰므로 순서가 일치). id 사전 매핑은 동일-id 후보
+    (중복)에서 한쪽을 덮어써 데이터를 잃으므로 쓰지 않는다(적대적 검증 it.14; 정렬 결정론 it.24).
     """
     out = {p: [dict(r) for r in recs] for p, recs in existing_by_pack.items()}
     if len(plans) != len(candidates):
@@ -270,7 +285,7 @@ def apply_plan(existing_by_pack, candidates, plans, stamp):
             "apply_plan expects the plan_batch output for exactly these candidates"
         )
     drifts = []
-    for plan, cand in zip(plans, candidates):
+    for plan, cand in zip(plans, sorted(candidates, key=_survivor_key)):
         pack, cid = plan["pack"], plan["candidate"]
         if not isinstance(cand, dict):
             cand = {}

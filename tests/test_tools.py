@@ -1695,6 +1695,45 @@ class TestPropertyDeterminismIt23(unittest.TestCase):
         self.assertAlmostEqual(a, 0.2, places=9)
 
 
+class TestMergeSurvivorDeterminismCluster1(unittest.TestCase):
+    """open-design-decisions Cluster 1 (resolved): the intra-batch survivor is chosen by a canonical
+    (canonical_key, id) tie-break, so plan_batch+apply_plan over ANY permutation of a batch yields
+    the same final record set — not a first-arrival-dependent one (it.24 finding)."""
+
+    import itertools as _it
+
+    def _final(self, cands, order):
+        batch = [cands[i] for i in order]
+        plans = pab_merge.plan_batch({}, batch)
+        merged, _ = pab_merge.apply_plan({}, batch, plans, "2026-01-01T00:00:00Z")
+        canon = {}
+        for pack, recs in merged.items():
+            canon[pack] = sorted(
+                (r.get("id"), tuple(sorted(r.get("merge_history", []))),
+                 r.get("repetition_count"), tuple(sorted(r.get("supersedes", []))))
+                for r in recs)
+        return canon
+
+    def test_duplicate_group_survivor_is_permutation_invariant(self):
+        pack = "user.tacit_heuristics"
+        cands = [_cand(id=i) for i in ("x.h.30", "x.h.10", "x.h.20")]   # same ck, distinct ids
+        results = {repr(self._final(cands, list(p)))
+                   for p in self._it.permutations(range(len(cands)))}
+        self.assertEqual(len(results), 1, "duplicate-group final set varied with batch order")
+        final = self._final(cands, [0, 1, 2])[pack]
+        self.assertEqual(len(final), 1)
+        self.assertEqual(final[0][0], "x.h.10")                # min id survives (canonical)
+        self.assertEqual(final[0][1], ("x.h.20", "x.h.30"))    # others land in merge_history
+
+    def test_refinement_cluster_is_permutation_invariant(self):
+        cands = [_cand(id="x.h.51", scope="email"),
+                 _cand(id="x.h.52", scope="chat"),
+                 _cand(id="x.h.53", scope="external_email")]    # same identity, different scopes
+        results = {repr(self._final(cands, list(p)))
+                   for p in self._it.permutations(range(len(cands)))}
+        self.assertEqual(len(results), 1, "refinement cluster final set varied with batch order")
+
+
 class TestPropertyRegressionsIt24(unittest.TestCase):
     """it.24 (property-fuzz follow-up): lock the order-invariance properties that ~113k fuzzer cases
     upheld, so a future change cannot silently break determinism. Each uses a small FIXED record set

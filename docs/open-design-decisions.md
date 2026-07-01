@@ -18,7 +18,7 @@
 
 ---
 
-## 클러스터 1 — pab_merge intra-batch 결정성 (우선순위: MEDIUM)
+## 클러스터 1 — pab_merge intra-batch 결정성 (✅ 해결됨 — canonical-survivor tie-break, it.25)
 
 **증상.** 결정론 도구인 `pab_merge` 가 입력 *순서*에 의존하는 출력을 낸다 — "같은 입력 → 같은 출력"
 불변식과 모순.

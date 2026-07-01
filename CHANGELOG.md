@@ -21,6 +21,17 @@
 
 ## [Unreleased]
 
+### 설계판단 해소 — 클러스터 1: pab_merge intra-batch 결정성 (it.25)
+> 사용자 승인("안전한 클러스터 전부 구현")에 따라 open-design-decisions 클러스터 1 을 canonical-survivor
+> tie-break 으로 해소. 잠금 숫자 전부 불변(예제에 intra-batch 중복/refinement 그룹 없음).
+- **[Fixed] pab_merge 생존자-id 순서 의존.** 같은 canonical_key(순수 중복) 또는 같은 identity(다른 scope
+  refinement) 후보가 한 배치에 여럿 오면 어느 id 가 생존자로 남는지가 첫-도착(입력 순서)으로 결정됐다
+  (it.24 발견, 516/516 재현). `_survivor_key = (canonical_key, id)` 전순서를 도입해 `plan_batch` 와
+  `apply_plan` 이 같은 키로 정렬 → 그룹의 최소-키 후보가 항상 생존자, 나머지는 그쪽으로 병합. 배치를
+  셔플해도 최종 집합·merge_history 동일. duplicate·refinement·conflict 세 verdict 전부 커버.
+- **[Added] 회귀 테스트 2건**(`TestMergeSurvivorDeterminismCluster1`): 중복 그룹·refinement 클러스터가
+  전수 순열에서 동일 최종 집합을 내는지 잠금. 총 169→171. 예제 verdicts·merge_rate 0.095·drift 0.8947 불변.
+
 ### 다중 에이전트 적대적 검증 스윕 — it.24 (2차 속성 퍼징 — 코드수정 0 / 설계판단 1건)
 > 새 불변식 5렌즈 ~**75,000 케이스**: compile-roundtrip 충실도/재정렬-결정성(2.4k)·dedup 대칭(5.4k)
 > **전부 통과**. 위반 3건 중 2건 기각(잘못된 entry point/의도된 제외), 1건 확인 — 모두 *실제 plan_batch+
