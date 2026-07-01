@@ -1695,6 +1695,44 @@ class TestPropertyDeterminismIt23(unittest.TestCase):
         self.assertAlmostEqual(a, 0.2, places=9)
 
 
+class TestCliExitContractCluster3(unittest.TestCase):
+    """open-design-decisions Cluster 3 (resolved): CLI exit-code / loader-signal contract.
+    Missing path -> 2 (sibling-tool consistency); multi-doc YAML merges its pack mappings instead of
+    fabricating an 'unknown' pack; and a file that reads+parses to None (comment-only) is counted as
+    read, so convergence does not conflate 'empty content' with 'no readable files' (exit 2)."""
+
+    def _run(self, tool, *args):
+        return subprocess.run([sys.executable, os.path.join(TOOLS, tool), *args],
+                              capture_output=True, text=True)
+
+    def test_dedup_missing_path_exits_2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            r = self._run("dedup_check.py", os.path.join(tmp, "nope"))
+            self.assertEqual(r.returncode, 2)
+
+    def test_dedup_multidoc_yaml_merges_not_phantom_unknown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = os.path.join(tmp, "multi.yaml")
+            with open(p, "w") as fh:
+                fh.write("user.tacit_heuristics:\n- {id: h1, statement: aa bb cc, scope: s}\n"
+                         "---\nuser.persona_core:\n- {id: t1, statement: dd ee ff, scope: s}\n")
+            out = self._run("dedup_check.py", p).stdout
+            self.assertIn("across 2 pack(s)", out)   # merged, not one 'unknown' pack
+            self.assertNotIn("unknown", out)
+
+    def test_convergence_comment_only_file_not_exit_2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with open(os.path.join(tmp, "placeholder.yaml"), "w") as fh:
+                fh.write("# only a comment, no records yet\n")
+            r = self._run("convergence_report.py", tmp)
+            self.assertEqual(r.returncode, 0)        # read-but-empty != 'no readable files'
+
+    def test_convergence_truly_empty_dir_exits_2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            r = self._run("convergence_report.py", tmp)
+            self.assertEqual(r.returncode, 2)        # genuinely no structured files
+
+
 class TestMergeSurvivorDeterminismCluster1(unittest.TestCase):
     """open-design-decisions Cluster 1 (resolved): the intra-batch survivor is chosen by a canonical
     (canonical_key, id) tie-break, so plan_batch+apply_plan over ANY permutation of a batch yields

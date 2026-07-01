@@ -609,6 +609,7 @@ def run(paths: List[str]) -> int:
     total_warn = 0
     file_errors = 0
     skipped = 0
+    unreadable_skips = 0   # PyYAML 부재 등으로 *읽지 못해* 건너뛴 파일(후보 스킵과 구분, 클러스터3)
 
     for m in missing:
         print(f"FILE-ERROR  {m}: 경로를 찾을 수 없습니다")
@@ -625,6 +626,8 @@ def run(paths: List[str]) -> int:
             if _is_skip_message(msg):
                 print(f"SKIP        {path}: {msg}")
                 skipped += 1
+                if "PyYAML 이 설치되지 않았습니다" in msg:
+                    unreadable_skips += 1
             else:
                 print(f"FILE-ERROR  {path}: {msg}")
                 file_errors += 1
@@ -656,9 +659,15 @@ def run(paths: List[str]) -> int:
         f"WARN {total_warn}  SKIP {skipped}  FILE-ERROR {file_errors}"
     )
 
-    failed = total_fail > 0 or file_errors > 0
+    # 파일은 있었으나 *읽지 못해* 레코드를 하나도 검증 못 했으면 공허한 PASS 를 내지 않는다 —
+    # PyYAML 부재로 모든 YAML 이 SKIP 되면 "검증한 것 0건"이므로 PASS 가 아니라 실패로 보고(클러스터3/CI-2b).
+    vacuous = (total_records == 0 and unreadable_skips > 0)
+    failed = total_fail > 0 or file_errors > 0 or vacuous
     if failed:
-        print("결과: FAIL")
+        if vacuous and total_fail == 0 and file_errors == 0:
+            print("결과: FAIL (검증된 레코드 0 — 읽지 못한 파일이 있습니다; PyYAML 설치 필요)")
+        else:
+            print("결과: FAIL")
         return 1
     print("결과: PASS")
     return 0

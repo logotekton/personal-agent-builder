@@ -21,6 +21,21 @@
 
 ## [Unreleased]
 
+### 설계판단 해소 — 클러스터 3: CLI 종료코드·로더 신호 계약 (it.25)
+> open-design-decisions 클러스터 3 을 형제 도구 계약('경로 부재→2, 손상/공허→명시적 실패')에 맞춰 정합.
+> 잠금 숫자 전부 불변(정상 입력 경로엔 다문서/누락/주석-only 없음).
+- **[Fixed] dedup_check 다문서 YAML 오파싱.** `---` 분리 다문서를 한 'unknown' 팩의 레코드로 뭉개
+  유령 중복을 만들던 것을 각 문서의 pack→[records] 매핑 *병합*으로 수정.
+- **[Fixed] dedup_check 종료코드 계약.** 존재하지 않는 경로 → exit 2(형제 도구와 동일); I/O·파싱 오류를
+  삼키던 `except` 를 세어 `--strict` 에서 nonzero.
+- **[Fixed] convergence_report 빈-파싱 파일 오exit.** `load_structured` 를 `_read_structured`(ok,value)로
+  분리 — '읽기 실패'와 '읽었으나 내용 없음(주석-only=None)'을 구분해, 후자를 '읽을 파일 없음'(exit 2)과
+  혼동하지 않음. 주석-only 파일만 있는 디렉터리 → 정상 진행, 진짜 빈 디렉터리 → 여전히 exit 2.
+- **[Fixed] validate_packs 공허한 PASS.** PyYAML 부재로 모든 YAML 이 SKIP 되어 검증한 레코드가 0건인데
+  `결과: PASS` exit 0 을 내던 것 → '읽지 못한 파일이 있고 검증 0건'이면 FAIL 로 보고(의도적 후보-스킵과 구분).
+- **[Added] 회귀 테스트 4건**(`TestCliExitContractCluster3`). 총 171→175. 예제 6지표·merge_rate 0.095·
+  drift 0.8947·42 PASS 불변.
+
 ### 설계판단 해소 — 클러스터 1: pab_merge intra-batch 결정성 (it.25)
 > 사용자 승인("안전한 클러스터 전부 구현")에 따라 open-design-decisions 클러스터 1 을 canonical-survivor
 > tie-break 으로 해소. 잠금 숫자 전부 불변(예제에 intra-batch 중복/refinement 그룹 없음).

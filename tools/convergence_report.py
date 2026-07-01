@@ -341,29 +341,36 @@ def mini_yaml_load(text: str):
     return value
 
 
-def load_structured(path: str):
-    """확장자에 따라 JSON 또는 미니 YAML 로 파싱. 실패하면 None 반환."""
+def _read_structured(path: str):
+    """(ok, value) 반환 — ok=False 는 *읽기/파싱 실패*, ok=True 는 *성공*(빈/주석-only 파일은 value=None).
+
+    '읽기 실패'와 '읽었으나 내용 없음(None)'을 구분한다 — 후자를 '읽을 파일 없음'(exit 2)과 혼동하면
+    주석-only 플레이스홀더 파일 하나로 전체 실행이 중단된다(적대적 검증 it.17-4/클러스터3).
+    파싱 실패는 *그 파일만* (False,None) 으로 건너뛴다 — 한 손상 파일이 디렉터리 전체를 죽이면 안 됨(it.14)."""
     try:
         with open(path, "r", encoding="utf-8") as fh:
             text = fh.read()
     except (OSError, UnicodeDecodeError) as exc:  # 비-UTF8 파일도 한 파일만 건너뛰고 전체는 계속
         sys.stderr.write(f"[warn] 읽기 실패 {path}: {exc}\n")
-        return None
+        return (False, None)
     ext = os.path.splitext(path)[1].lower()
-    # 파싱 실패(JSON 오류·깊은중첩 RecursionError·미니YAML 실패)는 *그 파일만* None 으로 건너뛴다 —
-    # 한 손상 파일이 디렉터리 전체 수렴/검증 실행을 죽이면 안 된다(적대적 검증 it.14).
     try:
         if ext == ".json":
-            return json.loads(text)
+            return (True, json.loads(text))
         # .yaml/.yml 및 기타: 미니 YAML, 실패 시 JSON 재시도
         try:
-            return mini_yaml_load(text)
+            return (True, mini_yaml_load(text))
         except MiniYAMLError as exc:
             sys.stderr.write(f"[warn] YAML 부분집합 파싱 실패 {path}: {exc}\n")
-            return json.loads(text)
+            return (True, json.loads(text))
     except (json.JSONDecodeError, RecursionError, ValueError) as exc:
         sys.stderr.write(f"[warn] 파싱 실패 {path}: {exc}\n")
-        return None
+        return (False, None)
+
+
+def load_structured(path: str):
+    """확장자에 따라 JSON 또는 미니 YAML 로 파싱. 실패/빈파일이면 None 반환(호환 유지)."""
+    return _read_structured(path)[1]
 
 
 # ───────────────────────────── 레코드 수집 ──────────────────────────────────────────
@@ -487,10 +494,12 @@ def collect(directory: str):
             entries.append(full)
 
     for path in entries:
-        value = load_structured(path)
+        ok, value = _read_structured(path)
+        if not ok:
+            continue                 # 읽기/파싱 실패 — 건너뜀(이미 경고됨)
+        n_files += 1                 # 성공적으로 읽음(빈/주석-only 포함) → '읽을 파일 없음'과 구분
         if value is None:
-            continue
-        n_files += 1
+            continue                 # 내용 없음 — 읽은 파일로 세되 레코드는 없음
         for pack_hint, rec in _iter_records_from_value(value):
             pack = pack_hint or _infer_pack_for_record(rec)
             if pack is None:
