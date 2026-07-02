@@ -32,7 +32,10 @@
 - **[Added]** [`tools/bootstrap_plan.py`](./tools/bootstrap_plan.py) — 레포 트리에서 프로비저닝
   인벤토리를 결정론적으로 산출(스킬 17·12 스펙·14 템플릿+짝 스키마·공용 스키마 1팩 = 44;
   뼈대 14; `--subject`/`--json`; 없는 루트 → exit 2). check_commands RUNNABLE_TOOLS 등록.
-- 테스트 181 → **184** (TestBootstrapPlanIt28: 인벤토리 잠금·결정론·이름 계약·exit 계약).
+- **[Added]** Stage 0 — 주체 핸들(subject) 선택: 닉네임은 소유자 입력(필수·기본값 없음),
+  id 문법 `^[a-z0-9_]+$` 강제 + 정규화 제안(조용한 변형 금지), 미응답 시 Stage 3 차단
+  (`WAITING_FOR_SUBJECT`). `bootstrap_plan --subject` 가 같은 문법을 기계 검증(위반 exit 2).
+- 테스트 181 → **185** (TestBootstrapPlanIt28: 인벤토리 잠금·결정론·이름 계약·exit 계약·핸들 문법).
 
 ### 3-project 토폴로지 정합 + 이식성 (소유자 직접 커밋, 2026-07-02)
 > `1f6e6c8`·`686466e` (logotekton). 세션에서 신설된 `personal agent evidence` 층을 스펙으로

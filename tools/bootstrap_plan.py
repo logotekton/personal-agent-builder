@@ -18,6 +18,7 @@ Mapping contract (MUST stay in sync with skills/17-bootstrap.md §Stage 2):
 Usage:
   python tools/bootstrap_plan.py .                 # plan for this checkout
   python tools/bootstrap_plan.py . --subject you   # also name the 14 personal shells
+                                                   #  (grammar ^[a-z0-9_]+$; else exit 2 + hint)
   python tools/bootstrap_plan.py . --json          # machine-readable plan
 
 Exit 0 = plan produced. Exit 2 = repo root missing/not a PAB checkout (sibling
@@ -92,6 +93,13 @@ def main():
     root = args.root
     if not os.path.isdir(os.path.join(root, "skills")) or not os.path.isdir(os.path.join(root, "spec")):
         sys.stderr.write(f"[error] PAB 체크아웃이 아닙니다 (skills/·spec/ 없음): {root}\n")
+        return 2
+    if args.subject is not None and not re.fullmatch(r"[a-z0-9_]+", args.subject):
+        # subject 는 레코드 id 문법 <subject>.<recordkind>.NNN 의 첫 토큰 — 소유자가 고른
+        # 닉네임을 조용히 변형하지 않고, 정규화 *제안*과 함께 거부한다 (skill 17 Stage 0).
+        hint = re.sub(r"[^a-z0-9_]+", "_", args.subject.lower()).strip("_")
+        sys.stderr.write(f"[error] subject 는 ^[a-z0-9_]+$ 여야 합니다: {args.subject!r}"
+                         + (f" — 제안: {hint!r}\n" if hint else "\n"))
         return 2
 
     plan = build_plan(root, args.subject)

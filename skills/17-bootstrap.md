@@ -5,8 +5,9 @@
 > this repo and stands up the full **3-project operating topology** on OpenCrab: (1) create
 > the three projects, (2) ingest the repo's method/shape sources as builder packs (~44),
 > (3) prepare the 14 empty `personal.<subject>.*` shells in the personal-agent project —
-> and then (4) **asks the owner to choose an activation mode** (command-trigger / ambient
-> hooks / manual) instead of deciding for them. Every stage is **idempotent**: anything that
+> and then asks the owner two decisions the agent must never make for them: **(0) the
+> subject handle** that names every `personal.<subject>.*` pack, and **(4) the activation
+> mode** (command-trigger / ambient hooks / manual). Every stage is **idempotent**: anything that
 > already exists is skipped, never duplicated. The deterministic ingest plan comes from
 > [`tools/bootstrap_plan.py`](../tools/bootstrap_plan.py); execution uses the OpenCrab MCP
 > tools an agent already has. A bootstrap run ends with the skill-16 style report.
@@ -25,10 +26,25 @@
 - **하지 않는 일:** 개인 데이터를 만들지 않습니다. 어떤 레코드도 confirmed 로 만들지
   않습니다(G3). 빌더 프로젝트에 개인 인스턴스를 넣지 않습니다(G6).
 
-> 한 줄 계약: **fresh clone → 3 프로젝트 + 빌더 팩 + 빈 14 뼈대 + 발화 모드 선택.**
+> 한 줄 계약: **fresh clone → 주체 핸들 선택 + 3 프로젝트 + 빌더 팩 + 빈 14 뼈대 + 발화 모드 선택.**
 > 개인 *기억*은 하나도 생기지 않는다 — 기억은 이후 파이프라인과 게이트가 채운다.
 
 ---
+
+## Stage 0 · 주체 핸들(subject) 선택 — 소유자 입력, 필수
+
+`personal.<subject>.*` 의 `<subject>` 는 소유자의 닉네임(핸들)입니다. **에이전트가 지어내지
+않고 반드시 소유자에게 묻습니다.**
+
+- **문법:** 모든 레코드 id 가 `<subject>.<recordkind>.NNN`
+  ([record.base](../schemas/record.base.schema.json) · [spec/08](../spec/08-naming-and-ids.md))이므로
+  핸들은 `^[a-z0-9_]+$` 만 허용합니다 (소문자·숫자·언더스코어).
+- **정규화 제안:** 소유자가 `Logo Tekton` 처럼 답하면 그대로 쓰지 말고 `logo_tekton` 을
+  제안하고 **확인을 받습니다** — 조용한 변형 금지.
+- **미응답 시:** 기본값이 없습니다. Stage 1–2(주체 무관 장치)는 진행하되 **Stage 3 은
+  차단**하고 최종 보고에 `WAITING_FOR_SUBJECT` 로 남깁니다.
+- `python tools/bootstrap_plan.py . --subject <핸들>` 이 같은 문법을 기계 검증합니다
+  (위반 시 exit 2 + 정규화 제안).
 
 ## Stage 1 · 프로젝트 3개 생성
 
@@ -75,7 +91,8 @@ python tools/bootstrap_plan.py .
 
 - **왜 비어 있어야 하나:** 3층 규칙 — *pending 은 evidence 층으로, confirmed 만 이 층으로*.
   뼈대에 임시 레코드를 채우는 순간 G3(미확인 런타임 진입 금지)가 뚫립니다.
-- 이름: `personal.<subject>.<pack>.v0.1` (subject = 소유자 핸들, 예: `personal.logotekton.persona_core.v0.1`).
+- 이름: `personal.<subject>.<pack>.v0.1` — `<subject>` 는 **Stage 0 에서 소유자가 확정한 핸들**
+  (예: `personal.logotekton.persona_core.v0.1`). 핸들 없이는 이 단계를 실행하지 않습니다.
 - 멱등성: 동일.
 
 ## Stage 4 · 발화 모드 선택 (필수 — 에이전트가 정하지 않는다)
@@ -103,6 +120,7 @@ Bootstrap report
 Projects: created N / skipped M (existing)
 Builder packs: created N / skipped M   (plan total: 44)
 Personal shells: created N / skipped M (target: 14)
+Subject: <handle> — chosen by owner | WAITING_FOR_SUBJECT
 Activation mode: A(command) | B(ambient) | C(manual)  — chosen by owner
 Personal records created: 0            (MUST be 0 — bootstrap makes no memory)
 Ingest judgement: YES (apparatus only) | NO (aborted)

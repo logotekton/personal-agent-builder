@@ -2002,6 +2002,15 @@ class TestBootstrapPlanIt28(unittest.TestCase):
             r = self._run(os.path.join(tmp, "nope"))
             self.assertEqual(r.returncode, 2)
 
+    def test_subject_grammar_enforced_with_normalization_hint(self):
+        # skill 17 Stage 0: the owner-chosen handle must fit the record-id grammar; the tool
+        # rejects (never silently rewrites) and proposes the normalized form.
+        r = self._run(REPO, "--subject", "Logo Tekton!", "--json")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("logo_tekton", r.stderr)
+        for ok in ("logo_tekton", "logotekton2", "a_b_c"):
+            self.assertEqual(self._run(REPO, "--subject", ok, "--json").returncode, 0, ok)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

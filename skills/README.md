@@ -49,7 +49,7 @@
 | [`14-host-binding.md`](./14-host-binding.md) | *(배포 어댑터, 단계 아님)* | — | 추상 트리거([09](../spec/09-triggers.md))를 실제 호스트(**Claude Code 훅 · Codex CLI 훅 · OpenAI Agents SDK · 순수 API**)에 배선해 자동 포착을 실가동. 행동은 MCP로 한 벌. | Binds the abstract triggers to a real host (Claude Code hooks, Codex CLI hooks, Agents SDK, plain API) so auto-capture runs live; actions go through MCP. |
 | [`15-tacit-knowledge-mining.md`](./15-tacit-knowledge-mining.md) | *(확장 · `mine_or_ask` 심화)* | Tacit Miner | 세션을 작업 요약이 아니라 *결정자(decider)의 암묵지*로 채굴 — 에피소드 분해·대조 프레이밍·4컬럼 검토 보드. | Mines a session for the decider's tacit knowledge, not a task summary — episode decomposition, contrastive framing, 4-column review board. |
 | [`16-ingest-decision-gate.md`](./16-ingest-decision-gate.md) | *(확장 · 런-레벨 게이트)* | Ingest Judge | 모든 빌더 런을 명시적 ingest 판정(YES/NO/WAITING)과 3층 타깃(빌더/증거/개인)으로 종결. | Ends every builder run with an explicit ingest judgement (YES/NO/WAITING) and a 3-layer target (builder/evidence/personal). |
-| [`17-bootstrap.md`](./17-bootstrap.md) | *(프로비저닝 어댑터, 단계 아님)* | — | fresh clone → OpenCrab 3-프로젝트 + 빌더 팩 44 + 빈 14 뼈대, 발화 모드는 소유자가 선택(멱등·개인 기억 0). | Provisions a fresh clone into the 3-project OpenCrab topology (44 builder packs, 14 empty shells); the owner picks the activation mode. |
+| [`17-bootstrap.md`](./17-bootstrap.md) | *(프로비저닝 어댑터, 단계 아님)* | — | fresh clone → OpenCrab 3-프로젝트 + 빌더 팩 44 + 빈 14 뼈대; 주체 핸들과 발화 모드는 소유자가 선택(멱등·개인 기억 0). | Provisions a fresh clone into the 3-project OpenCrab topology (44 builder packs, 14 empty shells); the owner picks the subject handle and the activation mode. |
 
 ## 파이프라인 한 장 그림
 
