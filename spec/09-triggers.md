@@ -10,8 +10,8 @@
 
 트리거는 빌더가 *언제* 켜지는가를 정의합니다. 핵심은 한 줄로 요약됩니다:
 
-> **포착(detection)은 앰비언트로 자동, 승격(promotion)은 한 번의 명시적 확인.**
-> 작업 중 마찰 0, 사람 체크포인트는 세션 끝에 딱 1회.
+> **포착(detection)은 앨비언트로 자동, 승격(promotion)은 한 번의 명시적 확인.**
+> 작업 중에 마찰 0, 사람 체크포인트는 세션 끝에 딱 1회.
 
 암묵지는 *말로 꺼내지 않는 것*이라, "이제 캡처하자"는 명령형 트리거는 본질을 놓칩니다. 그래서
 포착은 **행동 신호에서 자동**으로 일어나야 하고, 동시에 휴먼인더루프(G3)·프라이버시(G5)를
@@ -20,7 +20,7 @@
 ## 1. 2계층 모델
 
 ```
-┌─ 계층 A · 앰비언트 포착 (always-on, 무마찰) ──────────────────────────┐
+┌─ 계층 A · 앨비언트 포착 (always-on, 무마찰) ──────────────────────┐
 │  매 턴 / 도구결과 → EvidenceItem 적재          (evidence_capture)      │
 │  사용자 교정·재작성 → 후보 스테이징  ★flagship  (diff_mining)          │
 │  반복 요청·명시 선호 → 후보 스테이징           (session_mining/extract) │
@@ -28,7 +28,7 @@
 └───────────────────────────────────────────────────────────────────────┘
                                   │  (세션 경계)
                                   ▼
-┌─ 계층 B · 단일 확인 체크포인트 (deliberate) ──────────────────────────┐
+┌─ 계층 B · 단일 확인 체크포인트 (deliberate) ──────────────────────┐
 │  세션 끝 / 큐 ≥ K / 명령 → 한국어 리뷰보드     (confirmation_gate)     │
 │  confirm·edit·reject·narrow → 승인된 것만 라우팅 (pack_router)         │
 │  ↳ 여기서만 pending → confirmed (런타임 활성)                          │
@@ -54,10 +54,14 @@
 | privacy_boundary | sensitivity_flag / pre_external_action | event | PreToolUse | boundary_applied | ✓ (ask_confirm) | enabled |
 | agent_compiler | session_start | session_boundary | SessionStart | compiled | ✗ | enabled |
 | evaluation_drift | pack_updated / schedule | schedule | [Cron, chained] | evaluated · drift_recorded | ✗ | suggested |
+| tacit_knowledge_mining | command | command | [UserPromptSubmit, command] | candidate_staged | ✗ | enabled |
+| ingest_decision_gate | candidate_created | event | [chained, orchestrator] | review_requested | ✓ (판정) | enabled |
 | crab_orchestration | (메타: 위 전부를 라우팅) | — | orchestrator | — | — | enabled |
 
-`kernel_schema`는 스키마 척추라 트리거가 없습니다. 각 스킬 문서의 **## 트리거** 절에 동일한
-블록이 [trigger.schema.json](../schemas/trigger.schema.json) 형식으로 들어 있습니다.
+`kernel_schema`는 스키마 척추라 트리거가 없습니다. `tacit_knowledge_mining`(15)·
+`ingest_decision_gate`(16)는 파이프라인 *단계*가 아닌 확장 스킬이지만 발화 조건은 위 표에
+포함됩니다. 각 스킬 문서의 **## 트리거** 절에 동일한 블록이
+[trigger.schema.json](../schemas/trigger.schema.json) 형식으로 들어 있습니다.
 
 ## 3. 호스트 매핑 (트리거 = 훅 바인딩)
 
@@ -69,7 +73,7 @@
 | 훅 이벤트 | 묶이는 트리거 | 하는 일 |
 |-----------|---------------|---------|
 | `SessionStart` | agent_compiler | 확인된 슬라이스로 런타임 어댑터 컴파일·로드 |
-| `UserPromptSubmit` | evidence_capture, diff_mining | 사용자 발화에서 증거·교정 신호 감지 → 스테이징 |
+| `UserPromptSubmit` | evidence_capture, diff_mining, tacit_knowledge_mining(명령형) | 사용자 발화에서 증거·교정 신호·명시적 암묵지 채굴 요청 감지 → 스테이징 |
 | `PostToolUse` | evidence_capture | 도구 결과를 EvidenceItem으로 적재 |
 | `PreToolUse` | privacy_boundary | 외부·비가역 도구 호출 직전 경계 검사(ask_confirm/block) |
 | `Stop` (세션 끝) | session_mining, candidate_extraction, confirmation_gate | 트랜스크립트 마이닝 → 후보 → **한국어 리뷰보드** 제시 |
@@ -78,7 +82,7 @@
 > 검증된 자리입니다. 훅 설정은 `settings.json`에서 합니다([update-config] 참고).
 
 ### OpenCrab (crab_orchestration 진입 조건)
-crab_orchestration의 9개 워크플로 상태의 *진입 조건*이 곧 트리거입니다. 핸드오프 규칙의 입력
+crab_orchestration의 9개 워크플로 상태의 *진입 조건*이 곱 트리거입니다. 핸드오프 규칙의 입력
 쪽을 트리거 라우팅표로 둡니다 → [12 crab_orchestration](../skills/12-crab-orchestration.md).
 스테이징 저장소는 `opencrab_ingest_text(pack_visibility="draft")`입니다.
 
@@ -96,7 +100,7 @@ crab_orchestration의 9개 워크플로 상태의 *진입 조건*이 곧 트리�
 | 런타임 | **비활성** (컴파일 제외, G3) | 활성 |
 | 프라이버시 | 민감 항목 플래그만 | 민감 항목은 경계 규칙 먼저(G5) |
 
-이 경계가 "다 자동인데 안 무섭다"의 핵심입니다. 트리거를 아무리 공격적으로 깔아도 라이브
+이 경계가 "다 자동인데 안 무석다"의 핵심입니다. 트리거를 아무리 공격적으로 깔아도 라이브
 규칙은 사람을 거칩니다.
 
 ## 5. auto-confirm 정책 (좁은 예외)
@@ -115,7 +119,7 @@ auto_confirm_policy:
     - BoundaryRuleCandidate
     - DecisionPolicyCandidate
   maturity_gate: L2                    # 성숙 L2+ 에서만 정책이 행동 (Tier B)
-  target_error_rate: 0.05              # 섀도 캘리브레이션 불일치율 ≤5% 일 때만 실제 auto-confirm
+  target_error_rate: 0.05              # 섬도 캘리브레이션 불일치율 ≤5% 일 때만 실제 auto-confirm
 ```
 
 정책이 없으면(기본) **항상 사람 검토**입니다. 정책은 신뢰 수준을 올리는 *선택적 노브*이지,
@@ -123,7 +127,7 @@ auto_confirm_policy:
 `allowed_sensitivity`가 그 선을 지킵니다.
 
 > **이 정책의 논리·근거·캘리브레이션 방법**(regret = impact×(1−confidence), 네 결정 축,
-> 임팩트 티어↔14팩 매핑, `target_error_rate`로의 섀도 모드 보정, 성숙도 게이트, Karpathy 공개
+> 임팩트 티어↔14팩 매핑, `target_error_rate`로의 섬도 모드 보정, 성숙도 게이트, Karpathy 공개
 > 개념 근거)은 [12 확인 정책](./12-confirmation-policy.md)에서 형식화합니다. 위 4필드
 > (`impact_tier`·`per_tier_threshold`·`maturity_gate`·`target_error_rate`)는 그 문서의 §5
 > 스키마 매핑을 따릅니다.
