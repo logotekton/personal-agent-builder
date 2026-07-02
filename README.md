@@ -113,7 +113,7 @@
 | [`.claude/`](./.claude), [`.codex/`](./.codex) | 커밋된 **훅 설정** — Claude Code(`settings.json`)·Codex CLI(`config.toml`)에서 자동 포착을 가동하는 배선 + 공유 스텁 [`tools/pab`](./tools/pab) (현재 STUB) |
 | [`spec/`](./spec) | 시스템 전체 사양 — 커널 스키마, 빌더 파이프라인, 팩 카탈로그, 프라이버시, 평가, **수렴 모델**, 9-space 크로스워크, 네이밍, **트리거**, 중복 억제·병합, **확인 정책** |
 | [`schemas/`](./schemas) | 14개 user 온톨로지 팩의 JSON Schema + 통합 베이스 레코드 + 후보/평가/**트리거** 스키마 (기계 검증용) |
-| [`skills/`](./skills) | 15개 빌더 스킬 문서(핵심 13 + 확장 2: 암묵지 채굴·ingest 판정) — 암묵지를 팩으로 바꾸는 *방법* (각 스킬의 발화 **트리거** 포함) + 어댑터 2(트리거를 실제 호스트에 배선하는 **호스트 배선**, fresh clone 을 OpenCrab 3-프로젝트로 프로비저닝하는 **부트스트랩**) |
+| [`skills/`](./skills) | 17개 빌더 스킬 문서(핵심 13 + 확장 2: 암묵지 채굴·ingest 판정 + 어댑터 2: **호스트 배선**, **부트스트랩**) — 암묵지를 팩으로 바꾸는 *방법*, 트리거 배선, fresh clone → OpenCrab 3-프로젝트 프로비저닝 |
 | [`examples/logotekton/`](./examples/logotekton) | 처음부터 끝까지 동작하는 실제 인스턴스 예제 |
 | [`templates/`](./templates) | 새 사용자가 자기 에이전트를 시작할 수 있는 **빈 채우기 템플릿** + [QUICKSTART](./templates/QUICKSTART.md) |
 | [`tools/`](./tools) | 결정론적 스크립트 — 스키마 검증(`validate_packs`), 수렴 지표(`convergence_report`), 중복 신호(`dedup_check`), dedup/병합 actuator(`pab_merge`), 컨텍스트 선택 참조 술어(`context_select`), 런타임 어댑터 참조 컴파일러(`compile_adapter`), 레코드↔JSON Schema 대조(`check_schemas`)·스킬 트리거 블록 계약 검사(`check_triggers`)·문서 링크·커맨드 무결성 가드(`check_anchors`·`check_commands`)·부트스트랩 인벤토리 계획(`bootstrap_plan`). 모두 테스트로 잠김 |
@@ -173,7 +173,7 @@
 
 - **자기 에이전트를 만들고 싶은 사람** → [`templates/QUICKSTART.md`](./templates/QUICKSTART.md)
   로 첫 세션에서 시작하세요. 당신의 데이터는 기본 비공개입니다.
-- **스키마/방법론에 기여하고 싶은 사람** → 14개 팩 스키마, 15개 스킬, 수렴 지표는 모두
+- **스키마/방법론에 기여하고 싶은 사람** → 14개 팩 스키마, 17개 스킬, 수렴 지표는 모두
   열려 있습니다. [`CONTRIBUTING.md`](./CONTRIBUTING.md) · [`GOVERNANCE.md`](./GOVERNANCE.md).
 - **연구자·도구 제작자** → 9-space 크로스워크로 OpenCrab MetaOntology OS와 정합합니다.
   검증 스크립트로 누구나 팩 품질을 재현 검사할 수 있습니다.

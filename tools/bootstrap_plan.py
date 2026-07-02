@@ -46,6 +46,11 @@ def _snake(md_name):
     return stem.replace("-", "_")
 
 
+def _repo_rel(root, path):
+    """Return a stable repo-relative path for plan JSON, independent of host OS."""
+    return os.path.relpath(path, root).replace(os.sep, "/")
+
+
 def build_plan(root, subject=None):
     """Return the deterministic plan dict for a repo checkout at `root`."""
     skills = sorted(glob.glob(os.path.join(root, "skills", "[0-9]*.md")))
@@ -54,17 +59,17 @@ def build_plan(root, subject=None):
 
     builder = []
     for f in skills:
-        builder.append({"pack": f"skill.pab.{_snake(f)}.v0.1", "source": [os.path.relpath(f, root)]})
+        builder.append({"pack": f"skill.pab.{_snake(f)}.v0.1", "source": [_repo_rel(root, f)]})
     for f in specs:
-        builder.append({"pack": f"pa.{_snake(f)}.v0.1", "source": [os.path.relpath(f, root)]})
+        builder.append({"pack": f"pa.{_snake(f)}.v0.1", "source": [_repo_rel(root, f)]})
     for f in templates:
         pack = os.path.basename(f).replace("user.", "", 1).replace(".template.yaml", "")
         schema = os.path.join(root, "schemas", f"user.{pack}.schema.json")
-        src = [os.path.relpath(f, root)]
+        src = [_repo_rel(root, f)]
         if os.path.isfile(schema):
-            src.append(os.path.relpath(schema, root))
+            src.append(_repo_rel(root, schema))
         builder.append({"pack": f"personal.{pack}.template.v0.1", "source": src})
-    shared = [os.path.join("schemas", s) for s in SHARED_SCHEMAS
+    shared = [f"schemas/{s}" for s in SHARED_SCHEMAS
               if os.path.isfile(os.path.join(root, "schemas", s))]
     if shared:
         builder.append({"pack": "pa.shared_schemas.v0.1", "source": shared})

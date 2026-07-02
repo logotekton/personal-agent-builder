@@ -1994,6 +1994,10 @@ class TestBootstrapPlanIt28(unittest.TestCase):
         # template packs carry BOTH the yaml template and its paired json schema as sources
         tmpl = next(p for p in plan["builder_packs"] if p["pack"] == "personal.persona_core.template.v0.1")
         self.assertEqual(len(tmpl["source"]), 2)
+        self.assertEqual(tmpl["source"], ["templates/user.persona_core.template.yaml",
+                                          "schemas/user.persona_core.schema.json"])
+        for item in plan["builder_packs"]:
+            self.assertTrue(all("\\" not in src for src in item["source"]), item)
 
     def test_subject_names_the_shells_and_missing_root_exits_2(self):
         plan = json.loads(self._run(REPO, "--subject", "logotekton", "--json").stdout)
