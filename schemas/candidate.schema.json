@@ -105,7 +105,19 @@
         "manual",
         "other"
       ],
-      "description": "How this candidate was produced, naming the upstream builder skill (01–04) or a manual/other source. evidence_capture=skill 01; session_mining=skill 02; elicitation_questioning=skill 03 (structured interview); diff_mining=skill 04 (before/after corrections). Records extraction provenance for traceability and for weighting `confidence_inputs` (e.g. diff_mining tends to carry strong correction_strength)."
+      "description": "How this candidate was produced, naming the upstream builder skill (01–04) or a manual/other source. evidence_capture=skill 01; session_mining=skill 02; elicitation_questioning=skill 03 (structured interview); diff_mining=skill 04 (before/after corrections). Records extraction provenance for traceability and for weighting `confidence_inputs` (e.g. diff_mining tends to carry strong correction_strength). A skill-15 (tacit_knowledge_mining) run re-reads evidence already captured by 01–04, so its candidates carry the upstream method (usually session_mining or diff_mining) plus the skill-15 anchors episode_id/signal_text/protected_outcome below."
+    },
+    "episode_id": {
+      "type": "string",
+      "description": "OPTIONAL session-episode anchor: which episode (decision point) of the source session this candidate was mined from — skill 15 §2[A] episode decomposition. Schema-optional for backward compatibility with pre-15 candidates; a skill-15 (tacit_knowledge_mining) run REQUIRES it at run level: its quality gate rejects tacit candidates that cannot say WHICH episode revealed them."
+    },
+    "signal_text": {
+      "type": "string",
+      "description": "OPTIONAL verbatim user signal: the exact user phrase/correction/decision this claim was mined from — the 근거 신호 column of the skill-15 review board. Complements evidence_refs (a pointer) by carrying the quote inline so the human reviewer can judge the inference without dereferencing. Schema-optional; REQUIRED at run level by skill 15's quality gates — a tacit-knowledge claim without its observable signal is indistinguishable from guessed psychology (Gate G4)."
+    },
+    "protected_outcome": {
+      "type": "string",
+      "description": "OPTIONAL what the subject was protecting (or avoiding) when the signal fired — the 보호하려는 결과 column of the skill-15 review board (e.g. 'no unsourced numbers survive into reports'). Names the WHY behind the claim in outcome language, which is what makes a tacit principle transferable across projects (skill 02 §1.1 transferability)."
     },
     "reliability": {
       "type": "string",
@@ -177,5 +189,5 @@
     { "if": { "properties": { "candidate_type": { "const": "DriftRecordCandidate" } }, "required": ["candidate_type"] }, "then": { "properties": { "proposed_target_pack": { "const": "user.drift_history" } } } }
   ],
   "additionalProperties": true,
-  "$comment": "A CandidateAssertion is the pre-confirmation artifact, so this schema deliberately does NOT $ref record.base.schema.json — it carries the contract §8 / skill-05 field set (candidate_id, candidate_type, concise_claim, evidence_refs, confidence, scope, sensitivity, proposed_target_pack, validation_status, extraction_method) and the optional confidence_inputs object. Vocabulary is shared with the base: `sensitivity` and `validation_status` reuse the base enums (validation_status mirrors review_status). Field correspondence on promotion (skill 08): candidate_id→id, concise_claim→statement, validation_status→review_status, evidence_refs/confidence/scope/sensitivity carried over, proposed_target_pack selects the destination user.* schema. The 14 allOf if/then rules pin candidate_type→proposed_target_pack to the 1:1 total router (../spec/01-kernel-schema.md §6) so the two fields cannot disagree. Gates already active at candidate stage: G1 (evidence_refs ≥ 1), G2 (non-empty scope), G4 (behavioral language in concise_claim), G5 (sensitive/restricted blocked on a BoundaryRule before promotion); G3 means pending candidates never reach a pack. Pack catalog: ../spec/03-pack-catalog.md."
+  "$comment": "A CandidateAssertion is the pre-confirmation artifact, so this schema deliberately does NOT $ref record.base.schema.json — it carries the contract §8 / skill-05 field set (candidate_id, candidate_type, concise_claim, evidence_refs, confidence, scope, sensitivity, proposed_target_pack, validation_status, extraction_method) and the optional confidence_inputs object. Vocabulary is shared with the base: `sensitivity` and `validation_status` reuse the base enums (validation_status mirrors review_status). Field correspondence on promotion (skill 08): candidate_id→id, concise_claim→statement, validation_status→review_status, evidence_refs/confidence/scope/sensitivity carried over, proposed_target_pack selects the destination user.* schema. The 14 allOf if/then rules pin candidate_type→proposed_target_pack to the 1:1 total router (../spec/01-kernel-schema.md §6) so the two fields cannot disagree. Gates already active at candidate stage: G1 (evidence_refs ≥ 1), G2 (non-empty scope), G4 (behavioral language in concise_claim), G5 (sensitive/restricted blocked on a BoundaryRule before promotion); G3 means pending candidates never reach a pack. The optional skill-15 anchors (episode_id, signal_text, protected_outcome) stay optional here so pre-15 candidate sets remain valid; skill 15 enforces them per-run. Pack catalog: ../spec/03-pack-catalog.md."
 }
