@@ -49,6 +49,12 @@ import os
 import sys
 from typing import Any, Iterable, List, Optional, Tuple
 
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 # PyYAML 은 선택 의존성입니다. 없으면 JSON 파일만 검사하고 YAML 은 친절히 건너뜁니다.
 try:  # guarded optional import
     import yaml  # type: ignore

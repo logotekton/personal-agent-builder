@@ -49,46 +49,49 @@ claim=증거에 묶인 확인된 작업패턴 주장; policy=경계·권한·결
 lever=워크플로 단계·결정 우선순위; resource=도구·출처; community=주인↔에이전트·리뷰보드.
 ```
 
-## 프로젝트 토폴로지 — 빌더 공장과 산출 인제스트 (2-project)
+## 프로젝트 토폴로지 — 빌더 장치, 증거 아카이브, 개인 에이전트 (3-project)
 
 > **EN:** On OpenCrab the four pack classes ([08 §4](./08-naming-and-ids.md#4-팩-클래스-접두사-4개-클래스--절대-섞지-않음))
-> live in **two** projects: a reusable **builder** project (method + shape) and a per-person
-> **personal-agent** project (data + runtime). You *build with* the first and *ingest into* the
-> second. This keeps the people-agnostic apparatus separate from each owner's private instance —
-> the same governance split the class prefixes enforce, raised to the project level.
+> live in **three operational projects**: a reusable **builder** project (method + shape), a
+> per-subject **evidence archive** project (session evidence and pending candidate boards), and a
+> per-subject **personal-agent** project (confirmed data + runtime). You *mine with* the first,
+> *stage evidence* in the second, and *upsert confirmed memory* into the third. This keeps the
+> people-agnostic apparatus separate from both draft evidence and runtime-active memory.
 
 PAB의 [4개 팩 클래스](./08-naming-and-ids.md#4-팩-클래스-접두사-4개-클래스--절대-섞지-않음)는
-OpenCrab에서 **두 개의 프로젝트**로 나뉩니다:
+OpenCrab에서 **세 개의 운영 프로젝트**로 배치합니다:
 
 | OpenCrab 프로젝트 | 담는 팩 클래스 | 역할 | 재사용 |
 |-------------------|----------------|------|--------|
 | **빌더** (예: `personal agent builder skills`) | `skill.pab.*`(방법) + `user.*`/`*.template`(형태) + 스펙·거버넌스·리뷰보드 | 추출·확인·라우팅·컴파일을 *수행하는 장치* | **사람 무관** — 모든 주인에게 동일 |
-| **개인 에이전트** (예: `personal agent`) | `personal.<subject>.*`(확정 데이터) + `*.runtime_adapter`(런타임) | 한 주인의 *산출물* | **주인당 하나** — 사적 인스턴스 |
+| **증거 아카이브** (예: `personal agent evidence`) | 세션 증거·후보 팩·pending 검토 보드 | 확정 전 후보와 근거를 보존하는 *비계* | **주인/세션 단위** — 검색 대상이 아니라 감사·검토 출처 |
+| **개인 에이전트** (예: `personal agent`) | 승인된 `personal.<subject>.*` 14팩 + `*.runtime_adapter`(런타임) | 한 주인의 *정식 기억과 런타임* | **주인당 하나** — 사적 인스턴스 |
 
-**흐름 (build → ingest → compile):**
+**흐름 (mine → stage evidence → confirm → upsert → compile):**
 
 ```
 [빌더 프로젝트]  skill.pab.* + user.*.template
-        │  (그 사람의 실제 세션·교정·diff = 입력 원재료, 어느 프로젝트에도 안 속함)
-        ▼  스킬로 추출 → 확인 게이트(G3) → 라우팅
-  확정 인스턴스 팩  personal.<subject>.*
-        │  ───────────────── ingest ─────────────────►
+        │  (그 사람의 실제 세션·교정·diff = 입력 원재료)
+        ▼  스킬 15로 암묵지 후보 보드 생성
+[증거 아카이브 프로젝트]  세션 증거·pending 후보·검토 보드
+        │  confirm/edit/reject/narrow (G3)
         ▼
-[개인 에이전트 프로젝트]  personal.<subject>.* (데이터)
+[개인 에이전트 프로젝트]  승인된 personal.<subject>.* 14팩
         │  compile(S10, project-run)
         ▼
   personal.<subject>.runtime_adapter  ← 작업을 실행하는 Personal Agent
 ```
 
-두 가지 불변식:
+세 가지 불변식:
 
 1. **빌더는 사람을 모른다.** `skill.pab.*`·`user.*` 템플릿은 *어떤 개인의 데이터도 담지 않습니다*(G6).
-   그래서 한 빌더 프로젝트로 *여러 사람*의 에이전트를 만들 수 있고, 각자는 자기 `personal.<subject>.*`
-   팩과 자기 개인 에이전트 프로젝트를 가집니다.
-2. **산출은 빌더로 역류하지 않는다.** 확정 인스턴스 팩과 컴파일된 어댑터는 *개인 에이전트* 프로젝트에만
-   적재되고 빌더 프로젝트에 섞이지 않습니다(클래스 분리를 프로젝트 차원으로 끌어올린 것).
+   그래서 한 빌더 프로젝트로 *여러 사람*의 에이전트를 만들 수 있습니다.
+2. **증거 아카이브는 런타임 기억이 아니다.** 세션 팩과 pending 후보 보드는 검토·감사용 비계입니다.
+   여기에 들어갔다고 개인 에이전트가 즉시 달라지지 않습니다.
+3. **승인된 기억만 개인 에이전트로 간다.** confirmed/narrowed 후보만 `personal agent`의 정식 14팩에
+   upsert 되고, 컴파일된 어댑터 역시 개인 에이전트 프로젝트에만 적재됩니다.
 
-> 즉 "빌더 프로젝트*로만* 만든다"와 "산출 팩은 개인 에이전트 프로젝트에 인제스트된다"는 둘 다 맞습니다 —
-> 빌더는 *공장*, 개인 에이전트는 *제품 라인*입니다. 입력은 그 사람의 진짜 세션이고, 그건 어느 온톨로지
-> 프로젝트에도 속하지 않는 *외부 증거*입니다([01 라이프사이클](./01-kernel-schema.md): `raw_signal` →
-> … → `target_pack_ingested` → `runtime_activated`).
+> 즉 "빌더 프로젝트*로만* 만든다"와 "승인된 팩은 개인 에이전트 프로젝트에 인제스트된다"는 둘 다 맞습니다.
+> 그 사이의 `personal agent evidence`는 세션 증거와 후보를 보존하는 *비계*입니다. 런타임 기억은 오직
+> 정식 14팩 upsert 이후에만 바뀝니다([01 라이프사이클](./01-kernel-schema.md): `reviewed_assertion` →
+> `target_pack_ingested` → `runtime_activated`).

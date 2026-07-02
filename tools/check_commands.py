@@ -32,6 +32,12 @@ as `FAIL exit=N: <cmd>  (<file>)`). This is a gate, not a signal.
 """
 import sys, os, re, glob, subprocess, argparse, shlex
 
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 TOOL_INVOCATION = re.compile(r'^\s*(python3?|python3? -m)\s+\S')
 FENCE = re.compile(r'^\s*(```|~~~)')
 PLACEHOLDER = ('<', '당신', 'path/to', '...', '--subject')
@@ -111,6 +117,12 @@ def classify(cmd):
     return 'skip:out-of-scope'
 
 
+def runnable_command(cmd):
+    """Run documented Python commands with this interpreter, even on hosts without `python3`."""
+    exe = subprocess.list2cmdline([sys.executable]) if os.name == 'nt' else shlex.quote(sys.executable)
+    return re.sub(r'^python3?(?= )', lambda _m: exe, cmd, count=1)
+
+
 def main():
     ap = argparse.ArgumentParser(description='Run every safe documented command and check it succeeds.')
     ap.add_argument('roots', nargs='*', default=['.'], help='dirs/files to scan (default: cwd)')
@@ -140,10 +152,22 @@ def main():
             if args.list:
                 print(f'SKIP ({disp.split(":", 1)[1]}): {cmd}')
             continue
-        # normalize `python ` -> `python3 ` for the runner
-        runnable = re.sub(r'^python(?= )', 'python3', cmd)
+        # Normalize documented `python` / `python3` to the interpreter running this guard.
+        runnable = runnable_command(cmd)
+        env = os.environ.copy()
+        env.setdefault('PYTHONUTF8', '1')
+        env.setdefault('PYTHONIOENCODING', 'utf-8')
         try:
-            r = subprocess.run(runnable, shell=True, capture_output=True, text=True, timeout=180)
+            r = subprocess.run(
+                runnable,
+                shell=True,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                timeout=180,
+                env=env,
+            )
             ok = r.returncode == 0
         except Exception as e:  # noqa: BLE001 — surface any launch failure as a break
             ok, r = False, type('R', (), {'returncode': -1, 'stderr': str(e)})()

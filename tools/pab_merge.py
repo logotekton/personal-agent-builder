@@ -49,6 +49,12 @@ import re
 import sys
 import unicodedata
 
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 try:
     import yaml  # optional; needed for YAML in/out
     _HAVE_YAML = True

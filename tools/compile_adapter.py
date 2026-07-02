@@ -32,6 +32,12 @@ import os
 import sys
 import unicodedata
 
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import convergence_report as cr   # loader (collect/load_structured) + CANONICAL_PACKS  # noqa: E402
 import context_select as cs       # scope_overlap predicate  # noqa: E402

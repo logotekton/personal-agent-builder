@@ -52,6 +52,22 @@ try:
 except Exception:
     HAVE_YAML = False
 
+CLI_ENV = os.environ.copy()
+CLI_ENV.setdefault("PYTHONUTF8", "1")
+CLI_ENV.setdefault("PYTHONIOENCODING", "utf-8")
+
+
+def run_cli(argv, **kwargs):
+    return subprocess.run(
+        argv,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=CLI_ENV,
+        **kwargs,
+    )
+
 
 def almost(a, b, places=4):
     return round(a - b, places) == 0
@@ -796,7 +812,7 @@ class TestCandidateSkip(unittest.TestCase):
 
 # ───────────────────────── end-to-end CLI (subprocess) ─────────────────────
 def _run(*args):
-    return subprocess.run([sys.executable, *args], cwd=REPO, capture_output=True, text=True)
+    return run_cli([sys.executable, *args], cwd=REPO)
 
 
 @unittest.skipUnless(HAVE_YAML, "PyYAML needed for the full recursive validate/dedup CLI run")
@@ -1418,16 +1434,14 @@ class TestSystemicConsistencyIt16(unittest.TestCase):
                 _json.dump({"user.tacit_heuristics": [
                     {"id": "a", "statement": "x", "scope": "s", "merge_history": ["m1", "m2", "m3"]},
                     {"id": "b", "statement": "y", "scope": "s"}]}, fh)
-            out = subprocess.run([sys.executable, os.path.join(TOOLS, "dedup_check.py"), p],
-                                 capture_output=True, text=True)
+            out = run_cli([sys.executable, os.path.join(TOOLS, "dedup_check.py"), p])
         # 3 merges in the trail / (3 + 2 records) = 0.6; pre-fix (counter only) would be 0.0
         merge_line = [ln for ln in out.stdout.splitlines() if "merge_rate" in ln][0]
         self.assertIn("0.6", merge_line)
 
     def test_merge_rate_example_locked_unchanged(self):
         # the provenance-aware count must still reproduce the locked 0.095 on the clean example
-        out = subprocess.run([sys.executable, os.path.join(TOOLS, "dedup_check.py"), EXAMPLE],
-                             capture_output=True, text=True)
+        out = run_cli([sys.executable, os.path.join(TOOLS, "dedup_check.py"), EXAMPLE])
         self.assertIn("0.095", out.stdout)
 
     def test_compile_adapter_dup_id_statement_diff_scope_is_total_order(self):
@@ -1600,8 +1614,8 @@ class TestPabMergeYamlRoundTripIt20(unittest.TestCase):
             with open(empty, "w") as fh:
                 fh.write("[]")
             out = os.path.join(tmp, "instance-records.yaml")
-            rc = subprocess.run([sys.executable, os.path.join(TOOLS, "pab_merge.py"),
-                                 inst, empty, "--apply", "--out", out], capture_output=True, text=True)
+            rc = run_cli([sys.executable, os.path.join(TOOLS, "pab_merge.py"),
+                          inst, empty, "--apply", "--out", out])
             self.assertEqual(rc.returncode, 0, rc.stderr)
             parsed = cr.load_structured(out)   # the bundled mini-parser, NOT PyYAML
             self.assertIsNotNone(parsed, "pab_merge YAML output was unreadable by the mini-parser")
@@ -1646,16 +1660,14 @@ class TestUnicodeAndOperationalIt21(unittest.TestCase):
                     _json.dump({"user.tacit_heuristics": [
                         {"id": nm[0], "statement": "always run the tests before committing code",
                          "scope": "s"}]}, fh)
-            r1 = subprocess.run([sys.executable, os.path.join(TOOLS, "dedup_check.py"), tmp],
-                                capture_output=True, text=True).stdout
-            r2 = subprocess.run([sys.executable, os.path.join(TOOLS, "dedup_check.py"), tmp],
-                                capture_output=True, text=True).stdout
+            r1 = run_cli([sys.executable, os.path.join(TOOLS, "dedup_check.py"), tmp]).stdout
+            r2 = run_cli([sys.executable, os.path.join(TOOLS, "dedup_check.py"), tmp]).stdout
             self.assertEqual(r1, r2)   # files are sorted before aggregation -> stable output
 
     def test_check_schemas_passes_clean_and_catches_defects(self):
         import json as _json
-        rc = subprocess.run([sys.executable, os.path.join(TOOLS, "check_schemas.py"),
-                             os.path.join(REPO, "schemas")], capture_output=True, text=True)
+        rc = run_cli([sys.executable, os.path.join(TOOLS, "check_schemas.py"),
+                      os.path.join(REPO, "schemas")])
         self.assertEqual(rc.returncode, 0, rc.stdout)          # the shipped schemas are clean
         with tempfile.TemporaryDirectory() as tmp:
             # a well-formed base + a per-pack schema with a broken $ref -> must FAIL
@@ -1666,8 +1678,7 @@ class TestUnicodeAndOperationalIt21(unittest.TestCase):
                 _json.dump({"$schema": "https://json-schema.org/draft/2020-12/schema",
                             "$id": "y", "title": "t", "description": "d",
                             "allOf": [{"$ref": "./DELETED.schema.json"}]}, fh)
-            rc2 = subprocess.run([sys.executable, os.path.join(TOOLS, "check_schemas.py"), tmp],
-                                 capture_output=True, text=True)
+            rc2 = run_cli([sys.executable, os.path.join(TOOLS, "check_schemas.py"), tmp])
             self.assertEqual(rc2.returncode, 1, rc2.stdout)
 
 
@@ -1701,8 +1712,7 @@ class TestTriggerContractCluster5(unittest.TestCase):
     value now validate. check_triggers.py locks the embedded blocks against the schema's own enums."""
 
     def _run(self, *args):
-        return subprocess.run([sys.executable, os.path.join(TOOLS, "check_triggers.py"), *args],
-                              capture_output=True, text=True)
+        return run_cli([sys.executable, os.path.join(TOOLS, "check_triggers.py"), *args])
 
     def test_all_embedded_triggers_validate(self):
         r = self._run(os.path.join(REPO, "skills"), os.path.join(REPO, "schemas", "trigger.schema.json"))
@@ -1736,8 +1746,7 @@ class TestCliExitContractCluster3(unittest.TestCase):
     read, so convergence does not conflate 'empty content' with 'no readable files' (exit 2)."""
 
     def _run(self, tool, *args):
-        return subprocess.run([sys.executable, os.path.join(TOOLS, tool), *args],
-                              capture_output=True, text=True)
+        return run_cli([sys.executable, os.path.join(TOOLS, tool), *args])
 
     def test_dedup_missing_path_exits_2(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1899,8 +1908,7 @@ class TestPropertyRegressionsIt24(unittest.TestCase):
                 p = os.path.join(tmp, "r.json")
                 with open(p, "w") as fh:
                     json.dump({"user.tacit_heuristics": rows}, fh)
-                out = subprocess.run([sys.executable, os.path.join(TOOLS, "dedup_check.py"), p],
-                                     capture_output=True, text=True).stdout
+                out = run_cli([sys.executable, os.path.join(TOOLS, "dedup_check.py"), p]).stdout
                 # the redundancy_ratio line must be invariant under input rotation
                 ratio = [ln for ln in out.splitlines() if "redundancy_ratio" in ln]
                 outs.add(ratio[0] if ratio else "")

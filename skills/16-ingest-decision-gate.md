@@ -14,8 +14,8 @@
 ingest 판정 게이트는 [07 확인 게이트](./07-confirmation-gate.md)의 **런-레벨 보완물**입니다.
 07이 *레코드 하나하나*를 confirm/edit/reject/narrow 로 심사한다면, 16은 *런이 만든 산출물
 전체*(후보 보드, 세션 팩, 장치 업데이트)가 **어느 프로젝트 층으로 들어가도 되는가**를 심사합니다.
-토폴로지는 [07 크로스워크의 2-project 모델](../spec/07-opencrab-9space-crosswalk.md)을
-3층으로 확장합니다(§2).
+토폴로지는 [07 크로스워크의 3-project 모델](../spec/07-opencrab-9space-crosswalk.md#프로젝트-토폴로지--빌더-장치-증거-아카이브-개인-에이전트-3-project)을
+런-레벨 ingest 판정으로 적용합니다(§2).
 
 ---
 

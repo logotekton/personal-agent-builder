@@ -65,6 +65,12 @@ import os
 import sys
 import unicodedata
 
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 # 정식 14 user 온톨로지 팩 이름 — spec/01-kernel-schema.md §5, CANONICAL_CONTRACT §5.
 # 순서 = 카탈로그 번호. 구 코드명(pa.t03, t06, x12, .ba 등)은 폐기됨.
 CANONICAL_PACKS = (
