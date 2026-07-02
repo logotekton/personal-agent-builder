@@ -27,6 +27,7 @@ Run:  python3 -m unittest discover -s tests   (또는)  python3 tests/test_tools
 """
 from __future__ import annotations
 
+import json
 import math
 import os
 import subprocess
@@ -1960,6 +1961,46 @@ class TestGamingDefensesCluster2(unittest.TestCase):
         self.assertAlmostEqual(ix["coverage"], 0.0714, places=4)
         self.assertEqual(ix["_content_packs_with_3"], 0)
         self.assertEqual(cr.maturity_tier(ix)[0], "L0")
+
+
+# ───────────────────── bootstrap plan (skill 17, it.28) ─────────────────────
+class TestBootstrapPlanIt28(unittest.TestCase):
+    """skills/17-bootstrap.md Stage-2 mapping contract: the deterministic plan tool must
+    reproduce the exact pack inventory the bootstrap adapter promises — 17 skill packs +
+    12 spec packs + 14 template packs + 1 shared-schema pack = 44 builder packs and 14
+    EMPTY personal shells — and follow the sibling CLI contract (missing root -> exit 2)."""
+
+    def _run(self, *args):
+        return run_cli([sys.executable, os.path.join(TOOLS, "bootstrap_plan.py"), *args])
+
+    def test_plan_counts_locked_to_repo_inventory(self):
+        r = self._run(REPO, "--json")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        plan = json.loads(r.stdout)
+        self.assertEqual(plan["counts"], {"skills": 17, "specs": 12, "templates": 14,
+                                          "builder_packs": 44, "personal_shells": 14})
+        self.assertEqual(len(plan["projects"]), 3)
+
+    def test_plan_is_deterministic_and_names_follow_the_contract(self):
+        a, b = self._run(REPO, "--json").stdout, self._run(REPO, "--json").stdout
+        self.assertEqual(a, b)
+        plan = json.loads(a)
+        packs = [p["pack"] for p in plan["builder_packs"]]
+        self.assertIn("skill.pab.bootstrap.v0.1", packs)            # 17-bootstrap.md -> snake name
+        self.assertIn("skill.pab.tacit_knowledge_mining.v0.1", packs)
+        self.assertIn("pa.kernel_schema.v0.1", packs)               # spec/01 -> pa.*
+        self.assertIn("personal.persona_core.template.v0.1", packs)
+        self.assertEqual(packs[-1], "pa.shared_schemas.v0.1")       # the 3 shared schemas, one pack
+        # template packs carry BOTH the yaml template and its paired json schema as sources
+        tmpl = next(p for p in plan["builder_packs"] if p["pack"] == "personal.persona_core.template.v0.1")
+        self.assertEqual(len(tmpl["source"]), 2)
+
+    def test_subject_names_the_shells_and_missing_root_exits_2(self):
+        plan = json.loads(self._run(REPO, "--subject", "logotekton", "--json").stdout)
+        self.assertTrue(all(s.startswith("personal.logotekton.") for s in plan["personal_shells"]))
+        with tempfile.TemporaryDirectory() as tmp:
+            r = self._run(os.path.join(tmp, "nope"))
+            self.assertEqual(r.returncode, 2)
 
 
 if __name__ == "__main__":
