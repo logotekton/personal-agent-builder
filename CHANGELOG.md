@@ -21,6 +21,33 @@
 
 ## [Unreleased]
 
+### 부트스트랩 어댑터 — fresh clone → OpenCrab 3층 토폴로지 (it.28)
+> "처음 이 레포를 접하는 사용자" 스토리를 문서에서 실행 가능한 절차로. 발화 모드는
+> 에이전트가 정하지 않고 **소유자가 선택**한다(A 명령형[기본]/B 훅 자동/C 수동 —
+> spec/09 `default_state` 프로파일로 매핑).
+- **[Added]** [`skills/17-bootstrap.md`](./skills/17-bootstrap.md) — 프로비저닝 어댑터(14처럼
+  단계 아님): Stage 1 프로젝트 3개(빌더/증거 아카이브/개인 에이전트) → Stage 2 빌더 팩 44
+  ingest → Stage 3 빈 `personal.<subject>.*` 뼈대 14(레코드 0 — pending 은 evidence 층으로,
+  G3 보존) → Stage 4 발화 모드 선택(필수). 전 단계 멱등(있으면 건너뜀). 최종 보고 블록 계약.
+- **[Added]** [`tools/bootstrap_plan.py`](./tools/bootstrap_plan.py) — 레포 트리에서 프로비저닝
+  인벤토리를 결정론적으로 산출(스킬 17·12 스펙·14 템플릿+짝 스키마·공용 스키마 1팩 = 44;
+  뼈대 14; `--subject`/`--json`; 없는 루트 → exit 2). check_commands RUNNABLE_TOOLS 등록.
+- 테스트 181 → **184** (TestBootstrapPlanIt28: 인벤토리 잠금·결정론·이름 계약·exit 계약).
+
+### 3-project 토폴로지 정합 + 이식성 (소유자 직접 커밋, 2026-07-02)
+> `1f6e6c8`·`686466e` (logotekton). 세션에서 신설된 `personal agent evidence` 층을 스펙으로
+> 승격하고, Windows/UTF-8 이식성을 굳힘.
+- **[Changed]** spec/07 프로젝트 토폴로지 2-project → **3-project**(빌더/증거 아카이브/개인
+  에이전트), 불변식 2→3("증거 아카이브는 런타임 기억이 아니다" 추가); README·spec/08·
+  skills/15·16 참조 스윕.
+- **[Fixed]** it.27 미러 커밋이 들여온 한글 오타 8건(README·spec/09) — MCP 전체-파일 재생성
+  경로의 알려진 위험이 실증됨; 독립 검토(소유자)가 포착.
+- **[Fixed]** 도구 CLI 를 Windows 콘솔(cp949)에서도 안전하게: stdout/stderr UTF-8
+  reconfigure(도구 7종), check_commands 가 문서의 `python`/`python3` 를 `sys.executable` 로
+  정규화, 테스트 `run_cli` 헬퍼(UTF-8 env). 검토 발견 2건(라이프사이클 상태명
+  `reviewed_assertion` 오기 → 정식 체인으로 정정, UTF-8 헤더 커버리지 갭 3종)도 해소.
+
+
 ### OpenCrab 빌더 확장 미러링 — 스킬 15·16 (it.27)
 > 실사용에서 나온 실패 사례("personal agent 팩을 요청했는데 *작업 요약 팩*이 나옴")를 OpenCrab
 > 빌더 프로젝트가 장치로 막았고, 그 장치를 공개 스펙으로 미러링. 산출: 확장 스킬 2개 + 스키마
