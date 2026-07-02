@@ -93,5 +93,5 @@ OpenCrab에서 **세 개의 운영 프로젝트**로 배치합니다:
 
 > 즉 "빌더 프로젝트*로만* 만든다"와 "승인된 팩은 개인 에이전트 프로젝트에 인제스트된다"는 둘 다 맞습니다.
 > 그 사이의 `personal agent evidence`는 세션 증거와 후보를 보존하는 *비계*입니다. 런타임 기억은 오직
-> 정식 14팩 upsert 이후에만 바뀝니다([01 라이프사이클](./01-kernel-schema.md): `reviewed_assertion` →
-> `target_pack_ingested` → `runtime_activated`).
+> 정식 14팩 upsert 이후에만 바뀝니다([01 라이프사이클](./01-kernel-schema.md): `user_reviewed` →
+> `confirmed_or_rejected` → `target_pack_ingested` → `runtime_activated`).

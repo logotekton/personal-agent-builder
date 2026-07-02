@@ -21,6 +21,12 @@ import re
 import json
 import glob
 
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 try:
     import yaml  # type: ignore
     _HAVE_YAML = True

@@ -24,6 +24,12 @@ import os
 import json
 import glob
 
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 BASE = "record.base.schema.json"
 DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema"
 

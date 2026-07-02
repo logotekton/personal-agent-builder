@@ -23,6 +23,12 @@ redundancy_ratio > 0 or pack_cardinality > 1.
 """
 import sys, os, json, re, argparse, glob
 
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 CANONICAL_PACKS = [
     "user.identity_roles", "user.persona_core", "user.communication_style",
     "user.artifact_policy", "user.decision_policy", "user.tacit_heuristics",
