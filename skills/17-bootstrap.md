@@ -71,6 +71,12 @@ id 를 캐시합니다.
 보고합니다. "프로젝트를 먼저 만들어 달라"는 요청은 사용자에게 되묻지 말고 이 규칙으로 직접
 수행합니다.
 
+**프로젝트만 만들고 끝내는 것은 실패입니다.** Stage 1 완료는 부트스트랩 성공이 아니라
+Stage 2/3 의 선행조건일 뿐입니다. 최종 보고에서 `Ingest judgement: YES` 를 쓰려면
+빌더 프로젝트의 44팩과 개인 에이전트 프로젝트의 14개 빈 뼈대까지 모두 생성/연결되어야 합니다.
+프로젝트 3개만 생성된 상태는 `NO (incomplete: packs missing)` 로 보고하고, 가능한 경우 즉시
+Stage 2/3 을 계속 실행합니다.
+
 ## Stage 2 · 빌더 팩 ingest (~44팩)
 
 레포의 방법·형태 원료를 빌더 프로젝트의 팩으로 올립니다. **무엇을 어떤 이름으로 올릴지는
@@ -96,6 +102,12 @@ python tools/bootstrap_plan.py .
 `opencrab_pack_update` — 팩 증식(sprawl)은 [spec/10](../spec/10-dedup-and-merge.md)이 금지하는
 안티패턴입니다.
 
+**Stage 2 완료 게이트:** `python tools/bootstrap_plan.py . --json` 의 `builder_packs` 전부가
+`personal agent builder skills` 프로젝트에 pack 으로 존재해야 합니다. `created + skipped`
+합계가 plan 의 `counts.builder_packs`(현재 44)와 다르면 부트스트랩은 아직 끝나지 않았습니다.
+에이전트는 프로젝트 생성 직후 팩이 0개인 상태를 성공으로 보고하지 말고, 이 목록을 끝까지
+ingest/add/update 해야 합니다.
+
 ## Stage 3 · `personal.<subject>.*` 빈 뼈대 14개
 
 개인 에이전트 프로젝트에 14개 정식 팩의 **빈 컨테이너**를 만듭니다 — 내용은
@@ -107,6 +119,16 @@ python tools/bootstrap_plan.py .
 - 이름: `personal.<subject>.<pack>.v0.1` — `<subject>` 는 **Stage 0 에서 소유자가 확정한 핸들**
   (예: `personal.logotekton.persona_core.v0.1`). 핸들 없이는 이 단계를 실행하지 않습니다.
 - 멱등성: 동일.
+
+절차: `python tools/bootstrap_plan.py . --subject <핸들> --json` 의 `personal_shells` 14개를
+각각 `opencrab_ingest_text` 로 **빈 shell pack** 으로 생성하고 `personal agent` 프로젝트에
+연결합니다. shell content 는 "이 팩은 확인 게이트를 통과한 레코드의 upsert 를 기다리는 빈
+뼈대이며, 현재 personal records = 0" 이라는 선언, 대응 template/schema 이름, 생성 시각만
+담습니다. 어떤 candidate/confirmed 레코드도 넣지 않습니다.
+
+**Stage 3 완료 게이트:** 개인 에이전트 프로젝트에 `personal.<subject>.*.v0.1` shell 이 정확히
+14개 존재해야 합니다. `Personal records created` 는 반드시 0이어야 하지만, `Personal shells`
+는 14개 생성/연결되어야 합니다. shell pack 이 0개인 상태는 성공이 아닙니다.
 
 ## Stage 4 · 발화 모드 선택 (필수 — 에이전트가 정하지 않는다)
 
@@ -145,6 +167,8 @@ Next action: run skill 15 on a real session | wire hooks (docs/hooks-setup.md) |
 - `python tools/bootstrap_plan.py .` 의 합계와 실제 생성/건너뜀 수의 합이 일치해야 합니다.
 - `opencrab_project_manage(action=list)` 에 세 프로젝트, 빌더에 44팩, 개인 에이전트에 14뼈대.
 - bootstrap 중 `Project Not Found` 는 최종 실패가 아니라 Stage 1 ensure/retry 로 회복되어야 합니다.
+- 프로젝트만 있고 팩이 없으면 실패입니다: Stage 2 의 44 builder packs 와 Stage 3 의 14 shell packs
+  가 모두 생성/연결되어야 합니다.
 - 개인 에이전트 프로젝트의 어떤 팩에도 레코드가 없어야 합니다(뼈대 선언문뿐).
 
 ## 인접 문서

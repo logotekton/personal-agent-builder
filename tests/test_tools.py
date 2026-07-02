@@ -2023,6 +2023,15 @@ class TestBootstrapPlanIt28(unittest.TestCase):
         self.assertIn("Stage 1 을 다시 실행", text)
         self.assertIn("한 번 재시도", text)
 
+    def test_bootstrap_skill_forbids_project_only_success(self):
+        with open(os.path.join(REPO, "skills", "17-bootstrap.md"), encoding="utf-8") as fh:
+            text = fh.read()
+        self.assertIn("프로젝트만 만들고 끝내는 것은 실패", text)
+        self.assertIn("Stage 2 완료 게이트", text)
+        self.assertIn("counts.builder_packs", text)
+        self.assertIn("Stage 3 완료 게이트", text)
+        self.assertIn("shell pack 이 0개인 상태는 성공이 아닙니다", text)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
