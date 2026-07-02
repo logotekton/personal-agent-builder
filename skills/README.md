@@ -2,15 +2,15 @@
 
 > **EN:** This is the index for the builder skills of Personal Agent Builder (v0.3) — the
 > `skill.pab.*` process packs that say *how* to turn raw session signals into a compiled
-> Personal Agent: **13 core skills** plus the host-binding adapter (`14`) and **two extension
-> skills** (`15`–`16`). Skills `01`–`12` are the runnable pipeline in execution order; `13`
+> Personal Agent: **13 core skills** plus **two extension
+> skills** (`15`–`16`) and two adapters — host binding (`14`) and bootstrap provisioning (`17`). Skills `01`–`12` are the runnable pipeline in execution order; `13`
 > (`kernel_schema`) is not a step but the shared schema spine every skill reads first; `15`–`16`
 > extend the pipeline without adding steps (deep tacit mining; run-level ingest gate). Each
 > core skill owns exactly one pipeline step and one Crab role; the full step→skill→role→gate
 > mapping lives in [`../spec/02-builder-pipeline.md`](../spec/02-builder-pipeline.md).
 
-이 폴더는 **빌더 스킬**(`skill.pab.*`) 문서입니다 — 핵심 13개(01–13) + 호스트 배선
-어댑터(14) + 확장 스킬 2개(15–16). 스킬은 *방법*(HOW)을 규정합니다 —
+이 폴더는 **빌더 스킬**(`skill.pab.*`) 문서입니다 — 핵심 13개(01–13) + 확장 스킬 2개(15–16)
++ 어댑터 2개(14 호스트 배선, 17 부트스트랩). 스킬은 *방법*(HOW)을 규정합니다 —
 원시 신호 한 조각을 어떻게 증거에 묶고, 스코프를 주고, 사람의 확인을 거쳐, 14개 `user.*`
 팩으로 라우팅하고, 런타임으로 컴파일해, 평가·드리프트 루프로 되돌리는지의 운영 절차입니다.
 각 문서는 마케팅이 아니라 **그대로 따라 돌릴 수 있는 지침**으로 작성되어 있습니다.
@@ -49,6 +49,7 @@
 | [`14-host-binding.md`](./14-host-binding.md) | *(배포 어댑터, 단계 아님)* | — | 추상 트리거([09](../spec/09-triggers.md))를 실제 호스트(**Claude Code 훅 · Codex CLI 훅 · OpenAI Agents SDK · 순수 API**)에 배선해 자동 포착을 실가동. 행동은 MCP로 한 벌. | Binds the abstract triggers to a real host (Claude Code hooks, Codex CLI hooks, Agents SDK, plain API) so auto-capture runs live; actions go through MCP. |
 | [`15-tacit-knowledge-mining.md`](./15-tacit-knowledge-mining.md) | *(확장 · `mine_or_ask` 심화)* | Tacit Miner | 세션을 작업 요약이 아니라 *결정자(decider)의 암묵지*로 채굴 — 에피소드 분해·대조 프레이밍·4컬럼 검토 보드. | Mines a session for the decider's tacit knowledge, not a task summary — episode decomposition, contrastive framing, 4-column review board. |
 | [`16-ingest-decision-gate.md`](./16-ingest-decision-gate.md) | *(확장 · 런-레벨 게이트)* | Ingest Judge | 모든 빌더 런을 명시적 ingest 판정(YES/NO/WAITING)과 3층 타깃(빌더/증거/개인)으로 종결. | Ends every builder run with an explicit ingest judgement (YES/NO/WAITING) and a 3-layer target (builder/evidence/personal). |
+| [`17-bootstrap.md`](./17-bootstrap.md) | *(프로비저닝 어댑터, 단계 아님)* | — | fresh clone → OpenCrab 3-프로젝트 + 빌더 팩 44 + 빈 14 뼈대; 주체 핸들과 발화 모드는 소유자가 선택(멱등·개인 기억 0). | Provisions a fresh clone into the 3-project OpenCrab topology (44 builder packs, 14 empty shells); the owner picks the subject handle and the activation mode. |
 
 ## 파이프라인 한 장 그림
 

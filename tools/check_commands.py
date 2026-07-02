@@ -49,7 +49,7 @@ RECURSIVE = ('unittest', 'test_tools.py')
 # only these repo tools are auto-run; anything else is skipped as out-of-scope
 RUNNABLE_TOOLS = ('validate_packs.py', 'convergence_report.py', 'dedup_check.py',
                   'check_anchors.py', 'check_schemas.py', 'check_triggers.py',
-                  'context_select.py', 'compile_adapter.py', 'pab_merge.py')
+                  'context_select.py', 'compile_adapter.py', 'pab_merge.py', 'bootstrap_plan.py')
 
 
 def fenced_blocks(path):

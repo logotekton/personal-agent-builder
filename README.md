@@ -113,10 +113,10 @@
 | [`.claude/`](./.claude), [`.codex/`](./.codex) | 커밋된 **훅 설정** — Claude Code(`settings.json`)·Codex CLI(`config.toml`)에서 자동 포착을 가동하는 배선 + 공유 스텁 [`tools/pab`](./tools/pab) (현재 STUB) |
 | [`spec/`](./spec) | 시스템 전체 사양 — 커널 스키마, 빌더 파이프라인, 팩 카탈로그, 프라이버시, 평가, **수렴 모델**, 9-space 크로스워크, 네이밍, **트리거**, 중복 억제·병합, **확인 정책** |
 | [`schemas/`](./schemas) | 14개 user 온톨로지 팩의 JSON Schema + 통합 베이스 레코드 + 후보/평가/**트리거** 스키마 (기계 검증용) |
-| [`skills/`](./skills) | 15개 빌더 스킬 문서(핵심 13 + 확장 2: 암묵지 채굴·ingest 판정) — 암묵지를 팩으로 바꾸는 *방법* (각 스킬의 발화 **트리거** 포함) + 트리거를 실제 호스트(Claude/Codex/Agents SDK/API)에 배선하는 **호스트 배선 어댑터** |
+| [`skills/`](./skills) | 15개 빌더 스킬 문서(핵심 13 + 확장 2: 암묵지 채굴·ingest 판정) — 암묵지를 팩으로 바꾸는 *방법* (각 스킬의 발화 **트리거** 포함) + 어댑터 2(트리거를 실제 호스트에 배선하는 **호스트 배선**, fresh clone 을 OpenCrab 3-프로젝트로 프로비저닝하는 **부트스트랩**) |
 | [`examples/logotekton/`](./examples/logotekton) | 처음부터 끝까지 동작하는 실제 인스턴스 예제 |
 | [`templates/`](./templates) | 새 사용자가 자기 에이전트를 시작할 수 있는 **빈 채우기 템플릿** + [QUICKSTART](./templates/QUICKSTART.md) |
-| [`tools/`](./tools) | 결정론적 스크립트 — 스키마 검증(`validate_packs`), 수렴 지표(`convergence_report`), 중복 신호(`dedup_check`), dedup/병합 actuator(`pab_merge`), 컨텍스트 선택 참조 술어(`context_select`), 런타임 어댑터 참조 컴파일러(`compile_adapter`), 레코드↔JSON Schema 대조(`check_schemas`)·스킬 트리거 블록 계약 검사(`check_triggers`)·문서 링크·커맨드 무결성 가드(`check_anchors`·`check_commands`). 모두 테스트로 잠김 |
+| [`tools/`](./tools) | 결정론적 스크립트 — 스키마 검증(`validate_packs`), 수렴 지표(`convergence_report`), 중복 신호(`dedup_check`), dedup/병합 actuator(`pab_merge`), 컨텍스트 선택 참조 술어(`context_select`), 런타임 어댑터 참조 컴파일러(`compile_adapter`), 레코드↔JSON Schema 대조(`check_schemas`)·스킬 트리거 블록 계약 검사(`check_triggers`)·문서 링크·커맨드 무결성 가드(`check_anchors`·`check_commands`)·부트스트랩 인벤토리 계획(`bootstrap_plan`). 모두 테스트로 잠김 |
 
 ## OpenCrab 위에서 — 빌더 장치, 증거 아카이브, 개인 에이전트 (3-project)
 
