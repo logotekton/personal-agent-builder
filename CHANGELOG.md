@@ -21,6 +21,28 @@
 
 ## [Unreleased]
 
+### OpenCrab 빌더 확장 미러링 — 스킬 15·16 (it.27)
+> 실사용에서 나온 실패 사례("personal agent 팩을 요청했는데 *작업 요약 팩*이 나옴")를 OpenCrab
+> 빌더 프로젝트가 장치로 막았고, 그 장치를 공개 스펙으로 미러링. 산출: 확장 스킬 2개 + 스키마
+> 배선 + 카운트 스윕. 파이프라인 불변식(13개 스킬·12개 단계)은 유지 — 확장은 단계를 만들지 않음.
+- **[Added]** [`skills/15-tacit-knowledge-mining.md`](./skills/15-tacit-knowledge-mining.md) —
+  세션을 작업 요약이 아니라 **결정자(decider)의 암묵지**로 채굴: 에피소드 분해, 전이성+왜-암묵지
+  이중 검증, 대조 프레이밍, 6개 채굴 렌즈(분석 어휘 — 새 레코드 타입 아님), **4컬럼 검토 보드
+  첫-화면 계약**(`ID | 암묵지 후보 | 근거 신호 | 보호하려는 결과`), 런-레벨 품질 게이트.
+  (미러 원본: OpenCrab `skill.pab.tacit_knowledge_mining.v0.2`)
+- **[Added]** [`skills/16-ingest-decision-gate.md`](./skills/16-ingest-decision-gate.md) —
+  모든 빌더 런을 명시적 **ingest 판정**(YES/NO/WAITING_FOR_CONFIRMATION) + **3층 타깃
+  토폴로지**(builder skills / personal agent evidence / personal agent)로 종결. 증거 팩 갱신 ≠
+  런타임 기억 갱신(정식 14팩 upsert만이 기억을 바꿈)을 계약으로 고정.
+  (미러 원본: OpenCrab `skill.pab.ingest_decision_gate.v0.1`)
+- **[Added]** `candidate.schema.json`에 선택 필드 3종 — `episode_id`·`signal_text`·
+  `protected_outcome`(스킬 15의 검토 보드 앵커; 스키마상 선택, 스킬 15 런에서는 필수).
+- **[Changed]** `trigger.schema.json` skill enum + 2, [`spec/09`](./spec/09-triggers.md) 정식
+  트리거 표 + 2행(15는 `command` 발화, 16은 `candidate_created` 체인), 문서 카운트 13 → 15
+  스윕(README·skills/README — "핵심 13 + 확장 2" 프레이밍으로 파이프라인 불변식 보존).
+- 검증: 181 테스트 OK · validate_packs PASS 42 · check_schemas 17/0 · **check_triggers 13/0**
+  (11→13) · check_anchors 196/0 · check_commands 0 broken. 잠금 예제 숫자 전부 불변. CI green.
+
 ### 설계판단 해소 — 클러스터 2: 성숙도 게이밍 벡터 (부분, it.25)
 > HIGH 클러스터의 두 구체 벡터를 해소하되 **모든 잠금 예제 숫자를 보존**(재실행·회귀테스트로 확인).
 > 원리: "성숙도는 *고유한 실질적 행동 단위* 위에서만 집계한다."
