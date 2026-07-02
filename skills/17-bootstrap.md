@@ -58,6 +58,19 @@
 `action=create` (description 에 역할 한 줄, metadata 에 위 role). 이름은 소유자가 바꿔도
 되지만 **세 층의 분리 자체는 계약**입니다([spec/07 불변식](../spec/07-opencrab-9space-crosswalk.md)).
 
+**Stage 1 은 하드 프리플라이트입니다.** Stage 2 이후의 어떤 `opencrab_search_packs`,
+`opencrab_ingest_text`, `opencrab_pack_update`, `add_packs` 호출도 세 프로젝트가 모두
+존재하고, 방금 생성/조회한 **project id** 가 확보되기 전에는 실행하지 않습니다. 에이전트는
+프로젝트 이름만 믿고 다음 단계로 넘어가지 말고, create 후 반드시 다시 `list` 해서 세 역할의
+id 를 캐시합니다.
+
+**Project Not Found 복구 규칙:** Stage 2/3/4 중 어떤 OpenCrab 호출이라도 `Project Not Found`
+또는 동등한 오류를 반환하면, 그 상태는 사용자 실패가 아니라 **부트스트랩 ensure 누락**입니다.
+즉시 Stage 1 을 다시 실행해 누락된 프로젝트를 생성하고, `list` 로 id 를 재확보한 뒤 실패한
+작업을 **한 번 재시도**합니다. 재시도 후에도 실패할 때만 `Ingest judgement: NO (aborted)` 로
+보고합니다. "프로젝트를 먼저 만들어 달라"는 요청은 사용자에게 되묻지 말고 이 규칙으로 직접
+수행합니다.
+
 ## Stage 2 · 빌더 팩 ingest (~44팩)
 
 레포의 방법·형태 원료를 빌더 프로젝트의 팩으로 올립니다. **무엇을 어떤 이름으로 올릴지는
@@ -131,6 +144,7 @@ Next action: run skill 15 on a real session | wire hooks (docs/hooks-setup.md) |
 
 - `python tools/bootstrap_plan.py .` 의 합계와 실제 생성/건너뜀 수의 합이 일치해야 합니다.
 - `opencrab_project_manage(action=list)` 에 세 프로젝트, 빌더에 44팩, 개인 에이전트에 14뼈대.
+- bootstrap 중 `Project Not Found` 는 최종 실패가 아니라 Stage 1 ensure/retry 로 회복되어야 합니다.
 - 개인 에이전트 프로젝트의 어떤 팩에도 레코드가 없어야 합니다(뼈대 선언문뿐).
 
 ## 인접 문서

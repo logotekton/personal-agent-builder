@@ -2015,6 +2015,14 @@ class TestBootstrapPlanIt28(unittest.TestCase):
         for ok in ("logo_tekton", "logotekton2", "a_b_c"):
             self.assertEqual(self._run(REPO, "--subject", ok, "--json").returncode, 0, ok)
 
+    def test_bootstrap_skill_recovers_missing_projects_before_abort(self):
+        with open(os.path.join(REPO, "skills", "17-bootstrap.md"), encoding="utf-8") as fh:
+            text = fh.read()
+        self.assertIn("Stage 1 은 하드 프리플라이트", text)
+        self.assertIn("Project Not Found 복구 규칙", text)
+        self.assertIn("Stage 1 을 다시 실행", text)
+        self.assertIn("한 번 재시도", text)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
