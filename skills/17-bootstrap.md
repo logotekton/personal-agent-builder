@@ -107,6 +107,8 @@ python tools/bootstrap_plan.py .
 합계가 plan 의 `counts.builder_packs`(현재 44)와 다르면 부트스트랩은 아직 끝나지 않았습니다.
 에이전트는 프로젝트 생성 직후 팩이 0개인 상태를 성공으로 보고하지 말고, 이 목록을 끝까지
 ingest/add/update 해야 합니다.
+Evidence archive artifacts are not counted toward the 44 builder packs. The 44 count applies
+only to packs attached to `personal agent builder skills`.
 
 ## Stage 3 · `personal.<subject>.*` 빈 뼈대 14개
 
@@ -169,6 +171,8 @@ Next action: run skill 15 on a real session | wire hooks (docs/hooks-setup.md) |
 - bootstrap 중 `Project Not Found` 는 최종 실패가 아니라 Stage 1 ensure/retry 로 회복되어야 합니다.
 - 프로젝트만 있고 팩이 없으면 실패입니다: Stage 2 의 44 builder packs 와 Stage 3 의 14 shell packs
   가 모두 생성/연결되어야 합니다.
+- Evidence archive artifacts, bootstrap reports, review boards, and session packs do not count
+  toward the 44 builder packs.
 - 개인 에이전트 프로젝트의 어떤 팩에도 레코드가 없어야 합니다(뼈대 선언문뿐).
 
 ## 인접 문서

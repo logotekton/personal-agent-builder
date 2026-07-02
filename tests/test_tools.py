@@ -2031,6 +2031,8 @@ class TestBootstrapPlanIt28(unittest.TestCase):
         self.assertIn("counts.builder_packs", text)
         self.assertIn("Stage 3 완료 게이트", text)
         self.assertIn("shell pack 이 0개인 상태는 성공이 아닙니다", text)
+        self.assertIn("Evidence archive artifacts are not counted toward the 44 builder packs", text)
+        self.assertIn("bootstrap reports, review boards, and session packs do not count", text)
 
 
 if __name__ == "__main__":
