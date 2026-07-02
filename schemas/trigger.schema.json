@@ -17,7 +17,8 @@
       "enum": [
         "evidence_capture", "session_mining", "elicitation_questioning", "diff_mining",
         "candidate_extraction", "scope_context", "confirmation_gate", "pack_router",
-        "privacy_boundary", "agent_compiler", "evaluation_drift", "crab_orchestration"
+        "privacy_boundary", "agent_compiler", "evaluation_drift", "crab_orchestration",
+        "tacit_knowledge_mining", "ingest_decision_gate"
       ]
     },
     "signal": {
