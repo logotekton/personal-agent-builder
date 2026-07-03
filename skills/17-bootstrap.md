@@ -54,9 +54,15 @@
 | `personal agent evidence` | 증거 아카이브 — 세션 증거·pending 후보 보드 (비계) | `personal_agent_evidence_archive` |
 | `personal agent` | 개인 에이전트 — 승인된 14팩 + 런타임 어댑터 | `personal_agent_canonical` |
 
-절차: `opencrab_project_manage(action=list)` 로 세 이름을 조회 → 없는 것만
-`action=create` (description 에 역할 한 줄, metadata 에 위 role). 이름은 소유자가 바꿔도
-되지만 **세 층의 분리 자체는 계약**입니다([spec/07 불변식](../spec/07-opencrab-9space-crosswalk.md)).
+절차: `opencrab_project_manage(action=list)` 로 **먼저 `metadata.role` 로 세 층을 매칭**합니다 —
+role 이 일치하는 프로젝트가 있으면 *이름과 무관하게* 그 프로젝트를 해당 층으로 채택하고, role
+매칭이 없는 층만 기본 이름으로 조회한 뒤, 그래도 없으면 `action=create` (description 에 역할 한
+줄, metadata 에 위 role). 이름은 소유자가 바꿔도 되지만 **세 층의 분리 자체는 계약**입니다
+([spec/07 불변식](../spec/07-opencrab-9space-crosswalk.md)).
+
+**이름보다 role 이 우선인 이유:** 소유자가 프로젝트 이름을 바꾼 뒤 복구 규칙이 기본 이름으로
+ensure 하면 **같은 층이 두 개** 생깁니다 — role 매칭이 그 중복 생성을 차단합니다. metadata.role
+이 없는 구버전 프로젝트는 이름 매칭으로 폴백하되, 채택하는 시점에 role 을 채워 넣습니다.
 
 **Stage 1 은 하드 프리플라이트입니다.** Stage 2 이후의 어떤 `opencrab_search_packs`,
 `opencrab_ingest_text`, `opencrab_pack_update`, `add_packs` 호출도 세 프로젝트가 모두
@@ -169,6 +175,7 @@ Next action: run skill 15 on a real session | wire hooks (docs/hooks-setup.md) |
 - `python tools/bootstrap_plan.py .` 의 합계와 실제 생성/건너뜀 수의 합이 일치해야 합니다.
 - `opencrab_project_manage(action=list)` 에 세 프로젝트, 빌더에 44팩, 개인 에이전트에 14뼈대.
 - bootstrap 중 `Project Not Found` 는 최종 실패가 아니라 Stage 1 ensure/retry 로 회복되어야 합니다.
+- 이름을 바꾼 프로젝트가 있어도 층 중복이 생기면 안 됩니다: ensure 는 항상 `metadata.role` 우선 매칭.
 - 프로젝트만 있고 팩이 없으면 실패입니다: Stage 2 의 44 builder packs 와 Stage 3 의 14 shell packs
   가 모두 생성/연결되어야 합니다.
 - Evidence archive artifacts, bootstrap reports, review boards, and session packs do not count

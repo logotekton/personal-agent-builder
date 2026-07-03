@@ -2022,6 +2022,9 @@ class TestBootstrapPlanIt28(unittest.TestCase):
         self.assertIn("Project Not Found 복구 규칙", text)
         self.assertIn("Stage 1 을 다시 실행", text)
         self.assertIn("한 번 재시도", text)
+        # role-first ensure: renamed projects must not yield a duplicate layer on recovery
+        self.assertIn("이름보다 role 이 우선", text)
+        self.assertIn("같은 층이 두 개", text)
 
     def test_bootstrap_skill_forbids_project_only_success(self):
         with open(os.path.join(REPO, "skills", "17-bootstrap.md"), encoding="utf-8") as fh:

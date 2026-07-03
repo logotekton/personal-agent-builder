@@ -21,6 +21,24 @@
 
 ## [Unreleased]
 
+### 부트스트랩 실사용 피드백 라운드 — Not Found 복구·완료 게이트·role 매칭 (it.29)
+> 신규 사용자의 실제 설치 실패("Project Not Found")에서 시작된 라운드. 소유자 커밋 4건 +
+> 검토 발견 1건 해소.
+- **[Fixed] (소유자)** `bootstrap_plan` 경로 정규화 — Windows 에서 `os.path.relpath` 가
+  백슬래시를 내놓아 plan JSON 의 OS 간 결정론이 깨지던 버그(`_repo_rel`, 무백슬래시 불변식
+  테스트 잠금). it.28 코드의 이식성 결함을 소유자 독립 검토가 포착.
+- **[Added] (소유자)** Stage 1 하드 프리플라이트 + `Project Not Found` 복구 규칙 — 프로젝트
+  존재·id 캐시 전 Stage 2+ 호출 금지; Not Found 는 사용자 실패가 아니라 ensure 누락으로
+  재정의(Stage 1 재실행 → id 재확보 → 1회 재시도); 사용자에게 되묻기 금지. doc-contract
+  테스트로 문구 잠금.
+- **[Added] (소유자)** 완료 게이트 — "프로젝트만 만들고 끝"은 실패(`NO (incomplete)`):
+  Stage 2 는 plan 의 44 builder packs 전부, Stage 3 은 14 shell 전부가 생성/연결되어야 YES.
+  evidence 산출물(보고서·리뷰보드·세션 팩)은 44 에 불포함.
+- **[Added]** Stage 1 ensure 를 `metadata.role` 우선 매칭으로 — 이름을 바꾼 소유자 환경에서
+  복구 규칙이 기본 이름으로 재생성해 같은 층이 두 개 생기는 엣지 차단(role 없는 구버전
+  프로젝트는 이름 폴백 + role 채움). 검토 발견 해소.
+
+
 ### 부트스트랩 어댑터 — fresh clone → OpenCrab 3층 토폴로지 (it.28)
 > "처음 이 레포를 접하는 사용자" 스토리를 문서에서 실행 가능한 절차로. 발화 모드는
 > 에이전트가 정하지 않고 **소유자가 선택**한다(A 명령형[기본]/B 훅 자동/C 수동 —
