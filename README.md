@@ -1,21 +1,11 @@
 # Personal Agent Builder
 
-> **EN summary** — A method and an open schema for making explicit *what you tacitly know* and
-> *how you consistently think, decide, and work* — **including the parts of yourself you can't
-> consciously articulate** — captured from real sessions with an AI agent as evidence-bound
-> ontology packs. The first deliverable is the **map itself**: an inspectable, evidence-bound
-> model of your tacit self that you can read, question, and watch fill in — *seeing the you that
-> even you don't fully know*. That map can then be **compiled into a Personal Agent** — a
-> controlled working-self that acts the way **you** would approve *where it has your evidence*,
-> and **abstains** (rather than faking you with population averages) everywhere else — but the
-> agent is the *materialized* self-map, downstream of the point, not the point. It is built from
-> *observed behavior*, not guessed psychology: a verbal self-description is carried as a low-trust,
-> draft-only signal, never mistaken for behavioral evidence, and "the agent is becoming you" is a
-> reviewed application claim, not an inherited fact. This maps a **working-self**, **not a
-> whole-person digital twin**. This repo is the open specification: the builder skills, the 14
-> user ontology packs, the privacy model, the evaluation loop, and a measurable convergence model.
-> Built on the [OpenCrab](https://opencrab.ai) ontology platform. Contributions welcome — see
-> [CONTRIBUTING](./CONTRIBUTING.md).
+> **EN:** Personal Agent Builder is an open method and schema for turning observed decisions
+> and corrections into a scoped, reviewable self-map, with a downstream Personal Agent.
+> Its next design step records how expressions are interpreted in context, keeps current intent
+> separate from historical patterns, and evaluates both task quality and the effort of explaining.
+> The September 2026 OpenCrab extensions are documented below; they are not yet a repository-wide
+> schema migration or an automatic host runtime. Built on [OpenCrab](https://opencrab.ai).
 
 ---
 
@@ -38,8 +28,8 @@
 > Agent)로 컴파일**될 수 있다. 단, **첫 산출물은 에이전트가 아니라 지도 자체**다.
 
 추측으로 만든 "AI 페르소나"가 아닙니다. 매 항목이 **실제 증거**(세션, 교정, 파일, 결정
-기록)에 묶이고, **당신의 승인**을 거친 뒤에야 지도에 올라갑니다. 그래서 이 지도(와 그것으로
-컴파일된 에이전트)는 "왜 그렇게 했어?"라는 질문에 항상 답할 수 있습니다 — 근거를 가리키며.
+기록)에 묶이고, **당신의 승인**을 거친 뒤에야 지도에 올라갑니다. 이 지도와 에이전트는 "왜 그렇게 했어?"라는 질문에 원래 근거와 해석 과정을 제시하는 것을 목표로 합니다.
+근거 필드의 존재만으로 원문 연결이나 해석의 정확성이 보장되지는 않으므로, 실제 추적 가능성을 검증해야 합니다.
 그리고 이 지도가 *행동하는 대리인*으로 배포되는 순간은 별개의, **사람 검토를 요하는 한 걸음**
 입니다(거울 → 대리인; 아래 [경계](#거울이냐-대리인이냐--자기명시화가-먼저다) 참조).
 
@@ -75,9 +65,9 @@
                     └──────► 다시 증거로 (루프)
 ```
 
-14개의 팩이 채워질수록 그림 가운데의 지도는 점점 더 명시적인 **당신**이 됩니다 — *당신도 몰랐던
-당신*까지. 그 "점점 더"를 우리는 추측이 아니라 [**수렴 지표**](./spec/06-convergence-model.md)로
-측정합니다(얼마나 더 많은 암묵지가 *명시·증거화*됐는가).
+팩이 채워지면 검토할 수 있는 작업 패턴이 늘어납니다. [수렴 지표](./spec/06-convergence-model.md)는
+기록의 범위와 정합성을 살피는 도구이며, 팩 수나 충실도만으로 개인 이해의 정확성을 증명하지는 않습니다.
+새로운 작업에서 의도를 이해하는지, 사용자의 설명·수정 부담이 줄었는지를 별도로 평가해야 합니다.
 
 단, 지도는 *당신의 증거가 있는 곳에서만* 당신을 그리고, 없는 곳에서는 평균값으로 둘러대지 않고
 **비워 두거나 묻습니다**(de-averaging). 그래서 이것은 *위임 가능한 '일하는 자아'의 지도*이지
@@ -98,23 +88,24 @@
 | 검토 | 사람이 지도를 읽고 판단 | "becoming you"는 사람 검토 요하는 적용주장(G·[01 §7.1](./spec/01-kernel-schema.md)) |
 
 > **정직한 경계.** 거울로 쓰는 한, "충실도만 재고 *질*은 안 잰다"는 것은 결함이 아니라 설계입니다 —
-> 거울은 *있는 그대로* 비추고, 좋은가/나쁜가의 규범 판단은 (이제 자기를 명시적으로 본) **당신** 몫입니다.
+> 지도에도 자료 선택과 해석의 편향이 들어갈 수 있습니다. 기록의 정확성을 검토하고,
+> 그 패턴을 유지할지 바꿀지 판단하는 주체는 **당신**입니다.
 > 그러나 지도를 *대리인으로 배포*하는 순간, 시스템은 당신의 패턴·편향을 traceability=1.0 인용과 함께
 > **자신감 있게 재생산**하고 *당신 이름으로 행동*합니다 — 그때 의존·책임 귀속·편향 증폭 같은 *인간적
 > 결과*가 들어옵니다. 이 저장소의 게이트·경계·기권·draft-only 는 *기술적* 정합(에이전트가 당신을
 > **틀리게** 아는 것)을 막지, *충실히 당신이라서* 생기는 결과를 판단해 주지 않습니다. 그래서 대리인
-> 배포는 의도적·검토된 한 걸음으로 남겨 둡니다. 자기명시화에는 이 부담이 따라오지 않습니다.
+> 배포는 의도적·검토된 한 걸음으로 남겨 둡니다. 자기명시화 단계에서도 잘못된 해석을 정정하고 과거 기록에 자신을 고정하지 않을 여지가 필요합니다.
 
 ## 이 저장소에 있는 것
 
 | 폴더 | 내용 |
 |------|------|
 | [`docs/`](./docs) | **다른 사람을 위한 설명서** — 개념·목적·전체 절차·사용자 개입 시점으로 자기 개인 에이전트를 만드는 법 ([build-your-personal-agent](./docs/build-your-personal-agent.md)) + 훅 배선 설정([hooks-setup](./docs/hooks-setup.md)) |
-| [`.claude/`](./.claude), [`.codex/`](./.codex) | 커밋된 **훅 설정** — Claude Code(`settings.json`)·Codex CLI(`config.toml`)에서 자동 포착을 가동하는 배선 + 공유 스텁 [`tools/pab`](./tools/pab) (현재 STUB) |
+| [`.claude/`](./.claude), [`.codex/`](./.codex) | 커밋된 **훅 설정** — Claude Code(`settings.json`)·Codex CLI(`config.toml`)에서 자동 포착을 위한 배선 예시 + 공유 스텁 [`tools/pab`](./tools/pab) (현재 STUB) |
 | [`spec/`](./spec) | 시스템 전체 사양 — 커널 스키마, 빌더 파이프라인, 팩 카탈로그, 프라이버시, 평가, **수렴 모델**, 9-space 크로스워크, 네이밍, **트리거**, 중복 억제·병합, **확인 정책** |
 | [`schemas/`](./schemas) | 14개 user 온톨로지 팩의 JSON Schema + 통합 베이스 레코드 + 후보/평가/**트리거** 스키마 (기계 검증용) |
 | [`skills/`](./skills) | 17개 빌더 스킬 문서(핵심 13 + 확장 2: 암묵지 채굴·ingest 판정 + 어댑터 2: **호스트 배선**, **부트스트랩**) — 암묵지를 팩으로 바꾸는 *방법*, 트리거 배선, fresh clone → OpenCrab 3-프로젝트 프로비저닝 |
-| [`examples/logotekton/`](./examples/logotekton) | 처음부터 끝까지 동작하는 실제 인스턴스 예제 |
+| [`examples/logotekton/`](./examples/logotekton) | 레코드 검증·참조 컴파일을 재현하는 인스턴스 예제 |
 | [`templates/`](./templates) | 새 사용자가 자기 에이전트를 시작할 수 있는 **빈 채우기 템플릿** + [QUICKSTART](./templates/QUICKSTART.md) |
 | [`tools/`](./tools) | 결정론적 스크립트 — 스키마 검증(`validate_packs`), 수렴 지표(`convergence_report`), 중복 신호(`dedup_check`), dedup/병합 actuator(`pab_merge`), 컨텍스트 선택 참조 술어(`context_select`), 런타임 어댑터 참조 컴파일러(`compile_adapter`), 레코드↔JSON Schema 대조(`check_schemas`)·스킬 트리거 블록 계약 검사(`check_triggers`)·문서 링크·커맨드 무결성 가드(`check_anchors`·`check_commands`)·부트스트랩 인벤토리 계획(`bootstrap_plan`). 모두 테스트로 잠김 |
 
@@ -202,7 +193,82 @@
 
 > **정직한 한계.** 라이브 자동 포착/컴파일러([`tools/pab`](./tools/pab))는 아직 **STUB**입니다. 위
 > 도구들은 테스트로 잠긴 *참조 구현*이며(스키마·지표·선택·조립을 결정론적으로 재현), 실제 호스트
-> 런타임 배선은 남은 작업입니다. 끝까지 돌아가는 실증 예제 → [`examples/logotekton/`](./examples/logotekton).
+> 런타임 배선은 남은 작업입니다. 참조 도구로 검증하는 예제 → [`examples/logotekton/`](./examples/logotekton).
+
+## 의미 해석과 개인화 — 2026-09-10 설계 보완
+
+이 절은 OpenCrab의 기존 빌더 7팩에 반영한 `PAB-20260910-SEMANTICS-*` 보완을 설명합니다.
+**빌더 절차의 변경이며, 이 README 수정이 저장소의 스키마·컴파일러를 함께 변경하는 것은 아닙니다.**
+기존 v0.3 파일은 현재 구현 계약이고, 아래 새 기록 형식은 정합화·검증 후 도입할 설계입니다.
+
+| 관점 | 개인 에이전트에서 다루는 질문 |
+|---|---|
+| 철학 | 기록으로 무엇을 주장할 수 있는가? 승인·사실·안정된 성향을 어떻게 구분하는가? |
+| 기호학 | 말·이미지·산출물에서 사용자가 읽은 의미는 무엇인가? |
+| 언어학 | 지시·평가·인용·가정, 생략된 대상과 대화 맥락을 어떻게 구분하는가? |
+| 지식공학 | 해석을 근거와 연결하고, 검토·저장·실행·수정하는 절차는 무엇인가? |
+
+### 행동 기록, 현재 의도, 원하는 변화
+
+- **관찰된 패턴**: 과거 행동에 근거한 조건부 기본값입니다.
+- **현재 의도**: 지금 작업에 대한 명시적 지시입니다. 승인된 작업 범위에서 즉시 적용할 수 있으며,
+  과거 선호보다 우선합니다. 영구적인 성향의 증거로 바꾸지 않습니다.
+- **원하는 변화**: 앞으로 시도하거나 바꾸고 싶은 방향입니다. 이미 달성한 특성으로 기록하지 않습니다.
+
+자기서술을 행동 증거로 승격하지 않는 기존 원칙은 유지합니다. 다만 그 원칙을 이유로 현재의 직접 지시까지
+무시해서는 안 됩니다. 이 분리는 OpenCrab 설계에 반영됐으며 저장소의 새 채널 스키마·자동 처리는 후속 작업입니다.
+사용자의 승인은 해당 맥락의 뜻을 확인한 것이며, 반복성이나 객관적 사실까지 증명하지 않습니다.
+
+### 해석 기록과 정정
+
+예를 들어 “짧게”는 시간이 없다는 뜻, 중복을 줄이라는 뜻, 결론을 먼저 달라는 뜻일 수 있습니다.
+한 번의 표현을 곧바로 “항상 짧은 답을 선호한다”는 규칙으로 만들지 않습니다.
+
+제안된 `InterpretationRecord`는 원래 신호의 위치, 대화·산출물 참조, 작업·대상·청중·시간,
+발화 종류, 가능한 해석, 선택 근거, 미해결 여부, 적용 조건과 예외, 검토 시점, 대체한 기록을 보존합니다.
+사진은 파일·영역, 음성은 구간을 참조하고 사용자가 중요하게 본 특성을 구분합니다.
+이미지를 골랐다는 사실만으로 색·구도·분위기 중 무엇을 선호했는지 확정하지 않습니다.
+
+상세 해석은 증거 아카이브에 보관하고, 재사용할 개인 규칙만 기존 확인 게이트를 거쳐 정식 기억에 넣습니다.
+명백한 뜻에 억지 대안을 만들지 않으며, 행동을 바꾸는 모호함만 해결합니다.
+비가역 행동이나 권한에 영향을 주는 모호함은 확인하고, 되돌릴 수 있는 가벼운 작업은 잠정 해석을 밝힌 뒤
+결과를 통해 수정할 수 있습니다. 이미 받은 승인을 반복해서 요구하지 않습니다.
+
+### 의미 관계와 실행 범위
+
+설계에서 다루는 관계는 `supported_by`, `contradicts`, `derived_from`, `applies_in`,
+`supersedes`입니다. 각 관계는 식별 가능한 양 끝점, 근거, 적용 범위와 검토 상태를 가져야 합니다.
+존재하지 않는 참조와 순환 대체는 거부하며, 다른 범위의 양립 가능한 규칙은 유지합니다.
+
+문서의 키워드 `mentions`나 공통 주제 `shared_topic`은 근거나 반박 관계의 증명이 아닙니다.
+현재 보완은 구조화된 **문서 관계 기록**을 정의합니다. 네이티브 그래프 관계 생성은 별도 쓰기 기능과
+재조회 검증이 필요하며, 팩 적재 성공만으로 구현됐다고 보고하지 않습니다.
+
+### 의미 이해와 토큰 효율 평가
+
+설계된 합성 평가 사례는 10개입니다. 개인 성향 데이터로 적재하지 않습니다.
+
+| 사례 | 검증할 행동 |
+|---|---|
+| SEM01 맥락 대비 | 같은 “짧게”라도 시간 제약과 중복 제거를 구분 |
+| SEM02 다른 표현 | “결론부터”와 “추천안 먼저”의 공통 목적 파악 |
+| SEM03 지시 대상 | 여러 초안 뒤의 “지난번처럼”을 임의로 특정하지 않음 |
+| SEM04 이미지 이유 | 같은 이미지 선택에서도 서로 다른 선택 이유 보존 |
+| SEM05 발화 종류 | 문서 속 인용 명령과 사용자의 실제 지시 구분 |
+| SEM06 현재 의도 | 과거 간결성 선호가 현재의 상세 설명 요청을 막지 않음 |
+| SEM07 정정 | 틀린 해석만 대체하고 근거·유효한 규칙은 보존 |
+| SEM08 모르는 취향 | 증거 없는 선호를 만들어내지 않음 |
+| SEM09 개정 규칙 | 오래된 출력 형식 대신 적용 가능한 최신 대체 규칙 사용 |
+| SEM10 관계 무결성 | 잘못된 참조·순환 대체·키워드를 근거로 쓰는 오류 거부 |
+
+동일한 모델·과제·도구 조건에서 **A: 개인 기억 없음 / B: 짧은 수동 프로필 / C: PAB**를 비교합니다.
+학습에 쓰지 않은 표현과 반복 시행을 포함하고, 출력 품질·사용자 설명 및 수정 노력·불필요한 질문·
+오래된 규칙 사용을 기록합니다. 허용 오차는 실험 전에 정하고 실패 사례를 함께 보고합니다.
+
+토큰은 검색·해석·조립·작업·평가·재시도·유지보수를 포함해 셉니다.
+실측 사용량과 추정치, 캐시 비용과 비캐시 비용을 구분합니다.
+상세 이력과 탈락한 해석은 필요한 경우에만 불러오고, 실행에는 범위·예외·근거가 남은 최소 규칙을 전달합니다.
+**평가 사례와 절차를 정의한 상태이며, 이번 보완으로 개인화 효과나 토큰 절감률이 측정된 것은 아닙니다.**
 
 ## 상태
 
@@ -215,7 +281,14 @@
   [`docs/open-design-decisions.md`](./docs/open-design-decisions.md)에 정리돼 있습니다.
 - **정직한 한계**: 라이브 자동 포착/컴파일러([`tools/pab`](./tools/pab))는 아직 STUB 입니다 — 검증된 것은
   스키마·지표·선택 수학(참조 술어)이고, 호스트 런타임 배선이 남은 *몸-작업*입니다.
-- 다음: 라이브 컴파일러 배선, 더 많은 평가 케이스, 다중 사용자 예제, 자동 채굴 도구.
+- **2026-09-10 외부 연동 파일럿**: 별도 사용자 로컬 Codex 스킬에서 승인 기록 일부를 선택하고
+  최신성·거절 상태를 확인하는 OpenCrab 연결을 검증했습니다. 설치 시 15개 결정론적 테스트와
+  라이브 선택 결과를 확인했지만, 해당 설치 파일은 이 저장소 배포물에 포함되지 않습니다.
+  저장소를 복제하는 것만으로 설치되지 않으며, 자동 포착도 활성화되지 않습니다.
+- **의미 해석 보완**: OpenCrab 기존 빌더 7팩의 절차·기록 형식·평가 기준 업데이트 및 본문 재조회 완료.
+  저장소 스키마 이전, 새 해석 형식 자동 처리, 네이티브 의미 관계 생성, 모델 비교 실험은 미완료입니다.
+- 다음: 의미 해석 설계와 스키마·스킬·컴파일러 정합화, 관계 검증, A/B/C 실험, 배포 가능한 연결 패키지,
+  다중 사용자 예제와 선택적 자동 채굴 도구.
   [`CHANGELOG.md`](./CHANGELOG.md) 참고.
 
 ## 라이선스
